@@ -1,0 +1,100 @@
+'''For assigning, transferring, and removing properties of RDKit objects'''
+
+from typing import Any, TypeVar
+from copy import deepcopy
+
+from .rdtypes import RDMol, RDObj, isrdobj
+from ..genutils.decorators.functional import optional_in_place
+
+
+# REFERENCE TABLES FOR ENFORCING C++ TYPING THAT RDKit ENFORCES
+RDPROP_GETTERS = {
+    str   : 'GetProp',
+    bool  : 'GetBoolProp',
+    int   : 'GetIntProp',
+    float : 'GetDoubleProp'
+}
+RDPROP_SETTERS = {
+    str   : 'SetProp',
+    bool  : 'SetBoolProp',
+    int   : 'SetIntProp',
+    float : 'SetDoubleProp'
+}
+
+# PROPERTY INSPECTION FUNCTIONS
+def atom_ids_with_prop(rdmol : RDMol, prop_name : str) -> list[int]:
+    '''Returns list of atom IDs of atom which have a particular property assigned'''
+    return [
+        atom.GetIdx()
+            for atom in rdmol.GetAtoms()
+                if atom.HasProp(prop_name)
+    ]
+
+def aggregate_atom_prop(rdmol : RDMol, prop : str, prop_type : type=str) -> list[Any]:
+    '''Collects the values of a given Prop across all atoms in an RDKit molecule'''
+    getter_type = RDPROP_GETTERS[prop_type]
+    return [
+        getattr(atom, getter_type)(prop)
+            for atom in rdmol.GetAtoms()
+    ]
+
+# PROPERTY TRANSFER FUNCTIONS
+R = TypeVar('R') # generic type to represent an RDKit object
+def copy_rd_props(from_rdobj : R, to_rdobj : R) -> None: # NOTE : no need to incorporate typing info, as RDKit objects can correctly interpret typed strings
+    '''For copying properties between a pair of RDKit Atoms or Mols'''
+    # NOTE : avoid use of GetPropsAsDict() to avoid errors from restrictive C++ typing
+    assert isrdobj(from_rdobj) and isrdobj(to_rdobj) # verify that both objects passed are RDKit objects...
+    assert type(from_rdobj) == type(to_rdobj)        # ...AND that both objects are the same type of RDKit object
+
+    for prop in from_rdobj.GetPropNames():
+        to_rdobj.SetProp(prop, from_rdobj.GetProp(prop))
+
+@optional_in_place
+def assign_props_from_dict(prop_dict : dict[str, Any], rdobj : RDObj, preserve_type : bool=True) -> None:
+    '''Copies all attributes from a strng-keyed dictionary of properties as Props of an RDKit object'''
+    for key, value in prop_dict.items():
+        if (type(value) not in RDPROP_SETTERS) or (not preserve_type): # set as string if type is unspecified or if explicitly requested to
+            rdobj.SetProp(key, str(value))
+        else:
+            setter = getattr(rdobj, RDPROP_SETTERS[type(value)]) # use the atom's setter for the appropriate type
+            setter(key, value) # pass key and value to setter method
+
+# PROPERTY REMOVAL FUNCTIONS
+@optional_in_place
+def clear_atom_props(rdmol : RDMol) -> None:
+    '''Wipe properties of all atoms in a molecule'''
+    for atom in rdmol.GetAtoms():
+        for prop_name in atom.GetPropNames():
+            atom.ClearProp(prop_name)
+
+# PROPERTY COMPARISON FUNCTIONS
+def difference_rdmol(rdmol_1 : RDMol, rdmol_2 : RDMol, prop : str='PartialCharge', remove_map_nums : bool=True) -> RDMol:
+    '''
+    Takes two RDKit Mols (presumed to have the same structure and atom map numbers) and the name of a property 
+    whose partial charges are the differences betwwen the two Mols' charges (atomwise)
+    
+    Assumes that the property in question is numeric (i.e. can be interpreted as a float)
+    '''
+    diff_mol = deepcopy(rdmol_1) # duplicate first molecule as template
+    atom_mapping = diff_mol.GetSubstructMatch(rdmol_2) # map 
+    if (not atom_mapping) or (len(atom_mapping) != diff_mol.GetNumAtoms()):
+        raise ValueError('Substructure match failed') # TODO : make this a SubstructureMatchFailedError, from polymer.exceptions
+
+    all_deltas = []
+    for rdatom_idx_1, rdatom_2 in zip(atom_mapping, rdmol_2.GetAtoms()):
+        rdatom_1 = rdmol_1.GetAtomWithIdx(rdatom_idx_1)
+        diff_atom = diff_mol.GetAtomWithIdx(rdatom_idx_1) # same index, since it is a deep copy
+
+        delta = rdatom_1.GetDoubleProp(prop) - rdatom_2.GetDoubleProp(prop)
+        diff_atom.SetDoubleProp(f'Delta{prop}', delta)
+        all_deltas.append(delta)
+
+        diff_atom.ClearProp(prop) # reset property value from original copy to avoid confusion
+        if remove_map_nums:
+            diff_atom.ClearProp('molAtomMapNumber') # Remove atom map num for greater visual clarity when drawing
+
+    diff_mol.SetProp(f'Delta{prop}s', str(all_deltas)) # label stringified version of property list (can be de-stringified via ast.literal_eval)
+    diff_mol.SetDoubleProp(f'Delta{prop}Min', min(all_deltas)) # label minimal property value for ease of reference
+    diff_mol.SetDoubleProp(f'Delta{prop}Max', max(all_deltas)) # label maximal property value for ease of reference
+
+    return diff_mol
