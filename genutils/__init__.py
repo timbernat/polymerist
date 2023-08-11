@@ -1,0 +1,1 @@
+'''General-purpose utilities constructed only with Python builtins + numpy'''
