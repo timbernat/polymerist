@@ -5,6 +5,7 @@ from typing import Any, Callable, Generator, Iterable, TypeVar, Union
 from itertools import islice, product as cartesian_product
 from collections import deque
 
+from .typetools import Args, KWArgs
 from .decorators.functional import optional_in_place
 
 
@@ -57,7 +58,7 @@ def asiterable(arg_val : Union[O, Iterable[O]]) -> Iterable[O]:
 	return arg_val
 
 @optional_in_place
-def modify_dict(path_dict : dict[K, V], modifier_fn : Callable[[K, V], Any]) -> None:
+def modify_dict(path_dict : dict[K, V], modifier_fn : Callable[[K, V, Args, KWArgs], Any]) -> None:
     '''Recursively modifies all values in a dict in-place according to some function'''
     for key, val in path_dict.items():
         if isinstance(val, dict): # recursive call if sub-values are also dicts with Paths

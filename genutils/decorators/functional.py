@@ -1,13 +1,10 @@
 '''Decorators for modifying functions'''
 
-from typing import Callable, Optional, TypeVar
+from typing import Callable, Optional
 from copy import deepcopy
 
+from ..typetools import O, Args, KWArgs
 
-O = TypeVar('O') # generic type for an object passed to a function
-F = TypeVar('F') # generic type for a function
-Args   = TypeVar('Args'  ) # generic type for arguments to a function
-KWArgs = TypeVar('KWArgs') # generic type for keyword arguments to a function
 
 def optional_in_place(funct : Callable[[O, Args, KWArgs], None]) -> Callable[[O, Args, bool, KWArgs], Optional[O]]:
     '''Decorator function for allowing in-place (writeable) functions which modify object attributes

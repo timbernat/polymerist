@@ -6,6 +6,8 @@ from abc import ABC, abstractstaticmethod
 import json
 from pathlib import Path
 
+from ..typetools import T, Args, KWArgs
+
 
 # JSON-SPECIFIC FUNCTIONS
 JSONSerializable = Union[str, bool, int, float, tuple, list, dict] 
@@ -52,7 +54,7 @@ class JSONifiable(ABC): # TODO : implement encode/decode methods as identity ret
         return cls(**params)
     
     @staticmethod
-    def update_checkpoint(funct : Callable) -> Callable[[Any], Optional[Any]]: # NOTE : this deliberately doesn't have a "self" arg!
+    def update_checkpoint(funct : Callable[[Any], T]) -> Callable[[Any, Args, KWArgs], T]: # NOTE : this deliberately doesn't have a "self" arg!
         '''Decorator for updating the on-disc checkpoint file after a function updates a Polymer attribute'''
         def update_fn(self, *args, **kwargs) -> Optional[Any]:
             ret_val = funct(self, *args, **kwargs) # need temporary value so update call can be made before returning
