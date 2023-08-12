@@ -44,6 +44,19 @@ def register_submodules(module : ModuleType, recursive : bool=True, blacklist : 
         if submodule_ispkg and recursive:
             register_submodules(submodule, recursive=recursive, blacklist=blacklist)
 
+def module_hierarchy(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None, _indent_level : int=0, _string_agg : Optional[list[str]]=None) -> str:
+    '''Returns a string representing a module hierarchy, with each level of indentation representing one more level of nesting'''
+    if _string_agg is None:
+        _string_agg = []
+    tabs = _indent_level*'\t'
+
+    for (submodule, submodule_name, submodule_ispkg) in iter_submodule_info(module, recursive=False, blacklist=blacklist): # initially only iterate on one level to keep track of parent module
+        _string_agg.append(f'{tabs}{submodule_name}')
+        if submodule_ispkg and recursive:
+            _partial = module_hierarchy(submodule, recursive=recursive, blacklist=blacklist, _indent_level=_indent_level + 1, _string_agg=_string_agg) # retrieve partial output
+
+    return '\n'.join(_string_agg)
+
 def submodule_loggers(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None) -> dict[str, Optional[logging.Logger]]:
     '''Produce a dict of any Logger objects present in each submodule. Can optionally generate recursively and blacklist certain modules'''
     return {
