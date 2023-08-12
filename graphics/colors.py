@@ -2,7 +2,6 @@
 
 from typing import TypeAlias, Union
 
-
 RGB : TypeAlias = tuple[int, int, int]
 RGBA : TypeAlias = tuple[int, int, int, int]
-Color = Union(hex, RGB, RGBA)
+Color = Union[hex, RGB, RGBA] # TODO : add typecheck method

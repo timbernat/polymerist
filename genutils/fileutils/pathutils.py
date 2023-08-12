@@ -15,7 +15,7 @@ def is_empty(path : Path) -> bool:
     return list(path.iterdir()) == [] # can't use "len" for generators : TODO : make this more efficient (i.e. iteration-based) for large directories
 
 
-# PATH CONVERSION FUNCTIONS (FOR CHAGNING BETWEEN TYPES)
+# PATH CONVERSION FUNCTIONS (FOR CHANGING BETWEEN TYPES)
 def aspath(path : Union[str, Path]) -> Path:
 	'''Allow functions which expect Paths to also accept strings'''
 	if not isinstance(path, Path):
