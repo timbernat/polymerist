@@ -7,11 +7,13 @@ import json
 from pathlib import Path
 
 from ..typetools import T, Args, KWArgs
+from ..decorators.functional import allow_string_paths
 
 
 # JSON-SPECIFIC FUNCTIONS
 JSONSerializable = Union[str, bool, int, float, tuple, list, dict] 
 
+@allow_string_paths
 def append_to_json(json_path : Path, **kwargs) -> None:
     '''Add an entry to an existing JSON file'''
     with json_path.open('r') as json_file:
@@ -23,29 +25,31 @@ def append_to_json(json_path : Path, **kwargs) -> None:
         jdat = json.checkpoint(jdat, json_file, indent=4)
 
 # JSON CLASSES
-class JSONifiable(ABC): # TODO : implement encode/decode methods as identity return by default, ditch abstract class behavior
+class JSONifiable: # TODO : implement encode/decode methods as identity return by default, ditch abstract class behavior
     '''Base class which allows a child class to have its attributes written to and from a JSON file on-disc between interpreter sessions
     Children must implement how dict data (i.e. self.__dict__) is encoded to and decoded from JSON formatted dict'''
 
     # JSON encoding and decoding
-    @abstractstaticmethod
+    @staticmethod
     def serialize_json_dict(unser_jdict : dict[Any, Any]) -> dict[str, JSONSerializable]:
         '''For converting selfs __dict__ data into a form that can be serialized to JSON'''
-        pass
+        return unser_jdict # by default, perform no encoding/decoding - child classes can override this 
     
-    @abstractstaticmethod
+    @staticmethod
     def unserialize_json_dict(ser_jdict : dict[str, JSONSerializable]) -> dict[Any, Any]:
         '''For de-serializing JSON-compatible data into a form that the __init__method can accept'''
-        pass
+        return ser_jdict # by default, perform no encoding/decoding - child classes can override this
 
     # File I/O
+    @allow_string_paths
     def to_file(self, savepath : Path) -> None:
         '''Store parameters in a JSON file on disc'''
         assert(savepath.suffix == '.json')
         with savepath.open('w') as dumpfile:
-            json.dump(self.__class__.serialize_json_dict(self.__dict__), dumpfile, indent=4)
+            json.dump(self.serialize_json_dict(self.__dict__), dumpfile, indent=4)
 
     @classmethod
+    @allow_string_paths
     def from_file(cls, loadpath : Path) -> 'JSONifiable':
         assert(loadpath.suffix == '.json')
         with loadpath.open('r') as loadfile:
