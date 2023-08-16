@@ -1,0 +1,1 @@
+'''For representing, generating, and modifying information about groups of monomer fragments'''
