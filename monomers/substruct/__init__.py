@@ -1,0 +1,1 @@
+'''Tools for working with SMARTS string substructures during monomer curation'''
