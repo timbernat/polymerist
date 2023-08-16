@@ -22,15 +22,15 @@ from ..rdutils.rdtypes import RDMol
 def mbmol_from_mono_rdmol(rdmol : RDMol) -> tuple[Compound, list[int]]:
     '''Accepts a monomer-spec-compliant SMARTS string and returns an mbuild Compound and a list of the indices of hydrogen ports'''
     orig_port_ids = get_port_ids(rdmol) # record indices of ports
-    hydrogenate_rdmol_ports(rdmol, in_place=True) # replace ports with Hs to give complete fragments
-    mono_smiles = Chem.MolToSmiles(rdmol) # NOTE : CRITICAL that this be done AFTER hydrogenation (to avoid having ports in SMILES, which mbuild doesn't know how to handle)
+    prot_mol = hydrogenate_rdmol_ports(rdmol, in_place=False) # replace ports with Hs to give complete fragments
+    mono_smiles = Chem.MolToSmiles(prot_mol) # NOTE : CRITICAL that this be done AFTER hydrogenation (to avoid having ports in SMILES, which mbuild doesn't know how to handle)
     
     mb_compound = mb.load(mono_smiles, smiles=True)
     mb_ordered_rdmol = Chem.MolFromSmiles(mb_compound.to_smiles()) # create another molecule which has the same atom ordering as the mbuild Compound
     mb_ordered_rdmol = Chem.AddHs(mb_ordered_rdmol) # mbuild molecules don't have explicit Hs when converting to SMILES (although luckily AddHs adds them in the same order)
     Chem.Kekulize(mb_ordered_rdmol, clearAromaticFlags=True) # need to kekulize in order for aromatic bonds to be properly substructure matched (otherwise, ringed molecules are unsupported)
 
-    mb_isomorphism = mb_ordered_rdmol.GetSubstructMatch(rdmol) # determine mapping between original and mbuild atom indices
+    mb_isomorphism = mb_ordered_rdmol.GetSubstructMatch(prot_mol) # determine mapping between original and mbuild atom indices
     if not mb_isomorphism: # ensure that the structures were in fact able to be matched before attempting backref map
         raise SubstructMatchFailedError
     mb_port_ids = [mb_isomorphism[idx] for idx in orig_port_ids]  # find the indices of the ports in the mbuild molecule
@@ -49,7 +49,6 @@ def mbmol_from_mono_rdmol_2(rdmol : RDMol) -> tuple[Compound, list[int]]:
 
     return mb_compound, port_ids
 
-
 # LINEAR POLYMER BUILDING
 def build_linear_polymer(monomers : MonomerGroup, DOP : int, sequence : str='A', add_Hs : bool=False, reverse_term_labels : bool=False) -> MBPolymer:
     '''Accepts a dict of monomer residue names and SMARTS (as one might find in a monomer JSON)
@@ -66,7 +65,8 @@ def build_linear_polymer(monomers : MonomerGroup, DOP : int, sequence : str='A',
         try: # attempt both methods for mbuild conversion
             mb_monomer, port_ids = mbmol_from_mono_rdmol(monomer)
         except:
-            mb_monomer, port_ids = mbmol_from_mono_rdmol(monomer)
+            mb_monomer, port_ids = mbmol_from_mono_rdmol_2(monomer)
+        print(mb_monomer, port_ids)
         
         if MonomerGroup.is_terminal(monomer):
             chain.add_end_groups(compound=mb_monomer, index=port_ids[0], label=term_labels.pop(), duplicate=False)
