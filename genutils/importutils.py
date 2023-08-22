@@ -24,9 +24,12 @@ def iter_submodule_info(module : ModuleType, recursive : bool=True, blacklist : 
         if submodule_name in blacklist:
             continue # skip over import blacklisted modules
 
-        submodule = importlib.import_module(f'{module.__package__}.{submodule_name}')
-        yield (submodule, submodule_name, submodule_ispkg)
+        try:
+            submodule = importlib.import_module(f'{module.__package__}.{submodule_name}')
+        except ModuleNotFoundError:
+            continue
 
+        yield (submodule, submodule_name, submodule_ispkg)
         if submodule_ispkg and recursive:
             yield from iter_submodule_info(submodule, recursive=True, blacklist=blacklist)
 
