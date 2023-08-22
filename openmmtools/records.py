@@ -22,6 +22,21 @@ from openmm.unit import atmosphere, kelvin
 from ..genutils.fileutils.jsonio import JSONSerializable, JSONifiable
 
 
+DEFAULT_STATE_PROPS = {
+    "step"            : True,
+    "time"            : True,
+    "potentialEnergy" : True,
+    "kineticEnergy"   : True,
+    "totalEnergy"     : True,
+    "temperature"     : True,
+    "volume"          : True,
+    "density"         : True,
+    "speed"           : True,
+    "progress"        : False,
+    "remainingTime"   : False,
+    "elapsedTime"     : False
+}
+
 @dataclass
 class SimulationParameters(JSONifiable):
     '''For recording the parameters used to run an OpenMM Simulation'''
@@ -35,7 +50,7 @@ class SimulationParameters(JSONifiable):
     affix : str = '' # optional descriptive string for simulation
     binary_traj : bool = True  # whether to save trajectory as compact binary (.dcd) or human-readable (.pdb) format
     save_state  : bool = False # whether to save State or Checkpoint when updating simulation checkpoints
-    reported_state_data : dict[str, bool] = field(default_factory=dict)
+    reported_state_data : dict[str, bool] = field(default_factory=lambda : DEFAULT_STATE_PROPS)
 
     timestep       : Quantity = field(default_factory=lambda : (2 * femtosecond)) # just specifying Quantities as default doesn't cut it, since these are (evidently) mutable defaults which dataclasses can't digest
     temperature    : Quantity = field(default_factory=lambda : (300 * kelvin))
