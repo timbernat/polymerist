@@ -25,7 +25,6 @@ def extend_to_methods(dec : Decorator) -> Decorator:
 
         def __call__(self, *args : Args, **kwargs : KWArgs) -> dec.__annotations__.get('return'): # TODO : fix this to reflect the decorator's return signature
             '''Apply decorator to function, then call decorated function'''
-            print('Called dec')
             return dec(self.funct)(*args, **kwargs)
 
         def __get__(self, instance : O, owner : C) -> Callable[[Concatenate[O, P]], R]:
