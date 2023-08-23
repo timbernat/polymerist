@@ -7,7 +7,7 @@ from rdkit import Chem
 
 from ..genutils.fileutils.jsonio import JSONifiable
 from ..rdutils.rdtypes import RDMol
-from ..rdutils.reactions.portlib import num_ports
+from ..rdutils.reactions.portlib import get_num_ports
 
 
 ResidueSmarts : TypeAlias = dict[str, list[str]] # monomer SMARTS strings keyed by residue name
@@ -22,7 +22,7 @@ class MonomerGroup(JSONifiable):
     @staticmethod
     def is_terminal(monomer : RDMol) -> bool:
         '''Determine whether or not a monomer is terminal'''
-        return num_ports(monomer) == 1
+        return get_num_ports(monomer) == 1
 
     # ATTRIBUTE PROPERTIES AND ALIASES
     @property
@@ -89,7 +89,7 @@ class MonomerGroup(JSONifiable):
     def is_branchable(self) -> bool:
         '''Whether it is possible to generate a branched polymer from this set of monomers'''
         return any(
-            num_ports(monomer) > 2
+            get_num_ports(monomer) > 2
                 for (resname, monomer) in self.iter_rdmols
         )
     

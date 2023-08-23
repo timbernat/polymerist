@@ -26,7 +26,7 @@ def get_port_ids(rdmol : RDMol) -> list[int]:
     '''Get indices of all atoms which are ports'''
     return [atom.GetIdx() for atom in get_ports(rdmol)]
 
-def num_ports(rdmol : RDMol) -> int:
+def get_num_ports(rdmol : RDMol) -> int:
     '''Counts the number of port atoms present in a Mol'''
     return iter_len(get_ports(rdmol)) # NOTE : purposely avoid use of "len" to permit general iterators
 
