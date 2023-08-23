@@ -16,9 +16,9 @@ from ..graphics import imageutils, plotutils
 from ..graphics.named_colors import WHITE
            
 
-def set_rdkdraw_size(dim : int, aspect : float=1/1):
+def set_rdkdraw_size(dim : int=300, aspect : float=3/2):
     '''Change image size and shape of RDMol images'''
-    IPythonConsole.molSize = (int(aspect*dim), dim)   # Change image size
+    IPythonConsole.molSize = (int(aspect*dim), dim) # Change IPython image display size
 
 def rdmol_prop_heatmap(rdmol : RDMol, prop : str, cmap : Colormap, norm : Normalize, annotate : bool=False, precision : int=5, img_size : tuple[int, int]=(1_000, 1_000)) -> Image:
     '''Take a charged RDKit Mol and color atoms based on the magnitude of a particular atomwise property'''

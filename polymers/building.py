@@ -13,7 +13,7 @@ from .exceptions import SubstructMatchFailedError, CrosslinkingError
 from .estimation import estimate_chain_len_linear
 from ..monomers.repr import MonomerGroup
 
-from ..rdutils.reactions.ports import get_port_ids, hydrogenate_rdmol_ports
+from ..rdutils.reactions.portlib import get_port_ids, hydrogenate_rdmol_ports
 from ..rdutils.rdconvert import SMILESConverter
 from ..rdutils.rdtypes import RDMol
 
