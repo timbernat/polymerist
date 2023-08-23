@@ -3,7 +3,7 @@
 from rdkit.Chem.rdchem import BondType
 
 from ..labeling.molwise import get_isotopes
-from . import ports
+from . import portlib
 from ..rdtypes import RDMol, RWMol, RDAtom
 from ..rderrors import BondOrderModificationError
 
@@ -15,7 +15,7 @@ from ...genutils.maths.sequences import int_complement
 def bond_order_increasable(rdmol : RDMol, *atom_pair_ids : list[int, int]) -> bool:
     '''Check if both atoms have a free neighboring port'''
     return all(
-        ports.has_neighbor_ports(rdmol.GetAtomWithIdx(atom_id))
+        portlib.has_neighbor_ports(rdmol.GetAtomWithIdx(atom_id))
             for atom_id in atom_pair_ids
     )
 
@@ -45,7 +45,7 @@ def increase_bond_order(rwmol : RWMol, *bond_atom_ids : list[int, int], prioriti
     # remove ports on newly-bonded atoms
     for atom_id in bond_atom_ids: 
         atom = rwmol.GetAtomWithIdx(atom_id)
-        nb_ports = ports.neighbor_ports(atom)
+        nb_ports = portlib.neighbor_ports(atom)
         if prioritize_unlabelled_ports:
             nb_ports = iter(sorted(nb_ports, key=lambda port : bool(port.GetAtomMapNum()))) # sort with unlabelled ports first - make into iter to permit next() call
 
