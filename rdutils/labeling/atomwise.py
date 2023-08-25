@@ -5,7 +5,11 @@ from ..rdtypes import RDAtom
 
 
 # NEIGHBOR ATOM INFO
-def _neighbor_factory_by_condition(condition : Callable[[RDAtom], bool]) -> Callable[[RDAtom], Generator[RDAtom, None, None]]:
+def get_num_bonds(atom : RDAtom) -> int:
+    '''Returns number of explicit bonded connections an atom has (distinct from atom.GetExplicitValence due to bond orders)'''
+    return len(atom.GetBonds())
+
+def _get_neighbor_factory_by_condition(condition : Callable[[RDAtom], bool]) -> Callable[[RDAtom], Generator[RDAtom, None, None]]:
     '''Factory function for generating neighbor-search functions over RDAtoms by a boolean condition'''
     def neighbors_by_condition(atom : RDAtom) -> Generator[RDAtom, None, None]:
         '''Generate all neighboring atoms satisfying a condition'''
