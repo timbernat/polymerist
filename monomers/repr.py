@@ -7,7 +7,7 @@ from rdkit import Chem
 
 from ..genutils.fileutils.jsonio import JSONifiable
 from ..rdutils.rdtypes import RDMol
-from ..rdutils.reactions.portlib import get_num_ports
+from ..rdutils.amalgamation.portlib import get_num_ports
 
 
 ResidueSmarts : TypeAlias = dict[str, list[str]] # monomer SMARTS strings keyed by residue name

@@ -6,7 +6,7 @@ from rdkit import Chem
 from .exceptions import InsufficientChainLengthError
 from ..genutils.iteration import iter_len
 from ..monomers.repr import MonomerGroup
-from ..rdutils.reactions.portlib import get_num_ports
+from ..rdutils.amalgamation.portlib import get_num_ports
 
 
 def estimate_chain_len_linear(monomers : MonomerGroup, DOP : int) -> int:
