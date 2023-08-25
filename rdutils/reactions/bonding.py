@@ -3,7 +3,7 @@
 from rdkit.Chem.rdchem import BondType
 
 from ..labeling.molwise import get_isotopes
-from . import portlib
+from ..amalgamation import portlib
 from ..rdtypes import RDMol, RWMol, RDAtom
 from ..rderrors import BondOrderModificationError
 
@@ -11,7 +11,7 @@ from ...genutils.decorators.functional import optional_in_place
 from ...genutils.maths.sequences import int_complement
 
 
-# CHECK METHODS
+# UP-CONVERTING BONDS
 def bond_order_increasable(rdmol : RDMol, *atom_pair_ids : list[int, int]) -> bool:
     '''Check if both atoms have a free neighboring port'''
     return all(
@@ -19,12 +19,6 @@ def bond_order_increasable(rdmol : RDMol, *atom_pair_ids : list[int, int]) -> bo
             for atom_id in atom_pair_ids
     )
 
-def are_bonded_atoms(rdmol : RDMol, *atom_pair_ids : list[int, int]) -> bool:
-    '''Check if pair of atoms in an RDMol have a bond between then'''
-    return (rdmol.GetBondBetweenAtoms(*atom_pair_ids) is not None)
-bond_order_decreasable = are_bonded_atoms # alias for cohesiveness (can't decrease bond order if no bond exists)
-
-# BOND-ORDER MODIFIERS
 @optional_in_place
 def increase_bond_order(rwmol : RWMol, *bond_atom_ids : list[int, int], prioritize_unlabelled_ports : bool=True) -> None:
     '''Exchange two ports for a bond of one higher order in a modifiable RWMol'''
@@ -45,16 +39,24 @@ def increase_bond_order(rwmol : RWMol, *bond_atom_ids : list[int, int], prioriti
     # remove ports on newly-bonded atoms
     for atom_id in bond_atom_ids: 
         atom = rwmol.GetAtomWithIdx(atom_id)
-        nb_ports = portlib.neighbor_ports(atom)
+        nb_ports = portlib.get_neighbor_ports(atom)
         if prioritize_unlabelled_ports:
             nb_ports = iter(sorted(nb_ports, key=lambda port : bool(port.GetAtomMapNum()))) # sort with unlabelled ports first - make into iter to permit next() call
 
         nb_port = next(nb_ports) # guaranteed not to raise StopIteration by the bond_order_increasable check at the start
         rwmol.RemoveAtom(nb_port.GetIdx())
 
+
+# DOWN-CONVERTING BONDS
+def are_bonded_atoms(rdmol : RDMol, *atom_pair_ids : list[int, int]) -> bool:
+    '''Check if pair of atoms in an RDMol have a bond between then'''
+    return (rdmol.GetBondBetweenAtoms(*atom_pair_ids) is not None)
+bond_order_decreasable = are_bonded_atoms # alias for cohesiveness (can't decrease bond order if no bond exists)
+
 @optional_in_place
-def decrease_bond_order(rwmol : RWMol, *bond_atom_ids : list[int, int], dummyLabels : bool=True) -> RWMol: 
-    '''Exchange a bond for two ports and a bond of lower order'''
+def _decrease_bond_order(rwmol : RWMol, *bond_atom_ids : list[int, int], dummyLabels : bool=True) -> RWMol: 
+    '''Lower the order of a bond between two atoms, raising Expection if no bond exists
+    DOES NOT ENSURE VALENCE OF BONDED ATOMS IS PRESERVED'''
     if not bond_order_decreasable(rwmol, *bond_atom_ids):
         raise BondOrderModificationError
     
@@ -69,12 +71,15 @@ def decrease_bond_order(rwmol : RWMol, *bond_atom_ids : list[int, int], dummyLab
     if new_bond_type is not None:
         rwmol.AddBond(*bond_atom_ids, order=new_bond_type)
     
+@optional_in_place
+def decrease_bond_order(rwmol : RWMol, *bond_atom_ids : list[int, int], new_port_desig : int=0) -> RWMol: 
+    '''Lower the order of a bond between two atoms and insert two new ports in its place, raising Expection if no bond exists'''
+    _decrease_bond_order(rwmol, *bond_atom_ids, in_place=True) # NOTE : must explicitly be called in-place to ensure correct top-level behavior, since this function is also decorated
+    
+    # free_isotope_labels = int_complement(get_isotopes(rwmol, unique=True), bounded=False) # generate unused isotope labels
     # add new ports for broken bond
-    free_isotope_labels = int_complement(get_isotopes(rwmol, unique=True), bounded=False) # generate unused isotope labels
     for atom_id in bond_atom_ids:
         new_port = RDAtom('*') 
-        if dummyLabels: # label with unique isotope number (a la FragmentOnBonds) if specified
-            new_port.SetIsotope(next(free_isotope_labels))
-        
+        new_port.SetIsotope(new_port_desig)
         new_port_id = rwmol.AddAtom(new_port)# insert new port into molecule, taking note of index (TOSELF : ensure that this inserts indices at END of existing ones, could cause unexpected modification if not)
         rwmol.AddBond(atom_id, new_port_id) # bond the atom to the new port
