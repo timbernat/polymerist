@@ -16,10 +16,28 @@ from ..graphics import imageutils, plotutils
 from ..graphics.named_colors import WHITE
            
 
+# GLOBAL PREFERENCES
+def enable_substruct_highlights() -> None:
+    '''Turns on highlighting of found substructures when performing substructure matches'''
+    IPythonConsole.highlightSubstructs = True
+
+def disable_substruct_highlights() -> None:
+    '''Turns off highlighting of found substructures when performing substructure matches'''
+    IPythonConsole.highlightSubstructs = False
+
 def set_rdkdraw_size(dim : int=300, aspect : float=3/2):
     '''Change image size and shape of RDMol images'''
     IPythonConsole.molSize = (int(aspect*dim), dim) # Change IPython image display size
 
+
+# SINGLE-MOLECULE DISPLAY OPTIONS
+def clear_highlights(rdmol : RDMol) -> None:
+    '''Removes the highlighted atoms flags from an RDMol if present'''
+    if hasattr(rdmol, '__sssAtoms'):
+        del rdmol.__sssAtoms
+
+
+# PLOTTING
 def rdmol_prop_heatmap(rdmol : RDMol, prop : str, cmap : Colormap, norm : Normalize, annotate : bool=False, precision : int=5, img_size : tuple[int, int]=(1_000, 1_000)) -> Image:
     '''Take a charged RDKit Mol and color atoms based on the magnitude of a particular atomwise property'''
     colors, prop_vals, atom_nums = {}, [], []
