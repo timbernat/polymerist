@@ -13,7 +13,7 @@ from .exceptions import SubstructMatchFailedError, CrosslinkingError
 from .estimation import estimate_chain_len_linear
 from ..monomers.repr import MonomerGroup
 
-from ..rdutils.amalgamation.portlib import get_port_ids, hydrogenate_rdmol_ports
+from ..rdutils.amalgamation.portlib import get_linker_ids, hydrogenate_rdmol_ports
 from ..rdutils.rdconvert import SMILESConverter
 from ..rdutils.rdtypes import RDMol
 
@@ -25,7 +25,7 @@ def mbmol_from_mono_rdmol(rdmol : RDMol) -> tuple[Compound, list[int]]:
     rdmol = SMILESConverter().convert(rdmol)
     Chem.SanitizeMol(rdmol)
 
-    port_ids = get_port_ids(rdmol) # record indices of ports
+    port_ids = get_linker_ids(rdmol) # record indices of ports
     prot_mol = hydrogenate_rdmol_ports(rdmol, in_place=False) # replace ports with Hs to give complete fragments
     mb_compound = mb.conversion.from_rdkit(prot_mol) # native from_rdkit() method actually appears to preserve atom ordering
 
@@ -33,7 +33,7 @@ def mbmol_from_mono_rdmol(rdmol : RDMol) -> tuple[Compound, list[int]]:
 
 def mbmol_from_mono_rdmol_legacy(rdmol : RDMol) -> tuple[Compound, list[int]]:
     '''Accepts a monomer-spec-compliant SMARTS string and returns an mbuild Compound and a list of the indices of hydrogen ports'''
-    orig_port_ids = get_port_ids(rdmol) # record indices of ports
+    orig_port_ids = get_linker_ids(rdmol) # record indices of ports
     prot_mol = hydrogenate_rdmol_ports(rdmol, in_place=False) # replace ports with Hs to give complete fragments
     mono_smiles = Chem.MolToSmiles(prot_mol) # NOTE : CRITICAL that this be done AFTER hydrogenation (to avoid having ports in SMILES, which mbuild doesn't know how to handle)
     
