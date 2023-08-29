@@ -3,7 +3,7 @@
 from rdkit.Chem.rdchem import BondType
 
 from ..labeling.molwise import get_isotopes
-from ..amalgamation import portlib
+from ..amalgamation import portlib_legacy
 from ..rdtypes import RDMol, RWMol, RDAtom
 from ..rderrors import BondOrderModificationError
 
@@ -15,16 +15,14 @@ from ...genutils.maths.sequences import int_complement
 def bond_order_increasable(rdmol : RDMol, *atom_pair_ids : list[int, int]) -> bool:
     '''Check if both atoms have a free neighboring port'''
     return all(
-        portlib.has_neighbor_ports(rdmol.GetAtomWithIdx(atom_id))
+        portlib_legacy.has_neighbor_ports(rdmol.GetAtomWithIdx(atom_id))
             for atom_id in atom_pair_ids
     )
 
 @optional_in_place
-def increase_bond_order(rwmol : RWMol, *bond_atom_ids : list[int, int], prioritize_unlabelled_ports : bool=True) -> None:
-    '''Exchange two ports for a bond of one higher order in a modifiable RWMol'''
-    if not bond_order_increasable(rwmol, *bond_atom_ids):
-        raise BondOrderModificationError
-
+def _increase_bond_order(rwmol : RWMol, *bond_atom_ids : list[int, int]) -> None:
+    '''Exchange two ports for a bond of one higher order in a modifiable RWMol
+    DOES NOT ENSURE VALENCE OF BONDED ATOMS IS PRESERVED'''
     # determine expected bond type after order increase (handle single-bond removal, specifically) 
     curr_bond = rwmol.GetBondBetweenAtoms(*bond_atom_ids)
     if curr_bond is None:
@@ -33,13 +31,21 @@ def increase_bond_order(rwmol : RWMol, *bond_atom_ids : list[int, int], prioriti
         new_bond_type = BondType.values[curr_bond.GetBondTypeAsDouble() + 1] # with pre-existing bond, need to get the next order up by numeric lookup
         rwmol.RemoveBond(*bond_atom_ids) # also remove the existing bond for new bond creation
 
-    # create new bond
     rwmol.AddBond(*bond_atom_ids, order=new_bond_type) # create new bond or specified order
-    
+
+@optional_in_place
+def increase_bond_order(rwmol : RWMol, *bond_atom_ids : list[int, int], prioritize_unlabelled_ports : bool=True) -> None:
+    '''Exchange two ports for a bond of one higher order in a modifiable RWMol'''
+    if not bond_order_increasable(rwmol, *bond_atom_ids):
+        raise BondOrderModificationError
+
+    # determine expected bond type after order increase (handle single-bond removal, specifically) 
+    _increase_bond_order(rwmol, *bond_atom_ids, in_place=True)
+
     # remove ports on newly-bonded atoms
     for atom_id in bond_atom_ids: 
         atom = rwmol.GetAtomWithIdx(atom_id)
-        nb_ports = portlib.get_neighbor_ports(atom)
+        nb_ports = portlib_legacy.get_neighbor_ports(atom)
         if prioritize_unlabelled_ports:
             nb_ports = iter(sorted(nb_ports, key=lambda port : bool(port.GetAtomMapNum()))) # sort with unlabelled ports first - make into iter to permit next() call
 
@@ -54,7 +60,7 @@ def are_bonded_atoms(rdmol : RDMol, *atom_pair_ids : list[int, int]) -> bool:
 bond_order_decreasable = are_bonded_atoms # alias for cohesiveness (can't decrease bond order if no bond exists)
 
 @optional_in_place
-def _decrease_bond_order(rwmol : RWMol, *bond_atom_ids : list[int, int], dummyLabels : bool=True) -> RWMol: 
+def _decrease_bond_order(rwmol : RWMol, *bond_atom_ids : list[int, int]) -> RWMol: 
     '''Lower the order of a bond between two atoms, raising Expection if no bond exists
     DOES NOT ENSURE VALENCE OF BONDED ATOMS IS PRESERVED'''
     if not bond_order_decreasable(rwmol, *bond_atom_ids):
