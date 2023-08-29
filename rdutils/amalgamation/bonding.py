@@ -1,7 +1,7 @@
 '''Tools for making and breaking bonds, with correct conversions of ports'''
 
 from typing import Optional
-from rdkit import Chem, BondType
+from rdkit import Chem
 
 from . import portlib, _bonding
 from ..rdtypes import RWMol
@@ -46,7 +46,7 @@ def increase_bond_order(rwmol : RWMol, *bond_atom_ids : list[int, int], port_des
     
     # down-convert bonds to ports, removing linkers if necessary
     for port in port_pair:
-        is_removed = (port.bond.GetBondType() == BondType.SINGLE) # check bond order before down-conversion
+        is_removed = (port.bond.GetBondType() == Chem.BondType.SINGLE) # check bond order before down-conversion
         _bonding._decrease_bond_order(rwmol, port.linker.GetIdx(), port.bridgehead.GetIdx(), in_place=True)
         if is_removed: # if the port bond vanishes when down-converting bond order, the linker atom must also be deleted
             rwmol.RemoveAtom(port.linker.GetIdx())
