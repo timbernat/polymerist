@@ -17,7 +17,7 @@ from rdkit.Chem import Mol as RDMol
 from openff.toolkit.topology.molecule import Molecule
 from openmm.unit import elementary_charge
 
-from .chgtypes import ChargesByResidue, ChargeMap
+from .chargetypes import ChargesByResidue, ChargeMap
 from ...genutils.maths.statistics import Accumulator
 from ...monomers.repr import MonomerGroup
 
@@ -50,7 +50,7 @@ class ChargeRedistributionStrategy(ABC):
             
 class UniformDistributionStrategy(ChargeRedistributionStrategy):
     '''Simplest possible strategy, distribute any excess charge in a residue according to a uniform distribution (spread evenly)'''
-    def _determine_charge_offsets(base_charges : ChargesByResidue, fragment : RDMol, net_charge_diff : float) -> ChargesByResidue:
+    def _determine_charge_offsets(self, base_charges : ChargesByResidue, fragment : RDMol, net_charge_diff : float) -> ChargesByResidue:
         return {sub_id : net_charge_diff / len(base_charges) for sub_id in base_charges}
 
 
@@ -68,35 +68,35 @@ def find_repr_residues(mol : Molecule) -> dict[str, int]:
     return rep_res_nums
 
 def get_averaged_charges(cmol : Molecule, monomer_group : MonomerGroup, cds : Optional[ChargeRedistributionStrategy]=UniformDistributionStrategy(desired_net_charge=0.0)) -> ChargesByResidue:
-    '''Takes a charged molecule and a dict of monomer SMIRKS strings and averages charges for each repeating residue. 
-    Returns a list of ChargedResidue objects, each of which holds:
-        - A dict of the averaged charges by atom 
-        - The name of the residue associated with the charges
-        - A SMARTS string of the residue's structure
-        - An nx.Graph representing the structure of the residue'''
-    # rdmol = cmol.to_rdkit() # create rdkit representation of Molecule to allow for SMARTS generation
+    '''
+    Takes a charged molecule and a collection of monomer-spec SMARTS and generates monomer-averages library charges for each repeating residue
+    Can optionally specify a strategy for redistributing any excess charge (by default, will ensure charges are neutral)
+
+    Returns a ChargesByRresidue object containing a dict of mapped residue charges keyed by residue name
+    '''
+    rdmol = cmol.to_rdkit() # create rdkit representation of Molecule to allow for SMARTS generation
     rep_res_nums = find_repr_residues(cmol) # determine ids of representatives of each unique residue
 
     atom_id_mapping   = defaultdict(lambda : defaultdict(int))
     res_charge_accums = defaultdict(lambda : defaultdict(Accumulator))
     for atom in cmol.atoms: # accumulate counts and charge values across matching subsftructures
-        res_name, res_num     = atom.metadata['residue_name'   ], atom.metadata['residue_number']
-        substruct_id, atom_id = atom.metadata['substructure_id'], atom.metadata['pdb_atom_id'   ]
+        res_name, res_num  = atom.metadata['residue_name'], atom.metadata['residue_number']
+        substruct_id = atom.metadata['substructure_query_id']
+        atom_id = atom.molecule_atom_index
 
         if res_num == rep_res_nums[res_name]: # if atom is member of representative group for any residue...
             # rdmol.GetAtomWithIdx(atom_id).SetAtomMapNum(atom_id)  # ...and set atom number for labelling in SMARTS string
-            atom_id_mapping[res_name][atom_id] = (substruct_id, atom.symbol) # ...collect pdb id...
+            atom_id_mapping[res_name][atom_id] = (substruct_id, atom.symbol) # collect pdb id
 
         curr_accum = res_charge_accums[res_name][substruct_id] # accumulate charge info for averaging
         curr_accum.sum += atom.partial_charge.magnitude # eschew units (easier to handle, added back when writing to XML)
         curr_accum.count += 1
 
-    chgs_by_res = ChargesByResidue
+    chgs_by_res = ChargesByResidue()
     for res_name, charge_accums in res_charge_accums.items():
+        SMARTS = monomer_group.monomers[res_name][0] # extract SMARTS string from monomer data
         # rdSMARTS = rdmolfiles.MolFragmentToSmarts(rdmol, atomsToUse=atom_id_mapping[res_name].keys()) # determine SMARTS for the current residue's representative group
         # mol_frag = rdmolfiles.MolFromSmarts(rdSMARTS) # create fragment from rdkit SMARTS to avoid wild atoms (using rdkit over nx.subgraph for more detailed atomwise info)
-        
-        SMARTS = monomer_group.monomers[res_name] # extract SMARTS string from monomer data
 
         charge_map = {substruct_id : accum.average for substruct_id, accum in charge_accums.items()} 
         if cds is not None:

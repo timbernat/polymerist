@@ -11,22 +11,22 @@ import numpy as np
 from openff.toolkit.topology.molecule import Molecule
 from openmm.unit import elementary_charge
 
-from .chgtypes import ChargesByResidue
+from .chargetypes import ChargesByResidue
+from ...topology.offref import TKREGS
 from ...genutils.decorators.classmod import register_subclasses
 from ...genutils.decorators.functional import optional_in_place
 
 
 # FUNCTIONS FOR MAPPING CHARGES ONTO MOLECULES
 @optional_in_place
-def apply_averaged_res_chgs(mol : Molecule, chgs_by_res : ChargesByResidue) -> None:
+def apply_residue_charges(mol : Molecule, chgs_by_res : ChargesByResidue) -> None:
     '''Takes an OpenFF Molecule and a residue-wise map of averaged partial charges and applies the mapped charges to the Molecule'''
     new_charges = [
-        chgs_by_res.charges[atom.metadata['residue_name']][atom.metadata['substructure_id']]
+        chgs_by_res.charges[atom.metadata['residue_name']][atom.metadata['substructure_query_id']]
             for atom in mol.atoms
     ]
-    new_charges = np.array(new_charges) * elementary_charge # convert to unit-ful array (otherwise assignment won't work)
-    mol.partial_charges = new_charges
-    
+    mol.partial_charges = np.array(new_charges) * elementary_charge # convert to array with units (otherwise assignment won't work)
+
 
 # ABSTRACT AND CONCRETE CLASSES FOR CHARGING MOLECULES
 @register_subclasses(key_attr='METHOD_NAME')
@@ -57,11 +57,11 @@ class ABE10Charger(MolCharger):
 
     def _charge_molecule(self, uncharged_mol : Molecule) -> Molecule:
         '''Concrete implementation for AM1-BCC-ELF10'''
-        return Molecule.assign_partial_charges(uncharged_mol, toolkit='OpenEye Toolkit', partial_charge_method='am1bccelf10', force_match=True)
+        return uncharged_mol.assign_partial_charges(partial_charge_method='am1bccelf10', toolkit_registry=TKREGS['OpenEye Toolkit'])
 
 class EspalomaCharger(MolCharger):
     '''Charger class for AM1-BCC-ELF10 exact charging'''
     METHOD_NAME = 'Espaloma_AM1BCC'
 
     def _charge_molecule(self, uncharged_mol : Molecule) -> Molecule:
-        return Molecule.assign_partial_charges(uncharged_mol, toolkit='Espaloma Charge Toolkit', partial_charge_method='espaloma-am1bcc', force_match=True)
+        return uncharged_mol.assign_partial_charges(partial_charge_method='espaloma-am1bcc', toolkit_registry=TKREGS['Espaloma Charge Toolkit'])
