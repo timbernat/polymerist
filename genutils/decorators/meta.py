@@ -3,14 +3,9 @@
 from typing import Concatenate, Callable, ParamSpec, TypeAlias, TypeVar
 from functools import partial
 
-from ..typetools import C, O, Args, KWArgs
-
-
-# CUSTOM TYPEHINTS
-P = ParamSpec('P') # for representing (preserved) input parameters
-R = TypeVar('R')   # for representing generic return values
-
+from ..typetools import C, O, P, R, Args, KWArgs
 Decorator : TypeAlias = Callable[[Callable[P, R]], Callable[P, R]]
+
 
 # META DECORATORS
 def extend_to_methods(dec : Decorator) -> Decorator:
