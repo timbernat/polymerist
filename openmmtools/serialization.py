@@ -3,7 +3,7 @@
 from pathlib import Path
 
 from openmm import System, Context, State
-from openmm.app import Simulation
+from openmm.app import Simulation, PDBFile
 from openmm import XmlSerializer
 
 
@@ -40,4 +40,10 @@ def apply_state_to_sim(context : Context, state : State) -> None:
     context.setVelocities(state.getVelocities())
     context.setTime(state.getTime())
 
-    context.reinitialize(preserveState=True)    
+    context.reinitialize(preserveState=True)
+
+def save_sim_snapshot(sim : Simulation, pdb_path : Path, keep_ids : bool=True) -> None:
+    '''Saves a PDB of the current state of a simulation's Topology'''
+    curr_state = sim.context.getState(getPositions=True, getEnergy=True)
+    with pdb_path.open('w') as output:
+        PDBFile.writeFile(sim.topology, curr_state.getPositions(), output, keepIds=keep_ids)
