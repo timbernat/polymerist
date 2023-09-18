@@ -12,7 +12,6 @@ from ..rdutils.amalgamation.portlib import get_num_ports
 
 ResidueSmarts : TypeAlias = dict[str, list[str]] # monomer SMARTS strings keyed by residue name
 
-
 # MAIN REPRESENTATION CLASS
 @dataclass
 class MonomerGroup(JSONifiable):
