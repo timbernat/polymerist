@@ -11,10 +11,6 @@ from ..genutils.fileutils.pathutils import dotless
 from ..genutils.decorators.functional import allow_string_paths, optional_in_place
 
 
-def get_largest_offmol(offtop : Topology) -> Molecule:
-    '''Return the largest molecule in a Topology'''
-    return max(offtop.molecules, key=lambda offmol : offmol.n_atoms)
-
 # MOLECULE DATA SERIALIZATION / DESERIALIZATION
 @optional_in_place
 def package_atom_metadata(offmol : Molecule) -> None:
