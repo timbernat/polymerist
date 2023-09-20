@@ -9,6 +9,7 @@ from collections import defaultdict
 
 from rdkit import Chem
 from ..rdtypes import RDAtom, RDBond, RDMol
+from ...genutils.iteration import iter_len
 from ...genutils.decorators.functional import optional_in_place
 
 
@@ -51,6 +52,13 @@ class Port:
             and port_1.bridgehead.GetIdx() != port_2.bridgehead.GetIdx() # 3) the two ports aren't connected to the same atom
             # and not port_1.bridgehead.Match(port_2.bridgehead) # TODO : workshop this comparison for query atoms TOSELF : this match is too general (matches by query, not identity)
         )
+    
+    def matches_desig(self, target_desig : Optional[int]) -> bool:
+        '''Returns whether a port has a particular designation'''
+        if target_desig is None:
+            return True # always returning True if None is passed (simplifies non-specific defaults)
+        
+        return self.desig == target_desig
 
 
 # PORT COUNTING AND INDEXING
@@ -90,25 +98,17 @@ def get_single_port(rdmol : RDMol) -> Port:
     
     return next(get_ports(rdmol)) # return if port count checks pass
 
-# def get_ports_by_desig(rdmol : RDMol) -> dict[int, list[Port]]:
-#     '''Returns dict of all port info for a Mol, keyed by port designation'''
-#     ports_dict = defaultdict(list)
-#     for port in get_ports(rdmol):
-#         ports_dict[port.desig].append(port)
-    
-#     return ports_dict
-
 def get_ports_with_desig(rdmol : RDMol, target_desig : int=0) -> Generator[Port, None, None]:
     '''Generate all ports in a molecule with a particular port designation'''
     for port in get_ports(rdmol):
         if port.desig == target_desig:
             yield port
 
-def get_ports_on_atom_at_idx(rdmol : RDMol, atom_id : int) -> Generator[Port, None, None]:
+def get_ports_on_atom_at_idx(rdmol : RDMol, atom_id : int, target_desig : Optional[int]=None) -> Generator[Port, None, None]:
     '''Generate all Ports in an RDMol whose bridegehead atom is the atom at the specified atomic index'''
     targ_atom = rdmol.GetAtomWithIdx(atom_id)
     for port in get_ports(rdmol):
-        if port.bridgehead.Match(targ_atom):
+        if port.bridgehead.Match(targ_atom) and port.matches_desig(target_desig):
             yield port
 
 
@@ -129,7 +129,7 @@ def get_bondable_port_pairs_internal(ports : Iterable[Port]) -> Generator[tuple[
         if Port.are_bondable(port_1, port_2):
             yield (port_1, port_2)
 
-def get_bondable_port_pair_between_atoms(rdmol : RDMol, atom_id_1 : int, atom_id_2 : int, targ_port_desig : Optional[int]=None) -> tuple[Port, Port]:
+def get_bondable_port_pair_between_atoms(rdmol : RDMol, atom_id_1 : int, atom_id_2 : int, target_desig : Optional[int]=None) -> tuple[Port, Port]:
     '''Get a pair of ports'''
     port_pairs = get_bondable_port_pairs(
         get_ports_on_atom_at_idx(rdmol, atom_id_1),
@@ -138,10 +138,20 @@ def get_bondable_port_pair_between_atoms(rdmol : RDMol, atom_id_1 : int, atom_id
 
     # obtain first valid port pair
     for port_pair in port_pairs:
-        if (targ_port_desig is None) or (port_pair[0].desig == targ_port_desig): # return first available pair if no desig is given, or first designated pair if it is
+        if port_pair[0].matches_desig(target_desig): # by spec, being bondable guarantees that the ports in a pair have matching designation
             return sorted(port_pair, key=lambda port : port.linker.GetIdx(), reverse=True) # sort in-place to ensure highest-index linker is first (MATTER FOR ORDER OF ATOM REMOVAL)
     else:
         raise MolPortError(f'No bondable ports exist between atoms {atom_id_1} and {atom_id_2}')
+
+def max_bondable_order_between_atoms(rdmol : RDMol, atom_id_1 : int, atom_id_2 : int, target_desig : int) -> int: 
+    '''Return the highest possible bond order which could be created between a pair of atoms''' # NOTE : can't just count number of bondable pairs, since these include all possible permutations
+    if target_desig is None:
+        raise NotImplemented # TODO : implement generic count with target_desig=None (NOT AS SIMPLE AS PLUGGING INTO MATCH!!)
+    
+    ports_on_atom_1 = iter_len(get_ports_on_atom_at_idx(rdmol, atom_id_1, target_desig=target_desig))
+    ports_on_atom_2 = iter_len(get_ports_on_atom_at_idx(rdmol, atom_id_2, target_desig=target_desig))
+
+    return min(ports_on_atom_1, ports_on_atom_2) # limited by which atom has the fewest bonding sites
 
 @optional_in_place # temporarily placed here for backwards-compatibility reasons
 def hydrogenate_rdmol_ports(rdmol : RDMol) -> None:
