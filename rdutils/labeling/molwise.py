@@ -15,18 +15,18 @@ def get_isotopes(rdmol : RDMol, unique : bool=True) -> Union[set[int], list[int]
         return set(isotope_ids)
     return isotope_ids
 
-def get_ordered_map_nums(rdmol : RDMol) -> list[int]:
+def ordered_map_nums(rdmol : RDMol) -> list[int]:
     '''Get assigned atom map numbers, in the same order as the internal RDMol atom IDs'''
     return [atom.GetAtomMapNum() for atom in rdmol.GetAtoms()]
 
-def get_map_nums_by_atom_ids(rdmol : RDMol, *query_atom_ids : list[int]) -> Generator[Optional[int], None, None]: # TODO : generalize this to handle case where multiple atoms have the same map num
+def map_nums_by_atom_ids(rdmol : RDMol, *query_atom_ids : list[int]) -> Generator[Optional[int], None, None]: # TODO : generalize this to handle case where multiple atoms have the same map num
     '''Get assigned atom map numbers for a collection of atom ids, in the same order as the internal RDMol atom IDs'''
     for atom_id in query_atom_ids:
         yield(rdmol.GetAtomWithIdx(atom_id).GetAtomMapNum())
 
 def atom_ids_by_map_nums(rdmol : RDMol, *query_map_nums : list[int]) -> Generator[Optional[int], None, None]: # TODO : generalize this to handle case where multiple atoms have the same map num
     '''Returns the first occurences of the atom IDs of any number of atoms, indexed by atom map number'''
-    present_map_nums : list[int] = get_ordered_map_nums(rdmol)
+    present_map_nums : list[int] = ordered_map_nums(rdmol)
     for map_num in query_map_nums:
         try:
             yield present_map_nums.index(map_num)
