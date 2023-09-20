@@ -1,5 +1,5 @@
 '''Utilities for finding, creating, and manipulating bonding sites (AKA "ports")'''
-from typing import Generator, Iterable
+from typing import Generator, Iterable, Optional
 
 from itertools import combinations
 from itertools import product as cartesian_product
@@ -129,6 +129,19 @@ def get_bondable_port_pairs_internal(ports : Iterable[Port]) -> Generator[tuple[
         if Port.are_bondable(port_1, port_2):
             yield (port_1, port_2)
 
+def get_bondable_port_pair_between_atoms(rdmol : RDMol, atom_id_1 : int, atom_id_2 : int, targ_port_desig : Optional[int]=None) -> tuple[Port, Port]:
+    '''Get a pair of ports'''
+    port_pairs = get_bondable_port_pairs(
+        get_ports_on_atom_at_idx(rdmol, atom_id_1),
+        get_ports_on_atom_at_idx(rdmol, atom_id_2)
+    )
+
+    # obtain first valid port pair
+    for port_pair in port_pairs:
+        if (targ_port_desig is None) or (port_pair[0].desig == targ_port_desig): # return first available pair if no desig is given, or first designated pair if it is
+            return sorted(port_pair, key=lambda port : port.linker.GetIdx(), reverse=True) # sort in-place to ensure highest-index linker is first (MATTER FOR ORDER OF ATOM REMOVAL)
+    else:
+        raise MolPortError(f'No bondable ports exist between atoms {atom_id_1} and {atom_id_2}')
 
 @optional_in_place # temporarily placed here for backwards-compatibility reasons
 def hydrogenate_rdmol_ports(rdmol : RDMol) -> None:
