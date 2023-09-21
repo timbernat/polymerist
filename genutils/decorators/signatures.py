@@ -2,11 +2,16 @@
 
 from inspect import Parameter, Signature
 
+POSITIONAL_PARAMETER_TYPES = [
+    Parameter.POSITIONAL_ONLY,
+    Parameter.POSITIONAL_OR_KEYWORD,
+    Parameter.VAR_POSITIONAL
+]
 
 def get_index_after_positionals(sig : Signature) -> int:
     '''Get the first Parameter index which follows all positional Parameters'''
     for i, param in enumerate(sig.parameters.values()):
-        if (param.kind != Parameter.POSITIONAL_ONLY) and (param.kind != Parameter.POSITIONAL_OR_KEYWORD):
+        if param.kind not in POSITIONAL_PARAMETER_TYPES:
             return i + 1 # return index immediately after first non-positional argument
         else:
             return len(sig.parameters)
