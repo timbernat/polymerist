@@ -89,15 +89,18 @@ def _traverse(starting_queue : list[int], graph : nx.Graph) -> list[int]:
     found_nodes = []
     found_edges = []
     queue = starting_queue
+
     while len(queue) > 0:
-        if queue == []:
+        if queue == []: # TB : isn't this check redundant immediately after the while loop?
             return found_nodes
+        
         v = queue.pop(0)
         found_nodes.append(v)
         for bond in graph.nodes[v]['bonds']:
             edge_a, cap_a, bond_type = bond
             if {edge_a, cap_a} in found_edges:
                 continue
+
             selected_neighbor = -1
             for neighbor in graph.neighbors(v):
                 # make sure this is the neighbor with the correct bond info
@@ -108,6 +111,7 @@ def _traverse(starting_queue : list[int], graph : nx.Graph) -> list[int]:
                     selected_neighbor = -1
                     break
                 selected_neighbor = neighbor
+
             if selected_neighbor >= 0:
                 queue.append(selected_neighbor)
                 found_edges.append({edge_a, cap_a})
@@ -132,17 +136,23 @@ def partition(offtop : Topology) -> bool:
         # first, populate isomorphism_info, which has the following format:
         #  [([target_ids], [{(map_start, map_end): bond_type}])]
         # isomorphism_info = dict()
-        target_ids = defaultdict(list)
-        bond_info = defaultdict(dict)
+        target_ids  = defaultdict(list)
+        bond_info   = defaultdict(dict)
         match_names = defaultdict(str)
+
         for atom in offmol.atoms:
-            iso_info = {int(k): entry for k,entry in json.loads(atom.metadata["match_info"]).items()}
+            iso_info = {
+                int(k) : entry
+                    for k, entry in json.loads(atom.metadata["match_info"]).items()
+            }
+
             for query_num, query_name_id in iso_info.items():
                 match_name = query_name_id[0] # id of the query atom
-                query_id = query_name_id[1] # total number of query 
+                query_id   = query_name_id[1] # total number of query 
                 match_names[query_num] = match_name
                 if atom.molecule_atom_index not in target_ids[query_num]:
                     target_ids[query_num].append(atom.molecule_atom_index)
+                
                 for b in atom.bonds:
                     # try to find inter-monomer bonds
                     if b.atom1_index == atom.molecule_atom_index:
@@ -151,18 +161,19 @@ def partition(offtop : Topology) -> bool:
                     else:
                         begin_atom = b.atom2
                         end_atom = b.atom1
+                        
                     if query_num in [int(k) for k in json.loads(end_atom.metadata["match_info"]).keys()]:
-                        neighbor = False
+                        neighbor = False # TB : could make into explicit boolean?
                     else:
                         neighbor = True
         
-                    if neighbor:
+                    if neighbor: # TB : could just perform above check
                         bond_entry = tuple([begin_atom.molecule_atom_index, end_atom.molecule_atom_index])
                         if bond_entry not in bond_info[query_num]:
                             bond_info[query_num][bond_entry] = b.bond_order
+        
         if len(bond_info) == 0:
             continue 
-        
         assert len(target_ids) == len(bond_info)
 
         isomorphism_info_dict = {idx: (target_ids[idx], bond_info[idx]) for idx in target_ids}
@@ -185,6 +196,7 @@ def partition(offtop : Topology) -> bool:
                         if overlapping_node in subgraph.nodes and subgraph.nodes[overlapping_node]['selected'] == True:
                             overlapping_nodes.append(overlapping_node)
                             old_tally += subgraph.nodes[overlapping_node]['n_atoms']
+
                 if new_tally > old_tally:
                     # exchange new for old choices 
                     for node in unique_group:
@@ -192,7 +204,7 @@ def partition(offtop : Topology) -> bool:
                     for node in overlapping_nodes:
                         subgraph.nodes[node]['selected'] = False
 
-                [not_searched_nodes.remove(i) for i in unique_group if i in not_searched_nodes]
+                [not_searched_nodes.remove(i) for i in unique_group if i in not_searched_nodes] # TB : why is this a list comprehension?
 
             tally = 0
             for node in subgraph.nodes:
@@ -219,8 +231,12 @@ def partition(offtop : Topology) -> bool:
                 match_name = match_names[res_id]
                 for m_id in molecule_ids:
                     atom = offmol.atom(m_id)
-                    iso_info = {int(k): entry for k,entry in json.loads(atom.metadata["match_info"]).items()}
+                    iso_info = {
+                        int(k) : entry
+                            for k,entry in json.loads(atom.metadata["match_info"]).items()
+                    }
                     picked_match = iso_info[res_id]
+
                     # new metadata
                     atom.metadata["residue_name"] = picked_match[0]
                     atom.metadata["substructure_query_id"] = picked_match[1]
