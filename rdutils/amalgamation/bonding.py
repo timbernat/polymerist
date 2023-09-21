@@ -1,6 +1,6 @@
 '''Tools for making and breaking bonds, with correct conversions of ports'''
 
-from typing import Optional
+from typing import Optional, Union
 
 from rdkit import Chem
 from rdkit.Chem.rdchem import BondType
@@ -28,6 +28,15 @@ class BondOrderModificationError(Exception):
 def are_bonded_atoms(rdmol : RDMol, atom_id_1 : int, atom_id_2 : int) -> bool:
     '''Check if pair of atoms in an RDMol have a bond between then'''
     return (rdmol.GetBondBetweenAtoms(atom_id_1, atom_id_2) is not None)
+
+def combine_rdmols(rdmol_1 : RDMol, rdmol_2 : RDMol, editable : bool=True) -> Union[RDMol, RWMol]:
+    '''Merge two RDMols into a single molecule with contiguous, non-overlapping atom map numbers'''
+    rdmol_1, rdmol_2 = molwise.assign_contiguous_atom_map_nums(rdmol_1, rdmol_2, in_place=False) 
+    combo = Chem.CombineMols(rdmol_1, rdmol_2) # combine into single Mol object to allow for bonding
+
+    if editable:
+        return Chem.RWMol(combo) # make combined Mol modifiable
+    return combo
 
 
 # BASE BOND ORDER CHANGE FUNCTIONS
