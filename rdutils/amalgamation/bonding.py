@@ -87,7 +87,7 @@ def _increase_bond_order_alt(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int) ->
 
 # SINGLE BOND-ORDER CHANGES 
 @optional_in_place
-def decrease_bond_order(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, new_port_desig : int=0) -> None: 
+def decrease_bond_order(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, new_port_flavor : int=0) -> None: 
     '''Lower the order of a bond between two atoms and insert two new ports in its place, raising Expection if no bond exists'''
     _decrease_bond_order(rwmol, atom_id_1, atom_id_2, in_place=True) # NOTE : must explicitly be called in-place to ensure correct top-level behavior, since this function is also decorated
     
@@ -95,15 +95,15 @@ def decrease_bond_order(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, new_por
     # add new ports for broken bond
     for atom_id in (atom_id_1, atom_id_2):
         new_linker = Chem.AtomFromSmarts('[#0]') 
-        new_linker.SetIsotope(new_port_desig)
+        new_linker.SetIsotope(new_port_flavor)
         new_port_id = rwmol.AddAtom(new_linker)# insert new port into molecule, taking note of index (TOSELF : ensure that this inserts indices at END of existing ones, could cause unexpected modification if not)
         rwmol.AddBond(atom_id, new_port_id, order=BondType.SINGLE) # bond the atom to the new port
         # _increase_bond_order(rwmol, atom_id, new_port_id)
 
 @optional_in_place
-def increase_bond_order(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, target_desig : Optional[int]=None) -> None: # TODO : add specificity to designation selection
-    '''Exchange two ports for a bond of one higher order in a modifiable RWMol. Can optionally specify a port designation for greater selectivity'''
-    port_pair = get_bondable_port_pair_between_atoms(rwmol, atom_id_1, atom_id_2, target_desig=target_desig) # raises MolPortError if none exists
+def increase_bond_order(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, target_flavor : Optional[int]=None) -> None: # TODO : add specificity to flavor selection
+    '''Exchange two ports for a bond of one higher order in a modifiable RWMol. Can optionally specify a port flavor for greater selectivity'''
+    port_pair = get_bondable_port_pair_between_atoms(rwmol, atom_id_1, atom_id_2, target_flavor=target_flavor) # raises MolPortError if none exists
 
     # Up-convert bond between target atoms
     _increase_bond_order(rwmol, atom_id_1, atom_id_2, in_place=True) # important that new bond formation be done FIRST, to avoid index shifts if linker atoms need to be removed
@@ -120,18 +120,18 @@ def increase_bond_order(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, target_
 
 # TOTAL BOND CHANGES
 @optional_in_place
-def dissolve_bond(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, new_port_desig : int=0) -> None:
-    '''Completely decompose a bond between two atoms, filling in ports with the chosen designation''' 
+def dissolve_bond(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, new_port_flavor : int=0) -> None:
+    '''Completely decompose a bond between two atoms, filling in ports with the chosen flavor''' 
     while rwmol.GetBondBetweenAtoms(atom_id_1, atom_id_2) is not None:
-        decrease_bond_order(rwmol, atom_id_1, atom_id_2, new_port_desig=new_port_desig, in_place=True)
+        decrease_bond_order(rwmol, atom_id_1, atom_id_2, new_port_flavor=new_port_flavor, in_place=True)
 
 @optional_in_place
-def splice_atoms(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, target_desig : Optional[int]=None) -> None:
+def splice_atoms(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, target_flavor : Optional[int]=None) -> None:
     '''Completely combine all bondable ports between a pair of atoms into one bond'''
-    for i in range(max_bondable_order_between_atoms(rwmol, atom_id_1, atom_id_2, target_desig=target_desig)):
+    for i in range(max_bondable_order_between_atoms(rwmol, atom_id_1, atom_id_2, target_flavor=target_flavor)):
         if i == 0: # record map numbers as invariant between bonding events (atom id won't necessarily be)
             atom_map_nums = [j for j in molwise.map_nums_by_atom_ids(rwmol, atom_id_1, atom_id_2)] # unpack as list to avoid values being "used up" upon iteration
         else:
             atom_id_1, atom_id_2 = molwise.atom_ids_by_map_nums(rwmol, *atom_map_nums) # reassign bonded atom IDs from invariant map nums cached on first bond formation
 
-        increase_bond_order(rwmol, atom_id_1, atom_id_2, target_desig=target_desig, in_place=True)
+        increase_bond_order(rwmol, atom_id_1, atom_id_2, target_flavor=target_flavor, in_place=True)
