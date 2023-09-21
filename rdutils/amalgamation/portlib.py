@@ -147,7 +147,7 @@ def get_bondable_port_pair_between_atoms(rdmol : RDMol, atom_id_1 : int, atom_id
 def max_bondable_order_between_atoms(rdmol : RDMol, atom_id_1 : int, atom_id_2 : int, target_flavor : int) -> int: 
     '''Return the highest possible bond order which could be created between a pair of atoms''' # NOTE : can't just count number of bondable pairs, since these include all possible permutations
     if target_flavor is None:
-        raise NotImplemented # TODO : implement generic count with target_flavor=None (NOT AS SIMPLE AS PLUGGING INTO MATCH!!)
+        raise NotImplementedError # TODO : implement generic count with target_flavor=None (NOT AS SIMPLE AS PLUGGING INTO MATCH!!)
     
     ports_on_atom_1 = iter_len(get_ports_on_atom_at_idx(rdmol, atom_id_1, target_flavor=target_flavor))
     ports_on_atom_2 = iter_len(get_ports_on_atom_at_idx(rdmol, atom_id_2, target_flavor=target_flavor))

@@ -32,7 +32,7 @@ class ChargeRedistributionStrategy(ABC):
     def _determine_charge_offsets(self, base_charges : ChargeMap, fragment : RDMol, net_charge_diff : float) -> ChargeMap:
         '''Provided a set of base charges, a structural molecule fragment, and a desired net charge,
         determine what charges offsets need to be applied where in order to achieve the desired net charge'''
-        raise NotImplemented
+        raise NotImplementedError
 
     def redistributed_charges(self, base_charges : ChargeMap, fragment : RDMol) -> ChargeMap:
         '''Take a map of base charges and a structural fragment for a residue and a desired net charge (typically neutral, i.e. 0)

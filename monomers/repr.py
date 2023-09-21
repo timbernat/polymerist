@@ -67,7 +67,7 @@ class MonomerGroup(JSONifiable):
     # CHEMICAL INFORMATION
     def unique(self, cap_group : Union[str, RDMol]=Chem.MolFromSmarts('[H]-[*]')) -> 'MonomerGroup':
         '''Return a MonomerGroup containing only the unique monomers present, given a particular port saturating group (by default just a hydrogen)'''
-        raise NotImplemented
+        raise NotImplementedError
         # unique_mono = set()
         # for SMARTS in monomer_smarts.values():
         #     monomer = Chem.MolFromSmarts(SMARTS)
