@@ -62,9 +62,9 @@ class Port:
 
 
 # PORT COUNTING AND INDEXING
-def get_num_ports(rdmol : RDMol) -> int:
-    '''Counts the number of port atoms present in a Mol'''
-    return len(rdmol.GetSubstructMatches(PORT_QUERY))
+# def get_num_ports(rdmol : RDMol) -> int: # NOTE : deprecated due to lack of selectivity for desig
+#     '''Counts the number of port atoms present in a Mol'''
+#     return len(rdmol.GetSubstructMatches(PORT_QUERY))
 
 def get_port_ids(rdmol : RDMol) -> Generator[tuple[int, int], None, None]:
     '''Get the linker and bridgehead indices of all ports found in an RDMol'''
@@ -78,14 +78,21 @@ def get_linker_ids(rdmol : RDMol) -> Generator[int, None, None]:
 
 
 # PORT ENUMERATION
-def get_ports(rdmol : RDMol) -> Generator[Port, None, None]:
+def get_ports(rdmol : RDMol, target_desig : Optional[int]=None) -> Generator[Port, None, None]:
     '''Find and generate all ports in a molecule'''
     for (linker_id, bh_id) in get_port_ids(rdmol):
-        yield Port(
+        port = Port(
             linker=rdmol.GetAtomWithIdx(linker_id),
             bond=rdmol.GetBondBetweenAtoms(linker_id, bh_id),
             bridgehead=rdmol.GetAtomWithIdx(bh_id)
         )
+
+        if port.matches_desig(target_desig):
+            yield port
+
+def get_num_ports(rdmol : RDMol, target_desig : Optional[int]=None) -> int: # NOTE : deprecated due to lack of selectivity for desig
+    '''Counts the number of port atoms present in a Mol'''
+    return iter_len(get_ports(rdmol, target_desig=target_desig))
 
 def get_single_port(rdmol : RDMol) -> Port:
     '''Get the singular port of a Mol which contains only 1 port'''
@@ -98,17 +105,11 @@ def get_single_port(rdmol : RDMol) -> Port:
     
     return next(get_ports(rdmol)) # return if port count checks pass
 
-def get_ports_with_desig(rdmol : RDMol, target_desig : int=0) -> Generator[Port, None, None]:
-    '''Generate all ports in a molecule with a particular port designation'''
-    for port in get_ports(rdmol):
-        if port.desig == target_desig:
-            yield port
-
 def get_ports_on_atom_at_idx(rdmol : RDMol, atom_id : int, target_desig : Optional[int]=None) -> Generator[Port, None, None]:
     '''Generate all Ports in an RDMol whose bridegehead atom is the atom at the specified atomic index'''
     targ_atom = rdmol.GetAtomWithIdx(atom_id)
-    for port in get_ports(rdmol):
-        if port.bridgehead.Match(targ_atom) and port.matches_desig(target_desig):
+    for port in get_ports(rdmol, target_desig=target_desig):
+        if port.bridgehead.Match(targ_atom):
             yield port
 
 
