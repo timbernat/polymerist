@@ -1,22 +1,30 @@
 '''Utilities for handlling setup of Simulation Reporters'''
 
-from functools import partial
-from dataclasses import dataclass, field
-from typing import Any, Callable, Optional, TypeAlias, Union
+import logging
+LOGGER = logging.getLogger(__name__)
 
+from typing import Any, Callable, Optional, TypeAlias, Union
+from dataclasses import dataclass, field
+
+from functools import partial
 from pathlib import Path
 
 from openmm.app import PDBReporter, PDBxReporter, DCDReporter
 from openmm.app import StateDataReporter, CheckpointReporter
 
+from .serialization import assemble_sim_file_path
 from ..genutils.typetools import Args, KWArgs
-from ..genutils.decorators.functional import allow_string_paths
-from ..genutils.fileutils.jsonio import JSONifiable, JSONSerializable
+from ..genutils.fileutils.jsonio import JSONifiable
 
 
-# REPORTER-SPECIFIC TYPEHINTS
+# REPORTER-SPECIFIC TYPES AND TYPEHINTS
+class StateReporter(CheckpointReporter):
+    '''CheckpointReporter which is forced to report States; greatly simplifies interface, documentation, and logging'''
+    def __init__(self, file, reportInterval):
+        super().__init__(file, reportInterval, writeState=True)
+
 TrajectoryReporter  : TypeAlias = Union[PDBReporter, PDBxReporter, DCDReporter]
-Reporter            : TypeAlias = Union[StateDataReporter, CheckpointReporter, TrajectoryReporter]
+Reporter            : TypeAlias = Union[CheckpointReporter, StateReporter, StateDataReporter, TrajectoryReporter]
 ReporterInitializer : TypeAlias = Callable[[Args, KWArgs], Reporter]
 
 
@@ -41,8 +49,8 @@ TRAJ_REPORTERS = { # index output formats of reporters by file extension
 }
 
 CHK_REPORTERS = {
-    'chk' : partial(CheckpointReporter, writeState=False),
-    'xml' : partial(CheckpointReporter, writeState=True ),
+    'chk' : CheckpointReporter, # TODO : consider adding checks to guarantee that this can't ever be called with writeState=True
+    'xml' : StateReporter
 }
 
 STATE_DAT_REPORTERS = {
@@ -65,15 +73,6 @@ DEFAULT_STATE_DATA_PROPS = {
     'remainingTime'   : False,
     'elapsedTime'     : False
 }
-
-@allow_string_paths
-def assemble_sim_file_path(out_dir : Path, out_name : str, extension : str, affix : str='') -> Path:
-    '''Combine output, naming, descriptive, and filetype info to generate a complete Simulation-related file Path'''
-    if extension[0] == '.':
-        extension = extension[1:] # remove leading dots if included
-    path_name = f'{out_name}{"_" if affix else ""}{affix}.{extension}'
-
-    return out_dir / path_name
 
 @dataclass
 class ReporterParameters(JSONifiable):
@@ -113,6 +112,7 @@ class ReporterParameters(JSONifiable):
         for rep_config in self.rep_configs:
             rep_path = assemble_sim_file_path(out_dir, out_name, extension=rep_config.extension, affix=rep_config.label) 
             rep = rep_config.initializer(str(rep_path), reportInterval=record_freq, **rep_config.extra_kwargs)
+            LOGGER.info(f'Preparing {rep.__class__.__name__} which reports to {rep_path}')
 
             rep_paths[rep_config.label] = rep_path
             reps.append(rep)
