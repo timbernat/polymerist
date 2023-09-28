@@ -105,13 +105,13 @@ class ReporterParameters(JSONifiable):
                     
         return rep_configs
 
-    def prepare_reporters(self, out_dir : Path, out_name : str, record_freq : int) -> tuple[dict[str, Path], list[Reporter]]:
+    def prepare_reporters(self, out_dir : Path, out_name : str, report_interval : int) -> tuple[dict[str, Path], list[Reporter]]:
         '''Prepare all reporters specified by internal parameters and return Paths linked to said reporters'''
         rep_paths, reps = {}, []
 
         for rep_config in self.rep_configs:
             rep_path = assemble_sim_file_path(out_dir, out_name, extension=rep_config.extension, affix=rep_config.label) 
-            rep = rep_config.initializer(str(rep_path), reportInterval=record_freq, **rep_config.extra_kwargs)
+            rep = rep_config.initializer(str(rep_path), reportInterval=report_interval, **rep_config.extra_kwargs)
             LOGGER.info(f'Preparing {rep.__class__.__name__} which reports to {rep_path}')
 
             rep_paths[rep_config.label] = rep_path
