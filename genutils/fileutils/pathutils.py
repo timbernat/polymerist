@@ -5,9 +5,13 @@ from pathlib import Path
     
 
 # PATH PROPERTY FUNCTIONS (DON'T MODIFY ANYTHING)
+def _dotless(extension : str) -> str:
+    '''Separate the dot from a SINGLE extension file suffix. Returns the original suffix if not dot is present'''
+    return extension.split('.')[-1] 
+
 def dotless(path : Path) -> str:
-    '''Separate the dot from a SINGLE extension file suffix'''
-    return path.suffix.split('.')[-1] 
+    '''Separate the dot from file path. Returns the original suffix if not dot is present'''
+    return dotless(path.suffix)
 
 def is_empty(path : Path) -> bool:
     '''Check if a directory is empty'''
