@@ -1,6 +1,8 @@
 '''Tools for generating spec-compliant monomer substructure
 Code by Connor Davel, from https://github.com/openforcefield/polymer_examples/blob/main/monomer_generation/substructure_generator.py'''
 
+__author__ = 'Connor Davel'
+
 import itertools
 from collections import defaultdict
 
