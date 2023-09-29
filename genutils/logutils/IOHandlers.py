@@ -13,7 +13,7 @@ from datetime import datetime
 
 # DATE AND TIME FORMATTING
 LOGGER_REGISTRY = lambda : logging.root.manager.loggerDict # dict of all extant Loggers through all loaded modules - NOTE : written as lambda to allow for updating 
-LOG_FORMATTER = logging.Formatter('%(asctime)s.%(msecs)03d [%(levelname)-8s:%(module)16s:line %(lineno)-3d] - %(message)s', datefmt=TIMESTAMP_LOG) # TODO : make this more generic
+LOG_FORMATTER = logging.Formatter('%(asctime)s.%(msecs)03d [%(levelname)-8s:%(module)16s:line %(lineno)-4d] - %(message)s', datefmt=TIMESTAMP_LOG) # TODO : make this more generic
 
 # FILE-STREAM HANDLING CLASSES
 class MultiStreamFileHandler(logging.FileHandler):
