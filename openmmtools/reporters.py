@@ -110,9 +110,11 @@ class ReporterParameters(JSONifiable):
         rep_paths, reps = {}, []
 
         for rep_config in self.rep_configs:
-            rep_path = assemble_sim_file_path(out_dir, out_name, extension=rep_config.extension, affix=rep_config.label) 
+            rep_path = assemble_sim_file_path(out_dir, out_name, extension=rep_config.extension, affix=rep_config.label)
+            rep_path.touch() # ensure the reporter output file actually exists
+
             rep = rep_config.initializer(str(rep_path), reportInterval=report_interval, **rep_config.extra_kwargs)
-            LOGGER.info(f'Preparing {rep.__class__.__name__} which reports to {rep_path}')
+            LOGGER.info(f'Prepared {rep.__class__.__name__} which reports to {rep_path}')
 
             rep_paths[rep_config.label] = rep_path
             reps.append(rep)
