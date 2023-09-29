@@ -25,7 +25,7 @@ BoxVectorsQuantity = Union[Quantity, BoxVectors] # 3x3 box vectors with associat
 # OBTAINING AND SCALING BOX VECTORS
 @allow_openmm_units
 def xyz_to_box_vectors(xyz : VectorQuantity) -> BoxVectorsQuantity:
-    '''Convert into monoclinic box vectors in 3x3 diagonal reduced form'''
+    '''Convert 3-vector of XYZ box dimensions into monoclinic box vectors in 3x3 diagonal reduced form'''
     assert(xyz.shape) == (3,)
     return np.diag(xyz.magnitude) * xyz.units # convert to diagonal matrix
 
