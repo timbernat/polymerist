@@ -6,73 +6,85 @@ LOGGER = logging.getLogger(__name__)
 from typing import Iterable, Optional, Union
 from pathlib import Path
 
-from openmm.app import Simulation
-from openmm.app import PDBReporter, DCDReporter, StateDataReporter, CheckpointReporter
+from openmm import Force, System, State, XmlSerializer
+from openmm.app import Simulation, Topology
+from openmm.unit import Quantity
 
-Reporter = Union[PDBReporter, DCDReporter, StateDataReporter, CheckpointReporter] # for clearer typehinting
-TRAJ_REPORTERS = { # index output formats of reporters by file extension
-    '.dcd' : DCDReporter,
-    '.pdb' : PDBReporter
-}
-
-from .records import SimulationPaths, SimulationParameters
-from ..openmmtools.serialization import save_sim_snapshot
+# from .records import SimulationParameters
+from .serialization import save_sim_snapshot, assemble_sim_file_path, serialize_system, SimulationPaths
+from .thermo import ThermoParameters, EnsembleFactory
+from .reporters import ReporterParameters
+from .records import IntegratorParameters
 
 
-def prepare_simulation_paths(output_folder : Path, output_name : str, sim_params : SimulationParameters) -> SimulationPaths:
-    '''Generate unified SimulationPaths object containing paths for reporting simulation topology, trajectory, state, and physical data'''
-    # creating paths to requisite output files
-    prefix = f'{output_name}{"_" if output_name else ""}'
-    sim_paths_out = output_folder / f'{prefix}sim_paths.json'
-    sim_paths = SimulationPaths(
-        sim_params=output_folder / f'{prefix}sim_parameters.json',
-        topology  =output_folder / f'{prefix}top.pdb',
-        trajectory=output_folder / f'{prefix}traj.{"dcd" if sim_params.binary_traj else "pdb"}',
-        state_data=output_folder / f'{prefix}state_data.csv',
-        checkpoint=output_folder / f'{prefix}checkpoint.{"xml" if sim_params.save_state else "chk"}',
+# TODO : add optional_in_place??
+def label_forces(system : System) -> None:
+    '''Designates each Force in a System with a unique force group and assigns helpful names by Force type'''
+    for i, force in enumerate(system.getForces()):
+        force.setForceGroup(i)
+
+    # TODO : add labelling (depends partially on Interchange's NonbondedForce separation)
+
+def simulation_from_thermo(topology : Topology, system : System, thermo_params : ThermoParameters, time_step : Quantity, state : Optional[State]=None) -> Simulation:
+    '''Prepare an OpenMM simulation from a serialized thermodynamics parameter set'''
+    ens_fac = EnsembleFactory.from_thermo_params(thermo_params)
+    if (forces := ens_fac.forces()):
+        for force in forces:
+            system.addForce(force) # add forces to System BEFORE creating Simulation to avoid having to reinitialze the Conext to preserve changes 
+    label_forces(system) # ensure all system forces (including any ensemble-specific ones) are labelled
+
+    simulation = Simulation(
+        topology=topology,
+        system=system,
+        integrator=ens_fac.integrator(time_step),
+        state=state
     )
-    sim_paths.to_file(sim_paths_out)
-    LOGGER.info(f'Generated simulation record files at {sim_paths_out}')
 
-    return sim_paths
+    return simulation
 
-def prepare_simulation_reporters(sim_paths : SimulationPaths, sim_params : SimulationParameters) ->  tuple[Reporter]:
-    '''Add trajectory, checkpoint, and state data reporters to a simulation'''
+def initialize_simulation_and_files(out_dir : Path, out_name : str, sim_paths : SimulationPaths, topology : Topology, system : System) -> Simulation:
+    '''Create simulation, bind Reporters, and update simulation Paths with newly-generated files'''
+    # extract info from 
+    integ_params = IntegratorParameters.from_file( sim_paths.integ_params)
+    thermo_params = ThermoParameters.from_file(    sim_paths.thermo_params)
+    reporter_params = ReporterParameters.from_file(sim_paths.reporter_params)
 
-    # for saving pdb frames and reporting state/energy data - NOTE : all file paths must be stringified for OpenMM
-    TrajReporter = TRAJ_REPORTERS[sim_paths.trajectory.suffix] # look up reporter based on the desired trajectory output file format
+    if sim_paths.state is None:
+        state = None
+    else:
+        with sim_paths.state.open('r') as state_file:
+            state = XmlSerializer.deserialize(state_file.read())
+
+    # create simulation and add reporters
+    simulation = simulation_from_thermo(topology, system, thermo_params, time_step=integ_params.time_step, state=state)
+    rep_paths, reps = reporter_params.prepare_reporters(out_dir, out_name, integ_params.report_interval)
     
-    traj_rep  = TrajReporter(file=str(sim_paths.trajectory) , reportInterval=sim_params.record_freq)  # save frames at the specified interval
-    check_rep = CheckpointReporter(str(sim_paths.checkpoint), reportInterval=sim_params.record_freq, writeState=sim_params.save_state)
-    state_rep = StateDataReporter(str(sim_paths.state_data) , reportInterval=sim_params.record_freq, totalSteps=sim_params.num_steps, **sim_params.reported_state_data)
+    for reporter in reps:
+        simulation.reporters.append(reporter) # add reporters to simulation instance
 
-    return (traj_rep, check_rep, state_rep)
+    for attr, path in rep_paths.items():
+        setattr(sim_paths, attr, path) # register reporter output paths
 
-def config_simulation(simulation : Simulation, reporters : Iterable[Reporter], checkpoint_path : Optional[Path]=None) -> None:
-    '''Takes a Simulation object, adds data Reporters, saves an initial checkpoint, and performs energy minimization'''
-    for rep in reporters:
-        simulation.reporters.append(rep) # add any desired reporters to simulation for tracking
+    return simulation
 
-    if checkpoint_path is not None:
-        simulation.saveCheckpoint(str(checkpoint_path)) # save initial minimal state to simplify reloading process
-        LOGGER.info(f'Saved simulation checkpoint at {checkpoint_path}')
 
-def run_simulation(simulation : Simulation, sim_params : SimulationParameters, output_folder : Path, output_name : str) -> None:
-    '''
-    Initializes an OpenMM simulation from a SMIRNOFF Interchange in the desired ensemble
-    Creates relevant simulation files, generates Reporters for state, checkpoint, and trajectory data,
-    performs energy minimization, then integrates the trajectory for the desired number of steps
-    '''
-    sim_paths = prepare_simulation_paths(output_folder, output_name, sim_params)
-    reporters = prepare_simulation_reporters(sim_paths, sim_params)
-    sim_params.to_file(sim_paths.sim_params) # TOSELF : this is not a parameters checkpoint file UPDATE, but rather the initial CREATION of the checkpoint file
-    config_simulation(simulation, reporters, checkpoint_path=sim_paths.checkpoint)
-
+def record_simulation_init_conds(out_dir : Path, out_name : str, simulation : Simulation, sim_paths : SimulationPaths) -> None:
+    '''Perform energy minimization, then save the minimized topology and initial state, system, and checkpoint'''
     LOGGER.info('Performing energy minimization')
     simulation.minimizeEnergy()
-    save_sim_snapshot(simulation, pdb_path=sim_paths.topology) # record minimized topology as starting point for trajectory
-    LOGGER.info(f'Saved snapshot of simulation topology at {sim_paths.topology}')
+    LOGGER.info('Energy successfully minimized')
 
-    LOGGER.info(f'Integrating {sim_params.total_time} OpenMM sim at {sim_params.temperature} and {sim_params.pressure} for {sim_params.num_steps} steps')
-    simulation.step(sim_params.num_steps)
-    LOGGER.info('Simulation integration completed successfully')
+    if sim_paths.topology is None:
+        top_path = assemble_sim_file_path(out_dir, out_name, extension='pdb', affix='topology')
+        top_path.touch()
+        sim_paths.topology = top_path
+
+    save_sim_snapshot(simulation, pdb_path=sim_paths.topology) # TODO : make this consistent with rest of Path output
+    LOGGER.info(f'Saved energy-minimized Simulation Topology at {sim_paths.topology}')
+
+    sim_paths.system = serialize_system(simulation.system, out_dir, out_name)
+    LOGGER.info(f'Saved serialized Simulation System at {sim_paths.system}')
+
+    # LOGGER.info(f'Integrating {sim_params.total_time} OpenMM sim for {sim_params.num_steps} steps')
+    # simulation.step(sim_params.num_steps)
+    # LOGGER.info('Simulation integration completed successfully')
