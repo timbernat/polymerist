@@ -28,14 +28,16 @@ def assemble_sim_file_path(out_dir : Path, out_name : str, extension : str, affi
 @dataclass
 class SimulationPaths(JSONifiable):
     '''Encapsulates Paths to various files associated with an OpenMM Simulation'''
-    sim_params : Optional[Path] = None
+    integ_params    : Path
+    thermo_params   : Path
+    reporter_params : Path
 
     topology   : Optional[Path] = None
     system     : Optional[Path] = None
     state      : Optional[Path] = None
 
-    checkpoint : Optional[Path] = None
-    trajectory : Optional[Path] = None
+    checkpoint  : Optional[Path] = None
+    trajectory  : Optional[Path] = None
 
     state_data   : Optional[Path] = None
     time_data    : Optional[Path] = None
@@ -107,7 +109,7 @@ def apply_state_to_context(context : Context, state : State) -> None: # TOSELF :
 
     context.reinitialize(preserveState=True)
 
-def save_sim_snapshot(sim : Simulation, pdb_path : Path, keep_ids : bool=True) -> None:
+def save_sim_snapshot(sim : Simulation, pdb_path : Path, keep_ids : bool=False) -> None:
     '''Saves a PDB of the current state of a simulation's Topology'''
     curr_state = sim.context.getState(getPositions=True, getEnergy=True)
     with pdb_path.open('w') as output:
