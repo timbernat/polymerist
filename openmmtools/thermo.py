@@ -100,7 +100,7 @@ class EnsembleFactory(ABC):
     @property
     def desc(self) -> str:
         '''Verbal description of ensemble'''
-        return f'{self.ensemble} ({self.ensemble_name.capitalize()} ensemble)'
+        return f'{self.ensemble} ({self.ensemble_name.capitalize()}) ensemble'
 
     def __repr__(self) -> str:
         '''Provide a description of the ensemble and mechanics used'''
@@ -134,7 +134,7 @@ class NVTSimulationFactory(EnsembleFactory): # TODO : add implementation support
     ensemble_name : ClassVar[str] = 'canonical'
 
     def _integrator(self, time_step : Quantity) -> Integrator:
-        return LangevinMiddleIntegrator(self.thermo_params.temperature, self.thermo_params.friction_coeff, stepSize=time_step)
+        return LangevinMiddleIntegrator(self.thermo_params.temperature, self.thermo_params.friction_coeff, time_step)
     
     def _forces(self) -> Optional[Iterable[Force]]:
         return None
@@ -147,7 +147,7 @@ class NPTSimulationFactory(EnsembleFactory):
     ensemble_name : ClassVar[str] = 'isothermal-isobaric'
 
     def _integrator(self, time_step : Quantity) -> Integrator:
-        return LangevinMiddleIntegrator(self.thermo_params.temperature, self.thermo_params.friction_coeff, stepSize=time_step)
+        return LangevinMiddleIntegrator(self.thermo_params.temperature, self.thermo_params.friction_coeff, time_step)
     
     def _forces(self) -> Optional[Iterable[Force]]:
         return [MonteCarloBarostat(self.thermo_params.pressure, self.thermo_params.temperature, self.thermo_params.barostat_freq)]
