@@ -11,10 +11,10 @@ from openmm.app import Simulation, Topology
 from openmm.unit import Quantity
 
 # from .records import SimulationParameters
-from .serialization import save_sim_snapshot, assemble_sim_file_path, serialize_system, SimulationPaths
+from .serialization import serialize_topology_from_simulation, serialize_system, SimulationPaths
 from .thermo import ThermoParameters, EnsembleFactory
 from .reporters import ReporterParameters
-from .records import IntegratorParameters
+from .parameters import IntegratorParameters
 
 
 # TODO : add optional_in_place??
@@ -49,11 +49,14 @@ def initialize_simulation_and_files(out_dir : Path, out_name : str, sim_paths : 
     thermo_params = ThermoParameters.from_file(    sim_paths.thermo_params)
     reporter_params = ReporterParameters.from_file(sim_paths.reporter_params)
 
-    if sim_paths.state is None:
-        state = None
-    else:
+    # if sim_paths.state is None:
+    #     state = None
+    # else:
+    try:
         with sim_paths.state.open('r') as state_file:
             state = XmlSerializer.deserialize(state_file.read())
+    except (AttributeError, ValueError): # handle cases where state path is None or state file is empty, respectively
+        state = None
 
     # create simulation and add reporters
     simulation = simulation_from_thermo(topology, system, thermo_params, time_step=integ_params.time_step, state=state)
@@ -68,23 +71,10 @@ def initialize_simulation_and_files(out_dir : Path, out_name : str, sim_paths : 
     return simulation
 
 
-def record_simulation_init_conds(out_dir : Path, out_name : str, simulation : Simulation, sim_paths : SimulationPaths) -> None:
-    '''Perform energy minimization, then save the minimized topology and initial state, system, and checkpoint'''
-    LOGGER.info('Performing energy minimization')
-    simulation.minimizeEnergy()
-    LOGGER.info('Energy successfully minimized')
-
-    if sim_paths.topology is None:
-        top_path = assemble_sim_file_path(out_dir, out_name, extension='pdb', affix='topology')
-        top_path.touch()
-        sim_paths.topology = top_path
-
-    save_sim_snapshot(simulation, pdb_path=sim_paths.topology) # TODO : make this consistent with rest of Path output
+def record_simulation_top_and_sys(out_dir : Path, out_name : str, simulation : Simulation, sim_paths : SimulationPaths) -> None:
+    '''Serilaize current topology and initial state, system, and checkpoint'''
+    sim_paths.topology = serialize_topology_from_simulation(simulation, out_dir, out_name) # TODO : make this consistent with rest of Path output
     LOGGER.info(f'Saved energy-minimized Simulation Topology at {sim_paths.topology}')
 
     sim_paths.system = serialize_system(simulation.system, out_dir, out_name)
     LOGGER.info(f'Saved serialized Simulation System at {sim_paths.system}')
-
-    # LOGGER.info(f'Integrating {sim_params.total_time} OpenMM sim for {sim_params.num_steps} steps')
-    # simulation.step(sim_params.num_steps)
-    # LOGGER.info('Simulation integration completed successfully')

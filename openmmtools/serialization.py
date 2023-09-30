@@ -32,12 +32,11 @@ class SimulationPaths(JSONifiable):
     thermo_params   : Path
     reporter_params : Path
 
-    topology   : Optional[Path] = None
-    system     : Optional[Path] = None
-    state      : Optional[Path] = None
-
-    checkpoint  : Optional[Path] = None
-    trajectory  : Optional[Path] = None
+    system       : Optional[Path] = None
+    topology     : Optional[Path] = None
+    state        : Optional[Path] = None
+    checkpoint   : Optional[Path] = None
+    trajectory   : Optional[Path] = None
 
     state_data   : Optional[Path] = None
     time_data    : Optional[Path] = None
@@ -89,7 +88,7 @@ def serialize_system(system : System, out_dir : Path, out_name : str) -> Path:
 
     return sys_path
 
-def serialize_context_state(context : Context, out_dir : Path, out_name : str, state_params : dict[str, bool]=DEFAULT_STATE_PROPS) -> Path:
+def serialize_state_from_context(context : Context, out_dir : Path, out_name : str, state_params : dict[str, bool]=DEFAULT_STATE_PROPS) -> Path:
     '''For saving State data within an existing OpenMM Context to file'''
     state = context.getState(**state_params)
     state_path = assemble_sim_file_path(out_dir, out_name, extension='xml', affix='state')
@@ -100,6 +99,16 @@ def serialize_context_state(context : Context, out_dir : Path, out_name : str, s
 
     return state_path
 
+def serialize_topology_from_simulation(sim : Simulation, out_dir : Path, out_name : str, keep_ids : bool=False) -> Path:
+    '''Saves a PDB of the current state of a simulation's Topology'''
+    curr_state = sim.context.getState(getPositions=True)
+
+    pdb_path = assemble_sim_file_path(out_dir, out_name, extension='pdb', affix='topology')
+    with pdb_path.open('w') as output:
+        PDBFile.writeFile(sim.topology, curr_state.getPositions(), output, keepIds=keep_ids) # TODO : generalize file output beyond just PDB
+
+    return pdb_path
+
 def apply_state_to_context(context : Context, state : State) -> None: # TOSELF : this might be replaced with Context.getState() followed by context.reinitialize(preserveState=True)
     '''For applying saved State data to an existing OpenMM Context'''
     context.setPeriodicBoxVectors(*state.getPeriodicBoxVectors())
@@ -108,9 +117,3 @@ def apply_state_to_context(context : Context, state : State) -> None: # TOSELF :
     context.setTime(state.getTime())
 
     context.reinitialize(preserveState=True)
-
-def save_sim_snapshot(sim : Simulation, pdb_path : Path, keep_ids : bool=False) -> None:
-    '''Saves a PDB of the current state of a simulation's Topology'''
-    curr_state = sim.context.getState(getPositions=True, getEnergy=True)
-    with pdb_path.open('w') as output:
-        PDBFile.writeFile(sim.topology, curr_state.getPositions(), output, keepIds=keep_ids) # TODO : generalize file output beyond just PDB
