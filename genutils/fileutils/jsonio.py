@@ -1,13 +1,16 @@
 '''Utilities for simplifying the loading and writing of various classes to JSON'''
 
-from typing import Any, Callable, Optional, Union
-from abc import ABC, abstractstaticmethod
+from typing import Any, Callable, ClassVar, Optional, Union
+from dataclasses import dataclass
+from abc import ABC, abstractmethod, abstractstaticmethod
 
 import json
 from pathlib import Path
+import openmm.unit
 
 from ..typetools import T, Args, KWArgs
 from ..decorators.functional import allow_string_paths
+from ..decorators.classmod import register_subclasses
 
 
 # JSON-SPECIFIC FUNCTIONS
@@ -23,6 +26,37 @@ def append_to_json(json_path : Path, **kwargs) -> None:
 
     with json_path.open('w') as json_file:
         jdat = json.checkpoint(jdat, json_file, indent=4)
+
+def json_serialize_quantities(unser_jdict : dict[Any, Any]) -> dict[str, JSONSerializable]:
+    '''Serialize unit-ful Quantity attrs in a way the JSON can digest'''
+    ser_jdict = {}
+    for key, attr_val in unser_jdict.items():
+        if isinstance(attr_val, openmm.unit.Quantity):
+            ser_jdict[key] = { # if Quantity, separate into value and unit components for serialization
+                'value' : attr_val._value,
+                'unit'  : str(attr_val.unit),
+            }
+        else:
+            ser_jdict[key] = attr_val # nominally, copy all non-Quantities directly
+
+    return ser_jdict
+
+def json_unserialize_quantities(ser_jdict : dict[str, JSONSerializable]) -> dict[Any, Any]:
+    '''For unserializing unit-ful Quantities upon load from json file'''
+    unser_jdict = {}
+    for key, attr_val in ser_jdict.items():
+        if isinstance (attr_val, dict) and (set(attr_val.keys()) == set(('value', 'unit'))): # order-independent
+            unit_name = attr_val['unit']
+            if unit_name.startswith('/'): # special case needed to handle inverse units
+                unit = 1 / getattr(openmm.unit, unit_name.strip('/'))
+            else:
+                unit = getattr(openmm.unit, unit_name)
+
+            unser_jdict[key] = openmm.unit.Quantity(attr_val['value'], unit)
+        else: # for non-Quantity entries, load as-is
+            unser_jdict[key] = attr_val
+    
+    return unser_jdict
 
 # JSON CLASSES
 class JSONifiable: # TODO : implement encode/decode methods as identity return by default, ditch abstract class behavior

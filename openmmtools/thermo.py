@@ -11,14 +11,13 @@ from openmm import Integrator, VerletIntegrator, LangevinMiddleIntegrator
 from openmm.openmm import Force, MonteCarloBarostat
 from openmm.unit import Quantity, kelvin, atmosphere, picosecond
 
-from .records import json_serialize_quantities, json_unserialize_quantities
-from ..genutils.fileutils.jsonio import JSONifiable, JSONSerializable
+from ..genutils.fileutils import jsonio
 from ..genutils.decorators.classmod import register_subclasses
 
 
 # PARAMETER CLASSES
 @dataclass
-class ThermoParameters(JSONifiable):
+class ThermoParameters(jsonio.JSONifiable):
     '''For recording temperature, pressure, ensemble, and other thermodynamic parameters'''
     ensemble       : str = 'NVT'
     temperature    : Quantity = field(default_factory=lambda : (300 * kelvin)) # just specifying Quantities as default doesn't cut it, since these are (evidently) mutable defaults which dataclasses can't digest
@@ -32,14 +31,14 @@ class ThermoParameters(JSONifiable):
 
     # JSON serialization
     @staticmethod
-    def serialize_json_dict(unser_jdict : dict[Any, Any]) -> dict[str, JSONSerializable]:
+    def serialize_json_dict(unser_jdict : dict[Any, Any]) -> dict[str, jsonio.JSONSerializable]:
         '''Serialize unit-ful Quantity attrs in a way the JSON can digest'''
-        return json_serialize_quantities(unser_jdict)
+        return jsonio.json_serialize_quantities(unser_jdict)
     
     @staticmethod
-    def unserialize_json_dict(ser_jdict : dict[str, JSONSerializable]) -> dict[Any, Any]:
+    def unserialize_json_dict(ser_jdict : dict[str, jsonio.JSONSerializable]) -> dict[Any, Any]:
         '''For unserializing unit-ful Quantities upon load from json file'''
-        return json_unserialize_quantities(ser_jdict)
+        return jsonio.json_unserialize_quantities(ser_jdict)
     
 
 # ABSTRACT BASE FOR CREATING ENSEMBLE-SPECIFIC SIMULATION
