@@ -8,14 +8,15 @@ from openmm.unit import Quantity
 
 from .thermo import ThermoParameters
 from .reporters import ReporterParameters
-from ..genutils.fileutils.jsonio.jsonify import make_jsonifiable
+from ..genutils.fileutils.jsonio.jsonify import make_jsonifiable, jsonifiable_serializer_factory
 from ..genutils.fileutils.jsonio.serialize import PathSerializer, QuantitySerializer, MultiTypeSerializer
 
 
 # PARAMETER SET HANDLERS
+@make_jsonifiable(type_serializer=QuantitySerializer)
 @dataclass
 class IntegratorParameters:
-    '''For recording the parameters used to run an OpenMM Simulation'''
+    '''For recording total, time step, recoridng frequency, and other integration time parameters'''
     time_step   : Quantity
     total_time  : Quantity
     num_samples : int
@@ -40,34 +41,24 @@ class IntegratorParameters:
         '''An array of the time data points represented by the given sampling rate and sim time'''
         return (np.arange(0, self.num_steps, step=self.report_interval) + self.report_interval)* self.time_step # extra offset by recording frequency need to align indices (not 0-indexed)
 
+# UNIFIED SIMULATION PARAMETER SETS
+ThermoParametersSerializer     = jsonifiable_serializer_factory(ThermoParameters)
+ReporterParametersSerializer   = jsonifiable_serializer_factory(ReporterParameters)
+IntegratorParametersSerializer = jsonifiable_serializer_factory(IntegratorParameters)
 
-@make_jsonifiable(type_serializer=MultiTypeSerializer(PathSerializer, QuantitySerializer))
+SimulationParametersSerializer = MultiTypeSerializer( # create unified serializer for Simulation parameter sets
+    PathSerializer,
+    QuantitySerializer,
+    ThermoParametersSerializer,
+    ReporterParametersSerializer,
+    IntegratorParametersSerializer,
+)
+
+@make_jsonifiable(type_serializer=SimulationParametersSerializer)
 @dataclass
 class SimulationParameters:
     '''Unified class for storing simulation parameters'''
     integ_params : IntegratorParameters
     thermo_params : ThermoParameters
     reporter_params : ReporterParameters
-
-    # @staticmethod
-    # def serialize_json_dict(unser_jdict : dict[Any, Any]) -> dict[str, JSONSerializable]:
-    #     '''Convert all Paths to strings'''
-    #     return {
-    #         field_name : params.serialize_json_dict(params.__dict__)
-    #             for field_name, params in unser_jdict.items()
-    #     }
-    
-    # @staticmethod
-    # def unserialize_json_dict(ser_jdict : dict[str, JSONSerializable]) -> dict[Any, Any]:
-    #     '''For de-serializing JSON-compatible data into a form that the __init__method can accept'''
-    #     unser_jdict = {}
-    #     for key, value in ser_jdict.items():
-    #         subparam_field = SimulationParameters.__dataclass_fields__.get(key) 
-    #         if subparam_field is not None:
-    #             subparam_dict = subparam_field.type.unserialize_json_dict(value)
-    #             unser_jdict[key] = subparam_field.type(**subparam_dict)# Deserialize sub-parameter set at top-level
-    #         else:
-    #             unser_jdict[key] = value # leaves sub-parameter values untouched
-
-    #     return unser_jdict
     

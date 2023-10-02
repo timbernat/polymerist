@@ -14,7 +14,6 @@ from ...decorators.classmod import register_subclasses
 JSONSerializable = Union[str, bool, int, float, tuple, list, dict] 
 
 # ABSTRACT INTERFACE FOR DEFINING CUSTOM SERIALIZERS (ENCODER + DECODER)
-
 @register_subclasses(key_attr='python_type')
 class TypeSerializer(ABC):
     '''Interface for defining how types which are not JSON serializable by default should be encoded and decoded'''
@@ -34,6 +33,7 @@ class TypeSerializer(ABC):
         if isinstance(python_obj, cls.python_type):
             return {
                 '__class__' : cls.python_type.__name__,
+                # '__class__' : python_obj.__class__.__name__, # supports subclasses of the base Python type
                 '__values__' : cls.encode(python_obj),
             }
         else:
@@ -41,12 +41,15 @@ class TypeSerializer(ABC):
 
     @classmethod
     def decoder_hook(cls, json_dict : dict[JSONSerializable, JSONSerializable]) -> Union[dict, T]:
-        type_name : Optional[str] = json_dict.pop('__class__', None) # remove __class__ attr if present, returning None if not
+        type_name : Optional[str] = json_dict.get('__class__', None) # remove __class__ attr if present, returning None if not
         if type_name is None:
-            return json_dict
+            return json_dict # return unmodified dict for untyped entries
         
-        if type_name == cls.python_type.__name__:
-            return cls.decode(json_dict['__values__']) # extract and decode values
+        # raise Exception when attempting to decode typed entry of the wrong type
+        if type_name != cls.python_type.__name__:
+            raise TypeError(f'{cls.python_type.__name__} decoder cannot decode JSON-serialized object of type {type_name}')
+
+        return cls.decode(json_dict['__values__']) # extract and decode values if entry has the right type
 
 class MultiTypeSerializer:
     '''For dynamically merging multiple TypeSerializer encoders and decoders'''
@@ -63,8 +66,12 @@ class MultiTypeSerializer:
             raise TypeError(f'Object of type {python_obj.__class__.__name__} is not JSON serializable')
 
     def decoder_hook(self, json_dict : dict[JSONSerializable, JSONSerializable]) -> Any:
+        print(json_dict)
         for type_ser in self.type_sers:
-            return type_ser.decoder_hook(json_dict)
+            try:
+                return type_ser.decoder_hook(json_dict)
+            except:
+                pass # keep trying rest of encoders (don't immediately raise error) - TODO : make this less redundant-looking?
         else: # only raised if no return occurs in any iteration - each decoder works for default-decodable values
             raise TypeError(f'No registered decoders for dict : {json_dict}')
 
@@ -92,7 +99,7 @@ class QuantitySerializer(TypeSerializer):
     def encode(python_obj : openmm.unit.Quantity) -> dict[str, Union[str, float]]:
         '''Separate openmm.unit.Quantity's value and units to serialize as a single dict'''
         return {
-            'value' : python_obj._value,
+            'value' : python_obj._value, # TODO : add numpy array listification for broader support
             'unit'  : str(python_obj.unit),
         }
 
