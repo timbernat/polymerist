@@ -5,7 +5,7 @@ from typing import Generator, TypeAlias, Union
 from dataclasses import dataclass, field
 from rdkit import Chem
 
-from ..genutils.fileutils.jsonio import JSONifiable
+from ..genutils.fileutils.jsonio.jsonify import make_jsonifiable
 from ..rdutils.rdtypes import RDMol
 from ..rdutils.amalgamation.portlib import get_num_ports
 
@@ -13,8 +13,9 @@ from ..rdutils.amalgamation.portlib import get_num_ports
 ResidueSmarts : TypeAlias = dict[str, list[str]] # monomer SMARTS strings keyed by residue name
 
 # MAIN REPRESENTATION CLASS
+@make_jsonifiable
 @dataclass
-class MonomerGroup(JSONifiable):
+class MonomerGroup:
     '''Stores collections of residue-labelled monomer SMARTS'''
     monomers : ResidueSmarts = field(default_factory=dict)
 

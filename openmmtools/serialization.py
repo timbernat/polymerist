@@ -12,7 +12,8 @@ from openmm.app import Simulation, PDBFile
 from openmm import XmlSerializer
 
 from ..genutils.decorators.functional import allow_string_paths
-from ..genutils.fileutils.jsonio import JSONifiable, JSONSerializable
+from ..genutils.fileutils.jsonio.jsonify import make_jsonifiable
+from ..genutils.fileutils.jsonio.serialize import PathSerializer
 
 
 # DEFINING AND STORING SIMULATION PATHS
@@ -25,8 +26,9 @@ def assemble_sim_file_path(out_dir : Path, out_name : str, extension : str, affi
 
     return out_dir / path_name
 
+@make_jsonifiable(type_serializer=PathSerializer)
 @dataclass
-class SimulationPaths(JSONifiable):
+class SimulationPaths:
     '''Encapsulates Paths to various files associated with an OpenMM Simulation'''
     integ_params    : Path
     thermo_params   : Path
@@ -41,30 +43,6 @@ class SimulationPaths(JSONifiable):
     state_data   : Optional[Path] = None
     time_data    : Optional[Path] = None
     spatial_data : Optional[Path] = None
-
-    @staticmethod
-    def serialize_json_dict(unser_jdict : dict[Any, Any]) -> dict[str, JSONSerializable]:
-        '''Convert all Paths to strings'''
-        ser_jdict = {}
-        for key, value in unser_jdict.items():
-            if isinstance(value, Path):
-                ser_jdict[key] = str(value)
-            else:
-                ser_jdict[key] = value
-
-        return ser_jdict
-    
-    @staticmethod
-    def unserialize_json_dict(ser_jdict : dict[str, JSONSerializable]) -> dict[Any, Any]:
-        '''For de-serializing JSON-compatible data into a form that the __init__method can accept'''
-        unser_jdict = {}
-        for key, value in ser_jdict.items():
-            if value is not None:
-                unser_jdict[key] = Path(value)
-            else:
-                unser_jdict[key] = value
-
-        return unser_jdict
 
 
 # SERIALIZATION AND DESERIALIZATION FUNCTIONS

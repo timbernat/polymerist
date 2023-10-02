@@ -14,7 +14,7 @@ from openmm.app import StateDataReporter, CheckpointReporter
 
 from .serialization import assemble_sim_file_path
 from ..genutils.typetools import Args, KWArgs
-from ..genutils.fileutils.jsonio import JSONifiable
+from ..genutils.fileutils.jsonio.jsonify import make_jsonifiable
 
 
 # REPORTER-SPECIFIC TYPES AND TYPEHINTS
@@ -74,8 +74,9 @@ DEFAULT_STATE_DATA_PROPS = {
     'elapsedTime'     : False
 }
 
+@make_jsonifiable
 @dataclass
-class ReporterParameters(JSONifiable):
+class ReporterParameters:
     '''Parameters for specifying Simulation reporters'''
     report_checkpoint : bool = True
     report_state      : bool = True

@@ -31,7 +31,6 @@ class TypeSerializer(ABC):
     @classmethod
     def encoder_default(cls, python_obj : Any) -> JSONSerializable: # NOTE : this is only called on objects which cannot be JSON serialized by default (i.e. don;t need base case)
         '''Augmented Encoder for encoding registered objects along with type info for decoding'''
-        print(python_obj, python_obj.__class__, cls.python_type)
         if isinstance(python_obj, cls.python_type):
             return {
                 '__class__' : cls.python_type.__name__,
@@ -56,13 +55,11 @@ class MultiTypeSerializer:
 
     def encoder_default(self, python_obj : Any) -> JSONSerializable:
         for type_ser in self.type_sers:
-            print(type_ser)
             try:
                 return type_ser.encoder_default(python_obj)
             except:
                 pass # keep trying rest of encoders (don't immediately raise error) - TODO : make this less redundant-looking?
         else:
-            print(python_obj)
             raise TypeError(f'Object of type {python_obj.__class__.__name__} is not JSON serializable')
 
     def decoder_hook(self, json_dict : dict[JSONSerializable, JSONSerializable]) -> Any:

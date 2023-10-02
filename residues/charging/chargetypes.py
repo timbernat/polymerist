@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from rdkit.Chem import Mol as RDMol
-from ...genutils.fileutils.jsonio import JSONifiable, JSONSerializable
+from ...genutils.fileutils.jsonio.jsonify import make_jsonifiable
 
 # from openff.toolkit import ForceField
 # from openff.toolkit.typing.engines.smirnoff.parameters import LibraryChargeHandler
@@ -18,8 +18,9 @@ class ChargedResidue:
     SMARTS : str
     mol_fragment : RDMol
 
+@make_jsonifiable
 @dataclass
-class ChargesByResidue(JSONifiable): # make serializable to JSON
+class ChargesByResidue:
     '''Class for storing substructure charge maps by residue'''
     charges : dict[str, ChargeMap] = field(default_factory=dict)
 
