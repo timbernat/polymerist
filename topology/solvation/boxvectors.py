@@ -14,6 +14,7 @@ from openff.units.openmm import to_openmm as units_to_openmm
 
 from ...genutils.unitutils import allow_openmm_units
 
+
 # CUSTOM TYPES FOR CLARITY, ESPECIALLY WITH UNITS
 Vector = Annotated[npt.NDArray[np.generic], Literal[3]] # a 3x1 vector
 VectorQuantity = Union[Quantity, Vector] # 3x1 vector with associated units
@@ -21,6 +22,9 @@ VectorQuantity = Union[Quantity, Vector] # 3x1 vector with associated units
 BoxVectors = Annotated[npt.NDArray[np.generic], Literal[3, 3]] # a 3x3 box-vector matrix (in reduced form), with each row representing a single unit cell vector
 BoxVectorsQuantity = Union[Quantity, BoxVectors] # 3x3 box vectors with associated units
 
+class BoxVectorError(Exception):
+    '''Raised when a provided set of box vectors is invalid (for whatever reason)'''
+    pass
 
 # OBTAINING AND SCALING BOX VECTORS
 @allow_openmm_units
