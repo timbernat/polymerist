@@ -30,19 +30,17 @@ def assemble_sim_file_path(out_dir : Path, out_name : str, extension : str, affi
 @dataclass
 class SimulationPaths:
     '''Encapsulates Paths to various files associated with an OpenMM Simulation'''
-    integ_params    : Path
-    thermo_params   : Path
-    reporter_params : Path
+    sim_params_path   : Path
 
-    system       : Optional[Path] = None
-    topology     : Optional[Path] = None
-    state        : Optional[Path] = None
-    checkpoint   : Optional[Path] = None
-    trajectory   : Optional[Path] = None
-
-    state_data   : Optional[Path] = None
-    time_data    : Optional[Path] = None
-    spatial_data : Optional[Path] = None
+    system_path       : Optional[Path] = None
+    topology_path     : Optional[Path] = None
+    state_path        : Optional[Path] = None
+    checkpoint_path   : Optional[Path] = None
+    trajectory_path   : Optional[Path] = None
+    
+    state_data_path   : Optional[Path] = None
+    time_data_path    : Optional[Path] = None
+    spatial_data_path : Optional[Path] = None
 
 
 # SERIALIZATION AND DESERIALIZATION FUNCTIONS
