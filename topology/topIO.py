@@ -49,7 +49,7 @@ def topology_to_sdf(path : Path, offtop : Topology, toolkit_registry : ToolkitRe
     '''Save an OpenFF Topology to an SDF file file atom metadata preserved'''
     assert(path.suffix == '.sdf')
 
-    with path.open('w') as sdf_file:
+    with path.open('w') as sdf_file:# TODO : maybe change to append mode instead?
         for mol in offtop.molecules:
             serial_mol = package_atom_metadata(mol, in_place=False)  # packageage metadata for serialization WITHOUT disturbing the original molecule
             serial_mol.to_file(sdf_file, file_format='SDF', toolkit_registry=toolkit_registry) # NOTE : not using save_molecule() here, as that function does not currently support bytes-like input (needed for multiple mols in same file)
