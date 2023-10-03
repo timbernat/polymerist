@@ -5,16 +5,15 @@ LOGGER = logging.getLogger(__name__)
 
 from typing import Any, Callable, Optional, TypeAlias, Union
 from dataclasses import dataclass, field
-
-from functools import partial
 from pathlib import Path
 
 from openmm.app import PDBReporter, PDBxReporter, DCDReporter
 from openmm.app import StateDataReporter, CheckpointReporter
 
-from .serialization import assemble_sim_file_path
 from ..genutils.typetools import Args, KWArgs
+from ..genutils.fileutils.pathutils import assemble_path
 from ..genutils.fileutils.jsonio.jsonify import make_jsonifiable
+from ..genutils.fileutils.jsonio.serialize import PathSerializer
 
 
 # REPORTER-SPECIFIC TYPES AND TYPEHINTS
@@ -74,7 +73,7 @@ DEFAULT_STATE_DATA_PROPS = {
     'elapsedTime'     : False
 }
 
-@make_jsonifiable
+@make_jsonifiable(type_serializer=PathSerializer)
 @dataclass
 class ReporterParameters:
     '''Parameters for specifying Simulation reporters'''
@@ -85,7 +84,8 @@ class ReporterParameters:
 
     traj_ext   : Optional[str] = 'dcd'
     num_steps  : Optional[int] = None 
-    state_data : Optional[dict[str, bool]] = field(default_factory=lambda : DEFAULT_STATE_DATA_PROPS)
+    state_data     : Optional[dict[str, bool]] = field(default_factory=lambda : DEFAULT_STATE_DATA_PROPS)
+    reporter_paths : Optional[dict[str, Path]] = field(default=None)
 
     @property
     def rep_configs(self) -> list[ReporterConfig]:
@@ -106,18 +106,25 @@ class ReporterParameters:
                     
         return rep_configs
 
-    def prepare_reporters(self, out_dir : Path, out_name : str, report_interval : int) -> tuple[dict[str, Path], list[Reporter]]:
-        '''Prepare all reporters specified by internal parameters and return Paths linked to said reporters'''
-        rep_paths, reps = {}, []
+    def init_reporter_paths(self, out_dir : Path, prefix : str) -> None: # TODO : add mechanism to automatically re-initialize when bool params change (might onvolve caching dir info)
+        '''Generate paths for all configured and enabled reporters'''
+        self.reporter_paths = {
+            rep_config.label : assemble_path(out_dir, prefix, extension=rep_config.extension, postfix=rep_config.label)
+                for rep_config in self.rep_configs
+        }
 
+    def prepare_reporters(self, report_interval : int) -> list[Reporter]:
+        '''Prepare all reporters specified by internal parameters and return Paths linked to said reporters'''
+        if self.reporter_paths is None:
+            raise ValueError('Cannot create Simulation reporters without initializing reporter output paths')
+        
+        reporters = []
         for rep_config in self.rep_configs:
-            rep_path = assemble_sim_file_path(out_dir, out_name, extension=rep_config.extension, affix=rep_config.label)
+            rep_path = self.reporter_paths[rep_config.label] # will raise KeyErro if config changes between Path init
             rep_path.touch() # ensure the reporter output file actually exists
 
             rep = rep_config.initializer(str(rep_path), reportInterval=report_interval, **rep_config.extra_kwargs)
             LOGGER.info(f'Prepared {rep.__class__.__name__} which reports to {rep_path}')
+            reporters.append(rep)
 
-            rep_paths[rep_config.label] = rep_path
-            reps.append(rep)
-
-        return rep_paths, reps
+        return reporters
