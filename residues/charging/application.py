@@ -29,39 +29,43 @@ def apply_residue_charges(mol : Molecule, chgs_by_res : ChargesByResidue) -> Non
 
 
 # ABSTRACT AND CONCRETE CLASSES FOR CHARGING MOLECULES
-@register_subclasses(key_attr='METHOD_NAME')
+@register_subclasses(key_attr='CHARGING_METHOD')
 class MolCharger(ABC):
     '''Base interface for defining various methods of generating and storing atomic partial charges'''
     @abstractproperty
     @classmethod
-    def METHOD_NAME(cls):
+    def CHARGING_METHOD(cls):
         '''For setting the name of the method as a class attribute in child classes'''
         pass
 
     @abstractmethod
-    def _charge_molecule(self, uncharged_mol : Molecule) -> Molecule:
+    @optional_in_place
+    def _charge_molecule(self, uncharged_mol : Molecule) -> None: 
         '''Method for assigning molecular partial charges - concrete implementation in child classes'''
         pass
 
-    def charge_molecule(self, uncharged_mol : Molecule) -> Molecule:
+    @optional_in_place
+    def charge_molecule(self, uncharged_mol : Molecule) -> None:
         '''Wraps charge method call with logging'''
-        LOGGER.info(f'Assigning partial charges via the "{self.METHOD_NAME}" method')
-        cmol = self._charge_molecule(uncharged_mol)
-        LOGGER.info(f'Successfully assigned "{self.METHOD_NAME}" charges')
+        LOGGER.info(f'Assigning partial charges via the "{self.CHARGING_METHOD}" method')
+        self._charge_molecule(uncharged_mol, in_place=True) # must be called in-place for external optional_in_place wrapper to work as expected
+        uncharged_mol.properties['charge_method'] = self.CHARGING_METHOD # record method within Molecule for reference
+        LOGGER.info(f'Successfully assigned "{self.CHARGING_METHOD}" charges')
 
-        return cmol
-
+# CONCRETE IMPLEMENTATIONS OF DIFFERENT CHARGING METHODS
 class ABE10Charger(MolCharger):
     '''Charger class for AM1-BCC-ELF10 exact charging'''
-    METHOD_NAME = 'ABE10_exact'
+    CHARGING_METHOD = 'AM1-BCC-ELF10'
 
-    def _charge_molecule(self, uncharged_mol : Molecule) -> Molecule:
+    @optional_in_place
+    def _charge_molecule(self, uncharged_mol : Molecule) -> None:
         '''Concrete implementation for AM1-BCC-ELF10'''
-        return uncharged_mol.assign_partial_charges(partial_charge_method='am1bccelf10', toolkit_registry=TKREGS['OpenEye Toolkit'])
+        uncharged_mol.assign_partial_charges(partial_charge_method='am1bccelf10', toolkit_registry=TKREGS['OpenEye Toolkit'])
 
 class EspalomaCharger(MolCharger):
-    '''Charger class for AM1-BCC-ELF10 exact charging'''
-    METHOD_NAME = 'Espaloma_AM1BCC'
+    '''Charger class for EspalomaCharge charging'''
+    CHARGING_METHOD = 'Espaloma-AM1-BCC'
 
-    def _charge_molecule(self, uncharged_mol : Molecule) -> Molecule:
-        return uncharged_mol.assign_partial_charges(partial_charge_method='espaloma-am1bcc', toolkit_registry=TKREGS['Espaloma Charge Toolkit'])
+    @optional_in_place
+    def _charge_molecule(self, uncharged_mol : Molecule) -> None:
+        uncharged_mol.assign_partial_charges(partial_charge_method='espaloma-am1bcc', toolkit_registry=TKREGS['Espaloma Charge Toolkit'])
