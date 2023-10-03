@@ -15,6 +15,7 @@ from ..typetools import O, T, Args, KWArgs
 from ..fileutils.pathutils import aspath, asstrpath
 
 
+@extend_to_methods
 def optional_in_place(funct : Callable[[O, Args, KWArgs], None]) -> Callable[[O, Args, bool, KWArgs], Optional[O]]:
     '''Decorator function for allowing in-place (writeable) functions which modify object attributes
     to be not performed in-place (i.e. read-only), specified by a boolean flag'''

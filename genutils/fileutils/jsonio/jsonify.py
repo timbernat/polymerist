@@ -3,7 +3,7 @@
 from typing import Any, Optional, Type, TypeVar, Union
 C = TypeVar('C') # generic type for classes
 from dataclasses import dataclass, is_dataclass
-from functools import update_wrapper
+from functools import update_wrapper, wraps
 
 import json
 from pathlib import Path
@@ -37,15 +37,14 @@ def jsonifiable_serializer_factory(cls : Type[C]) -> TypeSerializer:
 
 
 # DECORATOR METHOD FOR MAKING CLASSES JSON-SERIALIZABLE
-def make_jsonifiable(cls : Optional[C]=None, type_serializer : Optional[Union[TypeSerializer, MultiTypeSerializer]]=None, dataclasses_only : bool=True) -> C:
+def make_jsonifiable(cls : Optional[C]=None, type_serializer : Optional[Union[TypeSerializer, MultiTypeSerializer]]=None) -> C:
     '''
-    Modify a class to make its attributes writeable-to and readable-from JSON files
+    Modify a dataclass to make its attributes writeable-to and readable-from JSON files
     Can optionally specify additional TypeSerializers to support objects with attributes whose types are, by default, not JSON-serializable
     '''
     def jsonifiable_factory(cls : C) -> C:
         '''Factory method, defines new class which inherits from original class and adds serialization methods'''
-        if dataclasses_only:
-            assert(is_dataclass(cls)) # can enforce modification only to dataclasses (makes behavior a little more natural)
+        assert(is_dataclass(cls)) # can enforce modification only to dataclasses (makes behavior a little more natural)
 
         # assign encoder(s) and decoder(s)
         if type_serializer is None:
@@ -58,6 +57,9 @@ def make_jsonifiable(cls : Optional[C]=None, type_serializer : Optional[Union[Ty
                     return type_serializer.encoder_default(python_obj)
             object_hook = type_serializer.decoder_hook
 
+        # generate serializable child class
+        @wraps(cls, updated=()) # copy over docstring, module, etc; set updated to empty so as to not attempt __dict__updates (classes don;t have these)
+        @dataclass
         class WrappedClass(cls, JSONifiable):
             '''Class which inherits from modified class and adds JSON serialization capability'''
             _Encoder = Encoder
@@ -77,7 +79,6 @@ def make_jsonifiable(cls : Optional[C]=None, type_serializer : Optional[Union[Ty
                 assert(load_path.suffix == '.json')
                 with load_path.open('r') as loadfile:
                     params = json.load(loadfile, object_hook=object_hook)
-                    print(params)
 
                 return cls(**params)
 
@@ -89,10 +90,6 @@ def make_jsonifiable(cls : Optional[C]=None, type_serializer : Optional[Union[Ty
             #         self.to_file()
             #         return ret_val
             #     return update_fn
-
-        if is_dataclass(cls):
-            WrappedClass = dataclass(WrappedClass)
-        WrappedClass = update_wrapper(WrappedClass, cls, updated=()) # copy over docstring, module, etc; set updated to empty so as to not attempt __dict__updates (classes don;t have these)
 
         return WrappedClass
 

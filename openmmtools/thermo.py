@@ -44,19 +44,28 @@ class EnsembleFactory(ABC):
         '''class method to automatically perform registry lookup (simplifies imports and use cases)'''
         return EnsembleFactory.subclass_registry[thermo_params.ensemble](thermo_params)
 
-    # ABSTRACT METHODS AND PROPERTIES (TO BE IMPLEMENTED FOR EACH PARTICULAR ENSEMBLE)
+    # ENSEMBLE NAMING ATTRIBUTES
     @abstractproperty
     @classmethod
-    def ensemble(self) -> str:
+    def ensemble(cls) -> str: # to be implemented for each particular ensemble
         '''Specify state variables of ensemble'''
         pass
 
     @abstractproperty
     @classmethod
-    def ensemble_name(self) -> str:
+    def ensemble_name(cls) -> str: # to be implemented for each particular ensemble
         '''Specify name of ensemble'''
         pass
 
+    @property
+    def desc(self) -> str:
+        '''Verbal description of ensemble'''
+        return f'{self.ensemble} ({self.ensemble_name.capitalize()}) ensemble'
+
+    def __post_init__(self) -> None:
+        self.__doc__ = f'Factory class for the {self.desc}' # auto-generate docstring by ensemble
+
+    # DEFINING ENSEMBLE-SPECIFIC INTEGRATORS AND FORCES
     @abstractmethod
     def _integrator(self, time_step : Quantity) -> Integrator:
         '''Specify how to integrate forces in each timestep'''
@@ -84,23 +93,6 @@ class EnsembleFactory(ABC):
 
         return forces
 
-    # REPRESENTATION AND PRETTY-PRINTING
-    _REPR_ATTRS = ('ensemble', 'ensemble_name')
-
-    @property
-    def desc(self) -> str:
-        '''Verbal description of ensemble'''
-        return f'{self.ensemble} ({self.ensemble_name.capitalize()}) ensemble'
-
-    def __repr__(self) -> str:
-        '''Provide a description of the ensemble and mechanics used'''
-        
-        attr_str = ', '.join(
-            f'{attr_name}={getattr(self, attr_name)}'    
-                for attr_name in self._REPR_ATTRS
-        )
-        return f'{self.__class__.__name__}({attr_str})'
-    
 
 # CONCRETE IMPLEMENTATIONS OF ENSEMBLES
 @dataclass

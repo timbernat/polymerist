@@ -11,7 +11,7 @@ def _dotless(extension : str) -> str:
 
 def dotless(path : Path) -> str:
     '''Separate the dot from file path. Returns the original suffix if not dot is present'''
-    return dotless(path.suffix)
+    return _dotless(path.suffix)
 
 def is_empty(path : Path) -> bool:
     '''Check if a directory is empty'''
