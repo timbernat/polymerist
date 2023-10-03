@@ -67,7 +67,6 @@ def build_linear_polymer(monomers : MonomerGroup, DOP : int, sequence : str='A',
             mb_monomer, port_ids = mbmol_from_mono_rdmol(monomer)
         except:
             mb_monomer, port_ids = mbmol_from_mono_rdmol_legacy(monomer) # plan to deprecate, only here to maximize structure coverage
-        print(mb_monomer, port_ids)
         
         if MonomerGroup.is_terminal(monomer):
             chain.add_end_groups(compound=mb_monomer, index=port_ids[0], label=term_labels.pop(), duplicate=False)

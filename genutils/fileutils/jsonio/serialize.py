@@ -66,7 +66,6 @@ class MultiTypeSerializer:
             raise TypeError(f'Object of type {python_obj.__class__.__name__} is not JSON serializable')
 
     def decoder_hook(self, json_dict : dict[JSONSerializable, JSONSerializable]) -> Any:
-        print(json_dict)
         for type_ser in self.type_sers:
             try:
                 return type_ser.decoder_hook(json_dict)

@@ -74,7 +74,6 @@ def is_volume(unit_val : Union[Unit, Quantity]) -> bool:
     if isinstance(unit_val, Quantity):
         unit_val = unit_val.unit # extract just the unit component if a Quantity is passed
 
-    print(unit_val, type(unit_val))
     for i, (dim, exp) in enumerate(unit_val.iter_base_dimensions()):
         if i > 0:
             return False # immediate rule out if more than just one unit is present
