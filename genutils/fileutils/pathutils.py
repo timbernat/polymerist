@@ -19,6 +19,16 @@ def is_empty(path : Path) -> bool:
     return list(path.iterdir()) == [] # can't use "len" for generators : TODO : make this more efficient (i.e. iteration-based) for large directories
 
 
+# PATH CREATION FUNCTIONS
+def assemble_path(directory : Path, prefix : str, extension : str, postfix : str='') -> Path:
+    '''Combine output, naming, descriptive, and filetype info to generate a complete Path'''
+    if extension[0] == '.':
+        extension = extension[1:] # remove leading dots if included
+    path_name = f'{prefix}{"_" if postfix else ""}{postfix}.{extension}'
+
+    return directory / path_name
+
+
 # PATH CONVERSION FUNCTIONS (FOR CHANGING BETWEEN TYPES)
 def aspath(path : Union[str, Path]) -> Path:
 	'''Allow functions which expect Paths to also accept strings'''
