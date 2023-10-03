@@ -24,7 +24,7 @@ def label_forces(system : System) -> None:
 
     # TODO : add labelling (depends partially on Interchange's NonbondedForce separation)
 
-def simulation_from_thermo(topology : Topology, system : System, thermo_params : ThermoParameters, time_step : Quantity, state : Optional[State]=None) -> Simulation:
+def simulation_from_thermo(topology : Topology, system : System, thermo_params : ThermoParameters, time_step : Quantity, state : Optional[Path]=None) -> Simulation:
     '''Prepare an OpenMM simulation from a serialized thermodynamics parameter set'''
     ens_fac = EnsembleFactory.from_thermo_params(thermo_params)
     if (forces := ens_fac.forces()): # check if any extra forces are present
@@ -42,32 +42,13 @@ def simulation_from_thermo(topology : Topology, system : System, thermo_params :
 
     return simulation
 
-def initialize_simulation_and_files(out_dir : Path, out_name : str, sim_paths : SimulationPaths, topology : Topology, system : System) -> Simulation:
+def initialize_simulation_and_files(out_dir : Path, prefix : str, sim_params : SimulationParameters, topology : Topology, system : System) -> tuple[Simulation, SimulationPaths]:
     '''Create simulation, bind Reporters, and update simulation Paths with newly-generated files'''
-    sim_params = SimulationParameters.from_file(sim_paths.sim_params_path)
-    try:
-        with sim_paths.state_path.open('r') as state_file:
-            state = XmlSerializer.deserialize(state_file.read())
-            LOGGER.info(f'Loaded Simulation State from {sim_paths.state_path}')
-    except (AttributeError, ValueError): # handle cases where state path is None or state file is empty, respectively
-        state = None
+    sim_paths = SimulationPaths.from_dir_and_parameters(out_dir, prefix, sim_params, touch=True)
 
     # create simulation and add reporters
-    simulation = simulation_from_thermo(topology, system, sim_params.thermo_params, time_step=sim_params.integ_params.time_step, state=state)
-    rep_paths, reps = sim_params.reporter_params.prepare_reporters(out_dir, out_name, sim_params.integ_params.report_interval)
-    
-    for reporter in reps:
+    simulation = simulation_from_thermo(topology, system, sim_params.thermo_params, time_step=sim_params.integ_params.time_step, state=sim_paths.state_path)
+    for reporter in sim_params.reporter_params.prepare_reporters(report_interval=sim_params.integ_params.report_interval):
         simulation.reporters.append(reporter) # add reporters to simulation instance
 
-    for attr, path in rep_paths.items():
-        setattr(sim_paths, attr, path) # register reporter output paths
-
-    return simulation
-
-def record_simulation_top_and_sys(out_dir : Path, out_name : str, simulation : Simulation, sim_paths : SimulationPaths) -> None:
-    '''Serilaize current topology and initial state, system, and checkpoint'''
-    sim_paths.topology = serialize_topology_from_simulation(simulation, out_dir, out_name) # TODO : make this consistent with rest of Path output
-    LOGGER.info(f'Saved energy-minimized Simulation Topology at {sim_paths.topology}')
-
-    sim_paths.system = serialize_system(simulation.system, out_dir, out_name)
-    LOGGER.info(f'Saved serialized Simulation System at {sim_paths.system}')
+    return simulation, sim_paths
