@@ -62,3 +62,5 @@ class SimulationParameters:
     thermo_params : ThermoParameters
     reporter_params : ReporterParameters
     
+    def __post_init__(self) -> None:
+        self.reporter_params.num_steps = self.integ_params.num_steps
