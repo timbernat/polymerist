@@ -1,11 +1,11 @@
 '''Tools for making and breaking bonds, with correct conversions of ports'''
 
 from typing import Optional, Union
-
+from IPython.display import display
 from rdkit import Chem
 from rdkit.Chem.rdchem import BondType
 
-from .portlib import get_bondable_port_pair_between_atoms, max_bondable_order_between_atoms
+from . import portlib
 from ..rdtypes import RWMol, RDMol, RDAtom
 from ..rdkdraw import clear_highlights
 from ..labeling import molwise
@@ -29,7 +29,7 @@ def are_bonded_atoms(rdmol : RDMol, atom_id_1 : int, atom_id_2 : int) -> bool:
     '''Check if pair of atoms in an RDMol have a bond between then'''
     return (rdmol.GetBondBetweenAtoms(atom_id_1, atom_id_2) is not None)
 
-def combine_rdmols(rdmol_1 : RDMol, rdmol_2 : RDMol, editable : bool=True) -> Union[RDMol, RWMol]:
+def combined_rdmol(rdmol_1 : RDMol, rdmol_2 : RDMol, editable : bool=True) -> Union[RDMol, RWMol]:
     '''Merge two RDMols into a single molecule with contiguous, non-overlapping atom map numbers'''
     rdmol_1, rdmol_2 = molwise.assign_contiguous_atom_map_nums(rdmol_1, rdmol_2, in_place=False) 
     combo = Chem.CombineMols(rdmol_1, rdmol_2) # combine into single Mol object to allow for bonding
@@ -101,12 +101,10 @@ def decrease_bond_order(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, new_por
         # _increase_bond_order(rwmol, atom_id, new_port_id)
 
 @optional_in_place
-def increase_bond_order(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, target_flavor : Optional[int]=None) -> None: # TODO : add specificity to flavor selection
+def increase_bond_order(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, flavor_pair : tuple[Optional[int], Optional[int]]=(None, None)) -> None: # TODO : add specificity to flavor selection
     '''Exchange two ports for a bond of one higher order in a modifiable RWMol. Can optionally specify a port flavor for greater selectivity'''
-    port_pair = get_bondable_port_pair_between_atoms(rwmol, atom_id_1, atom_id_2, target_flavor=target_flavor) # raises MolPortError if none exists
-
-    # Up-convert bond between target atoms
-    _increase_bond_order(rwmol, atom_id_1, atom_id_2, in_place=True) # important that new bond formation be done FIRST, to avoid index shifts if linker atoms need to be removed
+    port_pair = portlib.get_first_bondable_port_pair(rwmol, atom_id_1=atom_id_1, atom_id_2=atom_id_2, flavor_pair=flavor_pair) # raises MolPortError if none exists
+    _increase_bond_order(rwmol, atom_id_1, atom_id_2, in_place=True) # Up-convert bond between target atoms; CRITICAL that this be done FIRST to avoid index shifts if linker atoms need to be removed
     
     # down-convert bonds to ports, removing linkers if necessary
     for port in port_pair:
@@ -126,12 +124,43 @@ def dissolve_bond(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, new_port_flav
         decrease_bond_order(rwmol, atom_id_1, atom_id_2, new_port_flavor=new_port_flavor, in_place=True)
 
 @optional_in_place
-def splice_atoms(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, target_flavor : Optional[int]=None) -> None:
-    '''Completely combine all bondable ports between a pair of atoms into one bond'''
-    for i in range(max_bondable_order_between_atoms(rwmol, atom_id_1, atom_id_2, target_flavor=target_flavor)):
-        if i == 0: # record map numbers as invariant between bonding events (atom id won't necessarily be)
+def splice_atoms(rwmol : RWMol, atom_id_1 : Optional[int]=None, atom_id_2 : Optional[int]=None, flavor_pair : tuple[Optional[int], Optional[int]]=(None, None)) -> None:
+    '''Completely combine a single pair of ports on two target atoms to create a bond of desired order'''
+    port_1, port_2 = portlib.get_first_bondable_port_pair(rwmol, atom_id_1=atom_id_1, atom_id_2=atom_id_2, flavor_pair=flavor_pair) # TODO : reimplement this to be slightly less redundant (maybe add option to specify bond order ahead of time in increase_bond_order()?)
+    if atom_id_1 is None: # fill in atom indices to give greater specificity for single bond order upconversion
+        atom_id_1 = port_1.bridgehead.GetIdx()
+    if atom_id_2 is None: # fill in atom indices to give greater specificity for single bond order upconversion
+        atom_id_2 = port_2.bridgehead.GetIdx()
+
+    assert(port_1.bond.GetBondType() == port_2.bond.GetBondType()) # slightly redundant given pre-bonding checks, but is a helpful failsafe
+    for i in range(int(port_1.bond.GetBondTypeAsDouble())): # bond the target atoms up to the degree of the desired port pair; types
+        if i == 0: # record map numbers, as these are invariant between bonding events (unlike atom IDs)
             atom_map_nums = [j for j in molwise.map_nums_by_atom_ids(rwmol, atom_id_1, atom_id_2)] # unpack as list to avoid values being "used up" upon iteration
         else:
             atom_id_1, atom_id_2 = molwise.atom_ids_by_map_nums(rwmol, *atom_map_nums) # reassign bonded atom IDs from invariant map nums cached on first bond formation
 
-        increase_bond_order(rwmol, atom_id_1, atom_id_2, target_flavor=target_flavor, in_place=True)
+        increase_bond_order(rwmol, atom_id_1, atom_id_2, flavor_pair=flavor_pair, in_place=True) 
+
+def saturate_ports(rdmol : RDMol, cap : RDMol=Chem.MolFromSmarts('[#0]-[#1]'), flavor_to_saturate : int=0) -> None:
+    '''Takes an RDMol and another "cap" molecule (by default just hydrogen) and caps all valid ports (with the specified flavor) on the target Mol with the cap group'''
+    flavor_pair : tuple[int, int] = (flavor_to_saturate, portlib.get_single_port(cap).flavor) # will raise exception if cap has anything other than 1 port
+    
+    rwmol = combined_rdmol(rdmol, cap, editable=True) # create initial combination to test if bonding is possible
+    num_bonds_formable = portlib.get_num_bondable_port_pairs(rwmol, flavor_pair=flavor_pair)
+    if num_bonds_formable == 0:
+        return rdmol # special case, if no bondable ports exist to begin with, return the original molecule
+    
+    # implicit else if initial return in null case is not hit
+    for i in range(num_bonds_formable): # not greater than 1, since initial combination is already done outside loop
+        splice_atoms(rwmol, flavor_pair=flavor_pair, in_place=True)
+        if i < (num_bonds_formable - 1): # need -1 to exclude final addition
+            rwmol = combined_rdmol(rwmol, cap, editable=True) # add another cap group on all but the final iteration. NOTE : must be added one-at-a-time to preclude caps from bonding to each other
+    molwise.assign_ordered_atom_map_nums(rwmol, in_place=True) # ensure map numbers are ordered and minial
+    
+    return Chem.rdchem.Mol(rwmol) # revert to "regular" Mol from RWMol
+
+@optional_in_place # temporarily placed here for backwards-compatibility reasons
+def hydrogenate_rdmol_ports(rdmol : RDMol) -> None:
+    '''Replace all port atoms with hydrogens'''
+    for port_id in portlib.get_port_ids(rdmol):
+        rdmol.GetAtomWithIdx(port_id).SetAtomicNum(1)
