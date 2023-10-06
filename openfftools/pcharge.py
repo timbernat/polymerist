@@ -1,21 +1,19 @@
-'''Custom typehints and classes for partial charge assignment of OpenFf Molecules'''
+'''Custom typehints and classes for partial charge assignment of OpenFF Molecules'''
 
 import logging
 LOGGER = logging.getLogger(__name__)
 
-from typing import Any, ClassVar, Iterable, Optional
+from typing import Any, ClassVar
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod, abstractproperty
-
-import numpy as np
 
 from rdkit.Chem import Mol as RDMol
 from openff.toolkit.topology.molecule import Molecule
 
-from ...openfftools.offref import TKREGS
-from ...genutils.decorators.classmod import register_subclasses
-from ...genutils.decorators.functional import optional_in_place
-from ...genutils.fileutils.jsonio.jsonify import make_jsonifiable
+from . import TKREGS
+from ..genutils.decorators.classmod import register_subclasses
+from ..genutils.decorators.functional import optional_in_place
+from ..genutils.fileutils.jsonio.jsonify import make_jsonifiable
 
 
 # 
