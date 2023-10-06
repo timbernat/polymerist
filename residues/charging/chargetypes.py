@@ -1,13 +1,24 @@
-'''Custom typehints and classes for residue charging'''
+'''Custom typehints and classes for partial charge assignment of OpenFf Molecules'''
 
+import logging
+LOGGER = logging.getLogger(__name__)
+
+from typing import Any, ClassVar, Iterable, Optional
 from dataclasses import dataclass, field
+from abc import ABC, abstractmethod, abstractproperty
+
+import numpy as np
+
 from rdkit.Chem import Mol as RDMol
+from openff.toolkit.topology.molecule import Molecule
+
+from ...openfftools.offref import TKREGS
+from ...genutils.decorators.classmod import register_subclasses
+from ...genutils.decorators.functional import optional_in_place
 from ...genutils.fileutils.jsonio.jsonify import make_jsonifiable
 
-# from openff.toolkit import ForceField
-# from openff.toolkit.typing.engines.smirnoff.parameters import LibraryChargeHandler
 
-
+# 
 ChargeMap = dict[int, float] # maps substructure IDs to partial charge values
 
 @dataclass
@@ -24,44 +35,45 @@ class ChargesByResidue:
     '''Class for storing substructure charge maps by residue'''
     charges : dict[str, ChargeMap] = field(default_factory=dict)
 
-# def write_lib_chgs_from_mono_data(monomer_group : MonomerInfo, offxml_src : Path, output_path : Path) -> tuple[ForceField, list[LibraryChargeHandler]]: # TODO - refactor to accept MonomerInfo instance
-#     '''Takes a monomer JSON file (must contain charges!) and a force field XML file and appends Library Charges based on the specified monomers. Outputs to specified output_path'''
-#     LOGGER.warning('Generating new forcefield XML with added Library Charges')
-#     assert(output_path.suffix == '.offxml') # ensure output path is pointing to correct file type
-#     assert(monomer_group.has_charges) # ensure charge entries are present
 
-#     forcefield = ForceField(offxml_src) # simpler to add library charges through forcefield API than to directly write to xml
-#     lc_handler = forcefield["LibraryCharges"]
+# ABSTRACT AND CONCRETE CLASSES FOR CHARGING MOLECULES
+@register_subclasses(key_attr='CHARGING_METHOD')
+class MolCharger(ABC):
+    '''Base interface for defining various methods of generating and storing atomic partial charges'''
+    @abstractproperty
+    @classmethod
+    def CHARGING_METHOD(cls):
+        '''For setting the name of the method as a class attribute in child classes'''
+        pass
 
-#     lib_chgs = [] #  all library charges generated from the averaged charges for each residue
-#     for resname, charge_dict in monomer_group.charges.items(): # ensures no uncharged structure are written as library charges (may be a subset of the monomers structures in the file)
-#         # NOTE : original implementation deprecated due to imcompatibility with numbered ports, kept in comments here for backward compatibility and debug reasons
-#         # lc_entry = { # stringify charges into form usable for library charges
-#         #     f'charge{cid}' : f'{charge} * elementary_charge' 
-#         #         for cid, charge in charge_dict.items()
-#         # } 
-#         # lc_entry['smirks'] = monomer_group['monomers'][resname] # add SMIRKS string to library charge entry to allow for correct labelling
-        
-#         lc_entry = {}
-#         rdmol = Chem.MolFromSmarts(monomer_group.monomers[resname])
+    @abstractmethod
+    @optional_in_place
+    def _charge_molecule(self, uncharged_mol : Molecule) -> None: 
+        '''Method for assigning molecular partial charges - concrete implementation in child classes'''
+        pass
 
-#         new_atom_id = 1 # counter for remapping atom ids - NOTE : cannot start at 0, since that would denote an invalid atom
-#         for atom in sorted(rdmol.GetAtoms(), key=lambda atom : atom.GetAtomMapNum()): # renumber according to map number order, NOT arbitrary RDKit atom ordering
-#             if atom.GetAtomicNum(): # if the atom is not wild type or invalid
-#                 old_map_num = atom.GetAtomMapNum() # TOSELF : order of operations in this clause is highly important (leave as is if refactoring!)
-#                 lc_entry[f'charge{new_atom_id}'] = f'{charge_dict[old_map_num]} * elementary_charge'
+    @optional_in_place
+    def charge_molecule(self, uncharged_mol : Molecule) -> None:
+        '''Wraps charge method call with logging'''
+        LOGGER.info(f'Assigning partial charges via the "{self.CHARGING_METHOD}" method')
+        self._charge_molecule(uncharged_mol, in_place=True) # must be called in-place for external optional_in_place wrapper to work as expected
+        uncharged_mol.properties['charge_method'] = self.CHARGING_METHOD # record method within Molecule for reference
+        LOGGER.info(f'Successfully assigned "{self.CHARGING_METHOD}" charges')
 
-#                 atom.SetAtomMapNum(new_atom_id)
-#                 new_atom_id += 1; # increment valid atom index
-#             else:
-#                 atom.SetAtomMapNum(0) # blank out invalid atoms in SMARTS numbering
+# CONCRETE IMPLEMENTATIONS OF DIFFERENT CHARGING METHODS
+class ABE10Charger(MolCharger):
+    '''Charger class for AM1-BCC-ELF10 exact charging'''
+    CHARGING_METHOD : ClassVar[str] = 'AM1-BCC-ELF10'
 
-#         lc_entry['smirks'] = Chem.MolToSmarts(rdmol)  # convert renumbered mol back to SMARTS to use for SMIRNOFF charge labelling
-#         lc_params = LibraryChargeHandler.LibraryChargeType(allow_cosmetic_attributes=True, **lc_entry) # must enable cosmetic params for general kwarg passing
-        
-#         lc_handler.add_parameter(parameter=lc_params)
-#         lib_chgs.append(lc_params)  # record library charges for reference
-    
-#     forcefield.to_file(output_path) # write modified library charges to new xml (avoid overwrites in case of mistakes)
-#     return forcefield, lib_chgs
+    @optional_in_place
+    def _charge_molecule(self, uncharged_mol : Molecule) -> None:
+        '''Concrete implementation for AM1-BCC-ELF10'''
+        uncharged_mol.assign_partial_charges(partial_charge_method='am1bccelf10', toolkit_registry=TKREGS['OpenEye Toolkit'])
 
+class EspalomaCharger(MolCharger):
+    '''Charger class for EspalomaCharge charging'''
+    CHARGING_METHOD : ClassVar[str] = 'Espaloma-AM1-BCC'
+
+    @optional_in_place
+    def _charge_molecule(self, uncharged_mol : Molecule) -> None:
+        uncharged_mol.assign_partial_charges(partial_charge_method='espaloma-am1bcc', toolkit_registry=TKREGS['Espaloma Charge Toolkit'])

@@ -1,4 +1,4 @@
-'''For determining library charges from a molecule which with assigned partial charges'''
+'''Utilities for generating, storing, and applying partial charges to OpenFF Molecules'''
 
 import logging
 LOGGER = logging.getLogger(__name__)
@@ -7,9 +7,8 @@ from typing import Optional
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from collections import defaultdict
-from pathlib import Path
 import numpy as np
+from collections import defaultdict
 
 from rdkit import Chem
 from rdkit.Chem import Mol as RDMol
@@ -18,11 +17,12 @@ from openff.toolkit.topology.molecule import Molecule
 from openmm.unit import elementary_charge
 
 from .chargetypes import ChargesByResidue, ChargeMap
-from ...genutils.maths.statistics import Accumulator
 from ...monomers.repr import MonomerGroup
+from ...genutils.maths.statistics import Accumulator
+from ...genutils.decorators.functional import optional_in_place
 
 
-# INTERFACE FOR DISTRIBUTING EXCESS RESIDUE CHARGES
+## INTERFACE FOR DISTRIBUTING EXCESS RESIDUE CHARGES
 @dataclass
 class ChargeRedistributionStrategy(ABC):
     '''Interface for defining how any excess charge should be distributed within residues to ensure a given overall net charge'''
@@ -47,14 +47,15 @@ class ChargeRedistributionStrategy(ABC):
 
         # assert(sum(chg for chg in new_charges.values()) == desired_net_charge) # double check charges were correctly redistributed - TODO : find more reliable way to check this than floating-point comparison
         return new_charges
-            
+
+## CONCRETE IMPLEMENTATIONS OF REDISTRIBUTION STRATEGIES
 class UniformDistributionStrategy(ChargeRedistributionStrategy):
     '''Simplest possible strategy, distribute any excess charge in a residue according to a uniform distribution (spread evenly)'''
     def _determine_charge_offsets(self, base_charges : ChargesByResidue, fragment : RDMol, net_charge_diff : float) -> ChargesByResidue:
         return {sub_id : net_charge_diff / len(base_charges) for sub_id in base_charges}
 
 
-# functions for determining library charges
+# FUNCTIONS FOR RESIDUE CHARGE CALCULATION
 def find_repr_residues(mol : Molecule) -> dict[str, int]:
     '''Determine names and smallest residue numbers of all unique residues in charged molecule
     Used as representatives for generating labelled SMARTS strings '''
@@ -67,7 +68,7 @@ def find_repr_residues(mol : Molecule) -> dict[str, int]:
 
     return rep_res_nums
 
-def get_averaged_charges(cmol : Molecule, monomer_group : MonomerGroup, cds : Optional[ChargeRedistributionStrategy]=UniformDistributionStrategy(desired_net_charge=0.0)) -> ChargesByResidue:
+def compute_library_charges(cmol : Molecule, monomer_group : MonomerGroup, cds : Optional[ChargeRedistributionStrategy]=UniformDistributionStrategy(desired_net_charge=0.0)) -> ChargesByResidue:
     '''
     Takes a charged molecule and a collection of monomer-spec SMARTS and generates monomer-averages library charges for each repeating residue
     Can optionally specify a strategy for redistributing any excess charge (by default, will ensure charges are neutral)
@@ -106,3 +107,13 @@ def get_averaged_charges(cmol : Molecule, monomer_group : MonomerGroup, cds : Op
         chgs_by_res.charges[res_name] = charge_map
 
     return chgs_by_res
+
+@optional_in_place
+def apply_residue_charges(offmol : Molecule, chgs_by_res : ChargesByResidue) -> None:
+    '''Takes an OpenFF Molecule and a residue-wise map of averaged partial charges and applies the mapped charges to the Molecule'''
+    # TODO : add check for correctly residue-partitioned molecule by metadata
+    new_charges = [
+        chgs_by_res.charges[atom.metadata['residue_name']][atom.metadata['substructure_query_id']]
+            for atom in offmol.atoms
+    ]
+    offmol.partial_charges = np.array(new_charges) * elementary_charge # convert to array with units (otherwise assignment won't work)
