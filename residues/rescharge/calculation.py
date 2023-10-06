@@ -4,55 +4,19 @@ import logging
 LOGGER = logging.getLogger(__name__)
 
 from typing import Optional
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
 
 import numpy as np
 from collections import defaultdict
-
 from rdkit import Chem
-from rdkit.Chem import Mol as RDMol
 
 from openff.toolkit.topology.molecule import Molecule
 from openmm.unit import elementary_charge
 
-from ...openfftools.pcharge import ChargesByResidue, ChargeMap
+from .rctypes import ChargesByResidue
+from .redistribution import ChargeRedistributionStrategy, UniformDistributionStrategy
 from ...monomers.repr import MonomerGroup
 from ...genutils.maths.statistics import Accumulator
 from ...genutils.decorators.functional import optional_in_place
-
-
-## INTERFACE FOR DISTRIBUTING EXCESS RESIDUE CHARGES
-@dataclass
-class ChargeRedistributionStrategy(ABC):
-    '''Interface for defining how any excess charge should be distributed within residues to ensure a given overall net charge'''
-    desired_net_charge : float = 0.0 # by default, make neutral
-
-    @abstractmethod # !NOTE! : this must be implemented in child classes
-    def _determine_charge_offsets(self, base_charges : ChargeMap, fragment : RDMol, net_charge_diff : float) -> ChargeMap:
-        '''Provided a set of base charges, a structural molecule fragment, and a desired net charge,
-        determine what charges offsets need to be applied where in order to achieve the desired net charge'''
-        raise NotImplementedError
-
-    def redistributed_charges(self, base_charges : ChargeMap, fragment : RDMol) -> ChargeMap:
-        '''Take a map of base charges and a structural fragment for a residue and a desired net charge (typically neutral, i.e. 0)
-        and return a new charge map with the excess/deficit charge distributed in such a way as to make the residue have the desired net charge'''
-        net_charge_diff = self.desired_net_charge - sum(chg for chg in base_charges.values())
-        charge_offsets = self._determine_charge_offsets(base_charges, fragment, net_charge_diff)
-
-        new_charges = {
-            sub_id : charge + charge_offsets[sub_id]
-                for sub_id, charge in base_charges.items()
-        }
-
-        # assert(sum(chg for chg in new_charges.values()) == desired_net_charge) # double check charges were correctly redistributed - TODO : find more reliable way to check this than floating-point comparison
-        return new_charges
-
-## CONCRETE IMPLEMENTATIONS OF REDISTRIBUTION STRATEGIES
-class UniformDistributionStrategy(ChargeRedistributionStrategy):
-    '''Simplest possible strategy, distribute any excess charge in a residue according to a uniform distribution (spread evenly)'''
-    def _determine_charge_offsets(self, base_charges : ChargesByResidue, fragment : RDMol, net_charge_diff : float) -> ChargesByResidue:
-        return {sub_id : net_charge_diff / len(base_charges) for sub_id in base_charges}
 
 
 # FUNCTIONS FOR RESIDUE CHARGE CALCULATION
@@ -68,7 +32,7 @@ def find_repr_residues(mol : Molecule) -> dict[str, int]:
 
     return rep_res_nums
 
-def compute_library_charges(cmol : Molecule, monomer_group : MonomerGroup, cds : Optional[ChargeRedistributionStrategy]=UniformDistributionStrategy(desired_net_charge=0.0)) -> ChargesByResidue:
+def compute_residue_charges(cmol : Molecule, monomer_group : MonomerGroup, cds : Optional[ChargeRedistributionStrategy]=UniformDistributionStrategy(desired_net_charge=0.0)) -> ChargesByResidue:
     '''
     Takes a charged molecule and a collection of monomer-spec SMARTS and generates monomer-averages library charges for each repeating residue
     Can optionally specify a strategy for redistributing any excess charge (by default, will ensure charges are neutral)

@@ -4,34 +4,12 @@ import logging
 LOGGER = logging.getLogger(__name__)
 
 from typing import Any, ClassVar
-from dataclasses import dataclass, field
 from abc import ABC, abstractmethod, abstractproperty
-
-from rdkit.Chem import Mol as RDMol
 from openff.toolkit.topology.molecule import Molecule
 
 from . import TKREGS
 from ..genutils.decorators.classmod import register_subclasses
 from ..genutils.decorators.functional import optional_in_place
-from ..genutils.fileutils.jsonio.jsonify import make_jsonifiable
-
-
-# 
-ChargeMap = dict[int, float] # maps substructure IDs to partial charge values
-
-@dataclass
-class ChargedResidue:
-    '''Dataclass for more conveniently storing averaged charges for a residue group'''
-    charges : ChargeMap
-    residue_name : str
-    SMARTS : str
-    mol_fragment : RDMol
-
-@make_jsonifiable
-@dataclass
-class ChargesByResidue:
-    '''Class for storing substructure charge maps by residue'''
-    charges : dict[str, ChargeMap] = field(default_factory=dict)
 
 
 # ABSTRACT AND CONCRETE CLASSES FOR CHARGING MOLECULES
