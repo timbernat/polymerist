@@ -16,7 +16,7 @@ from rdkit.Chem import Mol as RDMol
 from openff.toolkit.topology.molecule import Molecule
 from openmm.unit import elementary_charge
 
-from .chargetypes import ChargesByResidue, ChargeMap
+from ...openfftools.pcharge import ChargesByResidue, ChargeMap
 from ...monomers.repr import MonomerGroup
 from ...genutils.maths.statistics import Accumulator
 from ...genutils.decorators.functional import optional_in_place
