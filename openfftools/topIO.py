@@ -5,7 +5,7 @@ from ast import literal_eval
 
 from openff.toolkit import ToolkitRegistry, Molecule, Topology
 
-from . import offref
+from . import GTR
 from ..genutils.iteration import asiterable
 from ..genutils.fileutils.pathutils import dotless
 from ..genutils.decorators.functional import allow_string_paths, optional_in_place
@@ -40,12 +40,12 @@ def unpackage_atom_metadata(offmol : Molecule) -> None:
 
 # FILE I/O FUNCTIONS
 @allow_string_paths
-def save_molecule(path : Path, offmol : Molecule, toolkit_registry : ToolkitRegistry=offref.GTR) -> None: # TODO : generalize to work for bytes w/ opened file
+def save_molecule(path : Path, offmol : Molecule, toolkit_registry : ToolkitRegistry=GTR) -> None: # TODO : generalize to work for bytes w/ opened file
     '''Syntactic sugar for annoying suffix re-specification when saving OpenFF Molecules'''
     offmol.to_file(str(path), file_format=dotless(path), toolkit_registry=toolkit_registry)
 
 @allow_string_paths
-def topology_to_sdf(path : Path, offtop : Topology, toolkit_registry : ToolkitRegistry=offref.GTR) -> None:
+def topology_to_sdf(path : Path, offtop : Topology, toolkit_registry : ToolkitRegistry=GTR) -> None:
     '''Save an OpenFF Topology to an SDF file file atom metadata preserved'''
     assert(path.suffix == '.sdf')
 
