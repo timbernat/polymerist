@@ -151,10 +151,11 @@ def saturate_ports(rdmol : RDMol, cap : RDMol=Chem.MolFromSmarts('[#0]-[#1]'), f
         return rdmol # special case, if no bondable ports exist to begin with, return the original molecule
     
     # implicit else if initial return in null case is not hit
-    for i in range(num_bonds_formable): # not greater than 1, since initial combination is already done outside loop
+    while num_bonds_formable > 0: # not greater than 1, since initial combination is already done outside loop
         splice_atoms(rwmol, flavor_pair=flavor_pair, in_place=True)
-        if i < (num_bonds_formable - 1): # need -1 to exclude final addition
+        if num_bonds_formable > 1: # need -1 to exclude final addition
             rwmol = combined_rdmol(rwmol, cap, editable=True) # add another cap group on all but the final iteration. NOTE : must be added one-at-a-time to preclude caps from bonding to each other
+        num_bonds_formable = portlib.get_num_bondable_port_pairs(rwmol, flavor_pair=flavor_pair) # update count of available bonds (this may change as new bonds are added)
     molwise.assign_ordered_atom_map_nums(rwmol, in_place=True) # ensure map numbers are ordered and minial
     
     return Chem.rdchem.Mol(rwmol) # revert to "regular" Mol from RWMol
@@ -162,5 +163,5 @@ def saturate_ports(rdmol : RDMol, cap : RDMol=Chem.MolFromSmarts('[#0]-[#1]'), f
 @optional_in_place # temporarily placed here for backwards-compatibility reasons
 def hydrogenate_rdmol_ports(rdmol : RDMol) -> None:
     '''Replace all port atoms with hydrogens'''
-    for port_id in portlib.get_port_ids(rdmol):
+    for port_id in portlib.get_linker_ids(rdmol):
         rdmol.GetAtomWithIdx(port_id).SetAtomicNum(1)
