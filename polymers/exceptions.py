@@ -1,4 +1,4 @@
-'''Custom Exceptions specific to Polymers and related objects'''
+'''Custom Exceptions specific to Polymers and related objects''' # TODO: go through these and purge errors which are no longer relevant (ported from polysaccharide v1)
 
 
 class SubstructMatchFailedError(Exception):
@@ -13,8 +13,8 @@ class ExcessiveChainLengthError(Exception):
     '''Raised when the polymer molecule being built is too long'''
     pass
 
-class CrosslinkingError(Exception):
-    '''Raised when a polymer is crosslinked in a situation where it shouldn't be (or vice versa)'''
+class MorphologyError(Exception):
+    '''Raised when a polymer does not have the morphology (i.e. crosslinking, molecular weight, etc) an application expects'''
     pass
 
 class AlreadySolvatedError(Exception):

@@ -13,7 +13,7 @@ import mbuild as mb
 from mbuild import Compound
 from mbuild.lib.recipes.polymer import Polymer as MBPolymer
 
-from .exceptions import CrosslinkingError
+from .exceptions import MorphologyError
 from .estimation import estimate_chain_len_linear
 from ..monomers.repr import MonomerGroup
 
@@ -66,7 +66,7 @@ def build_linear_polymer(monomers : MonomerGroup, DOP : int, term_orient : dict[
     '''Accepts a dict of monomer residue names and SMARTS (as one might find in a monomer JSON)
     and a degree of polymerization (i.e. chain length in number of monomers)) and returns an mbuild Polymer object'''
     if not monomers.is_linear:
-        raise CrosslinkingError('Linear polymer building does not support non-linear monomer input')
+        raise MorphologyError('Linear polymer building does not support non-linear monomer input')
     
     if (term_values := sorted(term_orient.values())) != ['head', 'tail']: # sorting removes order-dependence
         raise ValueError(f'Invalid dict values {term_values}; must provide term group orientation as dict with residue names as keys and "head" and "tail" as values')
