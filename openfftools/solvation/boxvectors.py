@@ -26,6 +26,7 @@ class BoxVectorError(Exception):
     '''Raised when a provided set of box vectors is invalid (for whatever reason)'''
     pass
 
+
 # OBTAINING AND SCALING BOX VECTORS
 @allow_openmm_units
 def xyz_to_box_vectors(xyz : VectorQuantity) -> BoxVectorsQuantity:
@@ -70,3 +71,17 @@ def get_box_volume(box_vectors : BoxVectorsQuantity, units_as_openm : bool=True)
     if units_as_openm:
         return units_to_openmm(box_vol)
     return box_vol
+
+
+# CONVERSIONS
+def box_vectors_flexible(box_vecs : Union[VectorQuantity, BoxVectorsQuantity]) -> BoxVectorsQuantity:
+    '''Allows for passing XYZ box dimensions '''
+    if not isinstance(box_vecs, Quantity):
+        raise TypeError('Box vectors passed have no associated units')
+    
+    if not isinstance(box_vecs._value, np.ndarray):
+        raise TypeError('Must pass array-like Quantity as box vector')
+    
+    if box_vecs.shape == (3,):
+        return xyz_to_box_vectors(box_vecs)
+    return box_vecs
