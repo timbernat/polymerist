@@ -15,7 +15,7 @@ from ...genutils.decorators.functional import optional_in_place
 class LibraryCharger(MolCharger):
     '''Charger class for applying library charges onto residue-mapped Molecules'''
     charges_by_residue : ChargesByResidue
-    CHARGING_METHOD : ClassVar[str] = 'RCT_residue_charges'
+    CHARGING_METHOD : ClassVar[str] = 'RCT'
 
     @optional_in_place
     def _charge_molecule(self, uncharged_mol : Molecule) -> None:
