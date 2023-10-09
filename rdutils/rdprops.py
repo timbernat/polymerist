@@ -4,6 +4,7 @@ from typing import Any, TypeVar
 from copy import deepcopy
 
 from .rdtypes import RDMol, RDObj, isrdobj
+from .mapping.bijection import bijective_atom_id_iter
 from ..genutils.decorators.functional import optional_in_place
 
 
@@ -76,23 +77,21 @@ def difference_rdmol(rdmol_1 : RDMol, rdmol_2 : RDMol, prop : str='PartialCharge
     Assumes that the property in question is numeric (i.e. can be interpreted as a float)
     '''
     diff_mol = deepcopy(rdmol_1) # duplicate first molecule as template
-    atom_mapping = diff_mol.GetSubstructMatch(rdmol_2) # map 
-    if (not atom_mapping) or (len(atom_mapping) != diff_mol.GetNumAtoms()):
-        raise ValueError('Substructure match failed') # TODO : make this a SubstructureMatchFailedError, from polymer.exceptions
-
     all_deltas = []
-    for rdatom_idx_1, rdatom_2 in zip(atom_mapping, rdmol_2.GetAtoms()):
-        rdatom_1 = rdmol_1.GetAtomWithIdx(rdatom_idx_1)
-        diff_atom = diff_mol.GetAtomWithIdx(rdatom_idx_1) # same index, since it is a deep copy
+    for rdatom_1_idx, rdatom_2_idx in bijective_atom_id_iter(rdmol_1, rdmol_2):
+        rdatom_1 = rdmol_1.GetAtomWithIdx(rdatom_1_idx)
+        rdatom_2 = rdmol_2.GetAtomWithIdx(rdatom_2_idx)
+        diff_atom = diff_mol.GetAtomWithIdx(rdatom_1_idx) # same index, since it is a deep copy
 
         delta = rdatom_1.GetDoubleProp(prop) - rdatom_2.GetDoubleProp(prop)
         diff_atom.SetDoubleProp(f'Delta{prop}', delta)
         all_deltas.append(delta)
 
-        diff_atom.ClearProp(prop) # reset property value from original copy to avoid confusion
+        diff_atom.ClearProp(prop) # reset property value from original atom copy to avoid confusion
         if remove_map_nums:
             diff_atom.ClearProp('molAtomMapNumber') # Remove atom map num for greater visual clarity when drawing
 
+    diff_mol.ClearProp(prop) # reset property value from original mol copy to avoid confusion
     diff_mol.SetProp(f'Delta{prop}s', str(all_deltas)) # label stringified version of property list (can be de-stringified via ast.literal_eval)
     diff_mol.SetDoubleProp(f'Delta{prop}Min', min(all_deltas)) # label minimal property value for ease of reference
     diff_mol.SetDoubleProp(f'Delta{prop}Max', max(all_deltas)) # label maximal property value for ease of reference

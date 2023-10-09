@@ -12,8 +12,8 @@ class MolSizeMismatchError(Exception):
     pass
 
 # BIJECTIVE MATCHING METHODS
-def bijective_atom_iter(rdmol_1 : RDMol, rdmol_2 : RDMol) -> Generator[tuple[RDAtom, RDAtom], None, None]:
-    '''Takes two chemically identical molecules, matches corresponding atoms between them 1:1, and generates matching atom pairs
+def bijective_atom_id_iter(rdmol_1 : RDMol, rdmol_2 : RDMol) -> Generator[tuple[int, int], None, None]:
+    '''Takes two chemically identical molecules, matches corresponding atoms between them 1:1, and generates matching atom id pairs
     Yields atoms in pairs in the same order as the molecules being matched were provided'''
     if rdmol_1.GetNumAtoms() != rdmol_2.GetNumAtoms():
         raise MolSizeMismatchError('Cannot generate bijection with Mols of two different sizes')
@@ -23,5 +23,5 @@ def bijective_atom_iter(rdmol_1 : RDMol, rdmol_2 : RDMol) -> Generator[tuple[RDA
         raise SubstructMatchFailedError  # if no match or an incomplete match is found, raise Exception
 
     for rdatom_1_idx, rdatom_2 in zip(atom_mapping, rdmol_2.GetAtoms()):
-        rdatom_1 = rdmol_1.GetAtomWithIdx(rdatom_1_idx)
-        yield (rdatom_1, rdatom_2)
+        rdatom_2_idx = rdatom_2.GetIdx()
+        yield (rdatom_1_idx, rdatom_2_idx)
