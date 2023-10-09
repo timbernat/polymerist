@@ -29,7 +29,7 @@ def simulation_from_thermo(topology : Topology, system : System, thermo_params :
     ens_fac = EnsembleFactory.from_thermo_params(thermo_params)
     if (forces := ens_fac.forces()): # check if any extra forces are present
         for force in forces:
-            system.addForce(force) # add forces to System BEFORE creating Simulation to avoid having to reinitialze the Conext to preserve changes 
+            system.addForce(force) # add forces to System BEFORE creating Simulation to avoid having to reinitialize the Conext to preserve changes 
             LOGGER.info(f'Added {force.getName()} Force to System')
     label_forces(system) # ensure all system forces (including any ensemble-specific ones) are labelled
 
@@ -42,7 +42,7 @@ def simulation_from_thermo(topology : Topology, system : System, thermo_params :
 
     return simulation
 
-def initialize_simulation_and_files(out_dir : Path, prefix : str, sim_params : SimulationParameters, topology : Topology, system : System) -> tuple[Simulation, SimulationPaths]:
+def initialize_simulation_and_files(out_dir : Path, prefix : str, sim_params : SimulationParameters, topology : Topology, system : System, positions : Optional[Quantity]=None) -> tuple[Simulation, SimulationPaths]:
     '''Create simulation, bind Reporters, and update simulation Paths with newly-generated files'''
     sim_paths = SimulationPaths.from_dir_and_parameters(out_dir, prefix, sim_params, touch=True)
 
@@ -50,5 +50,9 @@ def initialize_simulation_and_files(out_dir : Path, prefix : str, sim_params : S
     simulation = simulation_from_thermo(topology, system, sim_params.thermo_params, time_step=sim_params.integ_params.time_step, state=sim_paths.state_path)
     for reporter in sim_params.reporter_params.prepare_reporters(report_interval=sim_params.integ_params.report_interval):
         simulation.reporters.append(reporter) # add reporters to simulation instance
+
+    if positions is not None:
+        # TODO : add position type/shape checking
+        simulation.context.setPositions(positions) # set positions if provided
 
     return simulation, sim_paths
