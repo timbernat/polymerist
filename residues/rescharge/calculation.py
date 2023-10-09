@@ -20,15 +20,16 @@ from ...genutils.decorators.functional import optional_in_place
 
 
 # FUNCTIONS FOR RESIDUE CHARGE CALCULATION
-def find_repr_residues(mol : Molecule) -> dict[str, int]:
+def find_repr_residues(offmol : Molecule) -> dict[str, int]:
     '''Determine names and smallest residue numbers of all unique residues in charged molecule
     Used as representatives for generating labelled SMARTS strings '''
     rep_res_nums = defaultdict(set) # numbers of representative groups for each unique residue, used to build SMARTS strings
-    for atom in mol.atoms: 
+    for atom in offmol.atoms: 
         rep_res_nums[atom.metadata['residue_name']].add(atom.metadata['residue_number']) # collect unique residue numbers
 
     for res_name, ids in rep_res_nums.items():
         rep_res_nums[res_name] = min(ids) # choose group with smallest id of each residue to denote representative group
+    LOGGER.info('Selected representative residue groups')
 
     return rep_res_nums
 
@@ -56,6 +57,7 @@ def compute_residue_charges(cmol : Molecule, monomer_group : MonomerGroup, cds :
         curr_accum = res_charge_accums[res_name][substruct_id] # accumulate charge info for averaging
         curr_accum.sum += atom.partial_charge.magnitude # eschew units (easier to handle, added back when writing to XML)
         curr_accum.count += 1
+    LOGGER.info('Accumulated charges across all matching residues')
 
     chgs_by_res = ChargesByResidue()
     for res_name, charge_accums in res_charge_accums.items():
@@ -65,10 +67,12 @@ def compute_residue_charges(cmol : Molecule, monomer_group : MonomerGroup, cds :
 
         charge_map = {substruct_id : accum.average for substruct_id, accum in charge_accums.items()} 
         if cds is not None:
+            LOGGER.info(f'Redistributing charges for residue "{res_name}" according to {cds.__class__.__name__}')
             mol_frag = Chem.MolFromSmarts(SMARTS) # TODO : make this take specific fragments from the original molecule in an id-preserving way
             charge_map = cds.redistributed_charges(charge_map, mol_frag)
 
         chgs_by_res.charges[res_name] = charge_map
+    LOGGER.info(f'Successfully computed library charges for {cmol}')
 
     return chgs_by_res
 
@@ -81,3 +85,4 @@ def apply_residue_charges(offmol : Molecule, chgs_by_res : ChargesByResidue) -> 
             for atom in offmol.atoms
     ]
     offmol.partial_charges = np.array(new_charges) * elementary_charge # convert to array with units (otherwise assignment won't work)
+    LOGGER.info(f'Successfully mapped residue charges onto {offmol}')
