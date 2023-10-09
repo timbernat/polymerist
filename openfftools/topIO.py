@@ -26,8 +26,8 @@ def package_atom_metadata(offmol : Molecule) -> None:
 
 @optional_in_place
 def unpackage_atom_metadata(offmol : Molecule) -> None:
-    '''Reassign atom metadata from a "packageed" metadata property dict belonging to the parent Molecule'''
-    packaged_mdat = offmol.properties.get('metadata', None)
+    '''Reassign atom metadata from a "packaged" metadata property dict belonging to the parent Molecule'''
+    packaged_mdat = offmol.properties.pop('metadata', None) # lookup and remove serialized data, or None if not present
     if not packaged_mdat: # handles both the null (i.e. NoneType) case and the empty dict case
         return
     
