@@ -3,17 +3,17 @@
 import logging
 LOGGER = logging.getLogger(__name__)
 
-from typing import Iterable, Optional, Union
+from typing import Optional
 from pathlib import Path
 
-from openmm import Force, System, State, XmlSerializer
+from openmm import State, System, XmlSerializer
 from openmm.app import Simulation, Topology
 from openmm.unit import Quantity
 
 # from .records import SimulationParameters
-from .serialization import serialize_topology_from_simulation, serialize_system, SimulationPaths
+from .serialization import SimulationPaths
 from .thermo import EnsembleFactory
-from .parameters import ThermoParameters, ReporterParameters, IntegratorParameters, SimulationParameters
+from .parameters import ThermoParameters, SimulationParameters
 
 
 def label_forces(system : System) -> None:
@@ -63,38 +63,3 @@ def initialize_simulation_and_files(out_dir : Path, prefix : str, sim_params : S
         simulation.context.setPositions(positions) # set positions if provided
 
     return simulation, sim_paths
-
-def run_simulation_schedule(working_dir : Path, schedule : dict[str, SimulationParameters], init_top : Topology, init_sys : System, init_pos : Quantity) -> None:
-    '''Run several OpenMM simulations in series, based on an initial set of OpenMM objects and a "schedule" consisting of a sequence of named parameter sets'''
-    working_dir.mkdir(exist_ok=True)
-
-    num_steps = len(schedule)
-    for i, (step_name, sim_params) in enumerate(schedule.items()): # TOSELF : may want to shift to an explicitly-ordered map (e.g. collections OrderedDict); Python 3.6+ preserves order, but wouldn't hurt to be extra safe
-        if i == 0:
-            ommtop, ommsys, ommpos = init_top, init_sys, init_pos # use initial Topology and System for first sim
-        else:
-            ommtop, ommsys, ommpos = simulation.topology, simulation.system, simulation.context.getState(getPositions=True).getPositions(asNumpy=True) # use Topology and System from previous sim for next sim
-
-        LOGGER.info(f'Initializing simulation {i + 1}/{num_steps} ({step_name})')
-        simulation, sim_paths = initialize_simulation_and_files(
-            out_dir=working_dir / step_name,
-            prefix=step_name,
-            sim_params=sim_params,
-            topology=ommtop,
-            system=ommsys,
-            positions=ommpos
-        )
-        
-        LOGGER.info(f'Performing energy minimization (initial PE = {simulation.context.getState(getEnergy=True).getPotentialEnergy()})')
-        simulation.minimizeEnergy()
-        LOGGER.info(f'Energy successfully minimized (final PE = {simulation.context.getState(getEnergy=True).getPotentialEnergy()})')
-
-        serialize_topology_from_simulation(sim_paths.topology_path, simulation) # TODO : make this consistent with rest of Path output
-        LOGGER.info(f'Saved energy-minimized Simulation Topology at {sim_paths.topology_path}')
-
-        serialize_system(sim_paths.system_path, simulation.system)
-        LOGGER.info(f'Saved serialized Simulation System at {sim_paths.system_path}')
-
-        LOGGER.info(f'Integrating {sim_params.integ_params.total_time} OpenMM Simulation for {sim_params.integ_params.num_steps} steps')
-        simulation.step(sim_params.integ_params.num_steps)
-        LOGGER.info('Simulation integration completed successfully')
