@@ -6,7 +6,7 @@ _MODULE_PATH = Path(__path__[0])
 from openff.toolkit import Molecule
 from openff.units import unit as offunit
 
-from ...topIO import save_molecule
+from ...topology import save_molecule
 from ... import TKREGS
 
 
