@@ -82,6 +82,6 @@ def box_vectors_flexible(box_vecs : Union[VectorQuantity, BoxVectorsQuantity]) -
     if not isinstance(box_vecs._value, np.ndarray):
         raise TypeError('Must pass array-like Quantity as box vector')
     
-    if box_vecs.shape == (3,):
+    if box_vecs.ndim == 1:
         return xyz_to_box_vectors(box_vecs)
     return box_vecs

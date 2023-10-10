@@ -11,7 +11,7 @@ import logging
 
 # BASE SUBMODULE GENERATORS
 def module_by_pkg_str(pkg_str : str) -> ModuleType:
-    '''Load module from dot-separated module name string intended to be called on __package__ attr)'''
+    '''Load module from dot-separated module name string (intended to be called on __package__ attr)'''
     return importlib.import_module(pkg_str)
 
 def iter_submodule_info(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None) -> Generator[tuple[ModuleType, str, bool], None, None]:
