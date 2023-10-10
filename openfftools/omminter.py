@@ -34,7 +34,6 @@ def forcefield_flexible(forcefield : Union[ForceField, str, Path]) -> ForceField
 
         if ff_path.suffix != '.offxml':
             ff_path = ff_path.with_name(f'{ff_path.name}.offxml') # TODO : find more general way to handle the presence of dots in FF names (e.g. openff-2.0.0) in conjunction with suffixes
-        print(ff_path)
 
         return ForceField(ff_path)
 
