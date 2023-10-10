@@ -16,9 +16,9 @@ from openff.toolkit import GLOBAL_TOOLKIT_REGISTRY as GTR
 from espaloma_charge.openff_wrapper import EspalomaChargeToolkitWrapper
 GTR.register_toolkit(EspalomaChargeToolkitWrapper)
 
-# from openff.nagl.toolkits import NAGLRDKitToolkitWrapper, NAGLOpenEyeToolkitWrapper
-# GTR.register_toolkit(NAGLRDKitToolkitWrapper)
-# GTR.register_toolkit(NAGLOpenEyeToolkitWrapper)
+from openff.nagl.toolkits import NAGLRDKitToolkitWrapper, NAGLOpenEyeToolkitWrapper
+GTR.register_toolkit(NAGLRDKitToolkitWrapper)
+GTR.register_toolkit(NAGLOpenEyeToolkitWrapper)
 
 ## Extract name-keyed TK wrappers and Registries
 TKWRAPPERS = { 
