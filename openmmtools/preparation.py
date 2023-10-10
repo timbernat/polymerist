@@ -73,10 +73,10 @@ def run_simulation_schedule(working_dir : Path, schedule : dict[str, SimulationP
         if i == 0:
             ommtop, ommsys, ommpos = init_top, init_sys, init_pos # use initial Topology and System for first sim
         else:
-            ommtop, ommsys, ommpos = ommsim.topology, ommsim.system, ommsim.context.getState(getPositions=True).getPositions(asNumpy=True) # use Topology and System from previous sim for next sim
+            ommtop, ommsys, ommpos = simulation.topology, simulation.system, simulation.context.getState(getPositions=True).getPositions(asNumpy=True) # use Topology and System from previous sim for next sim
 
         LOGGER.info(f'Initializing simulation {i + 1}/{num_steps} ({step_name})')
-        ommsim, sim_paths = initialize_simulation_and_files(
+        simulation, sim_paths = initialize_simulation_and_files(
             out_dir=working_dir / step_name,
             prefix=step_name,
             sim_params=sim_params,
@@ -85,16 +85,16 @@ def run_simulation_schedule(working_dir : Path, schedule : dict[str, SimulationP
             positions=ommpos
         )
         
-        LOGGER.info('Performing energy minimization')
-        ommsim.minimizeEnergy()
-        LOGGER.info('Energy successfully minimized')
+        LOGGER.info(f'Performing energy minimization (initial PE = {simulation.context.getState(getEnergy=True).getPotentialEnergy()})')
+        simulation.minimizeEnergy()
+        LOGGER.info(f'Energy successfully minimized (final PE = {simulation.context.getState(getEnergy=True).getPotentialEnergy()})')
 
-        serialize_topology_from_simulation(sim_paths.topology_path, ommsim) # TODO : make this consistent with rest of Path output
+        serialize_topology_from_simulation(sim_paths.topology_path, simulation) # TODO : make this consistent with rest of Path output
         LOGGER.info(f'Saved energy-minimized Simulation Topology at {sim_paths.topology_path}')
 
-        serialize_system(sim_paths.system_path, ommsim.system)
+        serialize_system(sim_paths.system_path, simulation.system)
         LOGGER.info(f'Saved serialized Simulation System at {sim_paths.system_path}')
 
         LOGGER.info(f'Integrating {sim_params.integ_params.total_time} OpenMM Simulation for {sim_params.integ_params.num_steps} steps')
-        ommsim.step(sim_params.integ_params.num_steps)
+        simulation.step(sim_params.integ_params.num_steps)
         LOGGER.info('Simulation integration completed successfully')
