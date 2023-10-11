@@ -1,11 +1,14 @@
 '''For representing monomer information'''
 
-from typing import Generator, TypeAlias, Union
-
+from typing import Generator, Optional, TypeAlias, Union
 from dataclasses import dataclass, field
+
+from collections import defaultdict
 from rdkit import Chem
 
 from ..genutils.fileutils.jsonio.jsonify import make_jsonifiable
+from ..genutils.iteration import iter_len
+
 from ..rdutils.rdtypes import RDMol
 from ..rdutils.amalgamation.portlib import get_num_ports
 
@@ -18,6 +21,7 @@ ResidueSmarts : TypeAlias = dict[str, list[str]] # monomer SMARTS strings keyed 
 class MonomerGroup:
     '''Stores collections of residue-labelled monomer SMARTS'''
     monomers : ResidueSmarts = field(default_factory=dict)
+    term_orient : dict[str, str] = field(default_factory=dict)
 
     @staticmethod
     def is_terminal(monomer : RDMol) -> bool:
@@ -30,21 +34,44 @@ class MonomerGroup:
         '''Alias of legacy "monomers" attribute'''
         return self.monomers # alias of legacy name for convenience
     
-    @property
-    def rdmols(self) -> dict[str, list[RDMol]]:
-        '''Dict of RDKit Mols produced by ResidueSmarts, for convenience'''
-        return {
-            resname : [Chem.MolFromSmarts(SMARTS) for SMARTS in SMARTS_list]
-                for resname, SMARTS_list in self.monomers.items()
-        }
+    def iter_rdmols(self, term_only : Optional[bool]=None) -> Generator[tuple[str, RDMol], None, None]:
+        '''
+        Generate (residue name, RDKit Mol) pairs of all monomers present
+        Simplifies iteration over internal lists of monomer Mols
 
-    @property
-    def iter_rdmols(self) -> Generator[tuple[str, RDMol], None, None]:
-        '''Simplifies iteration over internal lists'''
-        for resname, monomer_list in self.rdmols.items():
-            for monomer in monomer_list:
-                yield (resname, monomer)
+        Can optionally filter by monomer termination:
+            term_only=True  -> only terminal monomers
+            term_only=False -> only middle monomers
+            term_only=None  -> all monomers
+        '''
+        for resname, SMARTS_list in self.monomers.items():
+            for SMARTS in SMARTS_list:
+                monomer = Chem.MolFromSmarts(SMARTS)
+                if (term_only is None) or (MonomerGroup.is_terminal(monomer) == term_only):
+                    yield (resname, monomer)
 
+    def rdmols(self, term_only : Optional[bool]=None) -> dict[str, list[RDMol]]:
+        '''
+        Returns dict of RDKit Mol lists keyed by residue name
+
+        Can optionally filter by monomer termination:
+            term_only=True  -> only terminal monomers
+            term_only=False -> only middle monomers
+            term_only=None  -> all monomers
+        '''
+        rdmol_dict = defaultdict(list)
+        for resname, rdmol in self.iter_rdmols(term_only=term_only):
+            rdmol_dict[resname].append(rdmol)
+
+        return rdmol_dict
+    
+    @property
+    def n_monomers(self) -> int:
+        '''Returns number of present monomers
+        Multiple monomers with the same residue name are considered distinct'''
+        return iter_len(self.iter_rdmols(term_only=None))
+    
+    # VALIDATION AND PROPERTY CHECKS
     @property
     def _is_valid(self) -> bool:
         '''Check that types and formatting are correct'''
@@ -52,7 +79,16 @@ class MonomerGroup:
             if not (isinstance(resname, str) and isinstance(SMARTS_list, list)):
                 return False
         else:
-            return True
+            return True # valid only if none of the SMARTS lists fail
+        
+    @property
+    def has_valid_linear_term_orient(self) -> bool:
+        '''Check whether terminal group orientations are sufficient to define a linear polymer'''
+        return (
+            bool(self.term_orient)                                       # check that: 1) the term group orientations are non-empty / non-null...
+            and all(resname in self.monomers for resname in self.term_orient.keys()) # 2) all term group keys match a present monomer...
+            and sorted(self.term_orient.values()) == ['head', 'tail']                # 3) orientation labels are only "head" and "tail" (in either order)
+        )
     
     # COMPOSITION AND I/O METHODS
     def __add__(self, other : 'MonomerGroup') -> 'MonomerGroup':
@@ -90,7 +126,7 @@ class MonomerGroup:
         '''Whether it is possible to generate a branched polymer from this set of monomers'''
         return any(
             get_num_ports(monomer) > 2
-                for (resname, monomer) in self.iter_rdmols
+                for (resname, monomer) in self.iter_rdmols(term_only=None)
         )
     
     @property
@@ -107,7 +143,7 @@ class MonomerGroup:
     def num_mid_and_term(self) -> tuple[int, int]:
         '''Counts of how many of the monomers are middle vs terminal, respectively'''
         group_counts = [0, 0]
-        for (resname, monomer) in self.iter_rdmols:
+        for (resname, monomer) in self.iter_rdmols(term_only=None): # TODO : consider reimplementing using new term group filtering option
             group_counts[self.is_terminal(monomer)] += 1 # index by bool
         
         return tuple(group_counts) # convert to tuple
