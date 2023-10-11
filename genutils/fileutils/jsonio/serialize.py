@@ -5,6 +5,7 @@ from abc import ABC, abstractstaticmethod
 T = TypeVar('T') # generic type
 
 from pathlib import Path
+import numpy as np
 import openmm.unit
 
 from ...decorators.classmod import register_subclasses
@@ -97,8 +98,12 @@ class QuantitySerializer(TypeSerializer):
     @staticmethod
     def encode(python_obj : openmm.unit.Quantity) -> dict[str, Union[str, float]]:
         '''Separate openmm.unit.Quantity's value and units to serialize as a single dict'''
+        value = python_obj._value
+        if isinstance(value, np.ndarray): # supports numpy array serialization
+            value = value.tolist()
+
         return {
-            'value' : python_obj._value, # TODO : add numpy array listification for broader support
+            'value' : value,
             'unit'  : str(python_obj.unit),
         }
 
@@ -111,4 +116,8 @@ class QuantitySerializer(TypeSerializer):
         else:
             unit = getattr(openmm.unit, unit_name)
 
-        return openmm.unit.Quantity(json_obj['value'], unit)
+        value = json_obj['value']
+        if isinstance(value, list):
+            value = np.array(value) # de-serialize numpy arrays; TOSELF : is there ever a case where this should remain a list (technically a valid Quanitity value)
+
+        return openmm.unit.Quantity(value, unit)
