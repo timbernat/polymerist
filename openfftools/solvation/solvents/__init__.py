@@ -6,7 +6,7 @@ _MODULE_PATH = Path(__path__[0])
 from openff.toolkit import Molecule
 from openff.units import unit as offunit
 
-from ...topology import save_molecule
+from ... import topology
 from ... import TKREGS
 
 
@@ -20,6 +20,8 @@ def generate_water_TIP3P() -> Molecule:
     water = Molecule.from_smiles('O')
     water.name = 'water_TIP3P'
     water.partial_charges = [TIP3P_ATOM_CHARGES[atom.symbol] for atom in water.atoms]*offunit.elementary_charge
+    for atom in water.atoms:
+        atom.metadata['residue_name'] = 'HOH'
 
     return water
 
@@ -28,9 +30,11 @@ def generate_water_TIP3P() -> Molecule:
 _water_path = _MODULE_PATH / 'water_TIP3P.sdf'
 if not _water_path.exists():
     water = generate_water_TIP3P()
-    save_molecule(_water_path, water, toolkit_registry=TKREGS['OpenEye Toolkit'])
+    topology.package_atom_metadata(water, in_place=True)
+    topology.save_molecule(_water_path, water, toolkit_registry=TKREGS['OpenEye Toolkit'])
 
 # register Molcules for all registered solvents
 for path in _MODULE_PATH.iterdir():
     if path.suffix == '.sdf':
-        globals()[path.stem] = Molecule.from_file(path) # load molecules from file and register them locally
+        offmol = Molecule.from_file(path) # load molecules from file
+        globals()[path.stem] = topology.unpackage_atom_metadata(offmol, in_place=False) # recover metadata and register solvent Molecules locally

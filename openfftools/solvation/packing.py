@@ -12,6 +12,7 @@ from openff.toolkit import Topology, Molecule, ForceField
 from openff.interchange.components import _packmol as packmol
 
 from . import boxvectors, physprops
+from ..topology import get_largest_offmol
 
 
 def pack_topology_with_solvent(offtop : Topology, solvent : Molecule, box_vecs : Union[boxvectors.VectorQuantity, boxvectors.BoxVectorsQuantity], density : Quantity, exclusion : Optional[Quantity]=None) -> Topology:
@@ -41,5 +42,7 @@ def pack_topology_with_solvent(offtop : Topology, solvent : Molecule, box_vecs :
         center_solute='BRICK'
     )
     packed_top.box_vectors = box_vecs
+    offmol = get_largest_offmol(packed_top)
+    offmol.properties['solvent'] = solvent.name
 
     return packed_top
