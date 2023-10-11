@@ -105,7 +105,7 @@ class MultiStreamFileHandler(logging.FileHandler):
             completion_msg = ''.join(format_exception(exc_type, exc, trace)) # format error message and traceback similar to console printout
             log_level = logging.FATAL
         else: # normal completion of context block
-            completion_msg = f'{self.proc_name} completed in {datetime.now() - self._start_time}\n'
+            completion_msg = f'Process "{self.proc_name}" completed in {datetime.now() - self._start_time}\n'
             log_level = logging.INFO
 
         self.propogate_msg(level=log_level, msg=completion_msg) # log message at the determined appropriate level, passing up to parents if necessary
