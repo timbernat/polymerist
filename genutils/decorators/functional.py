@@ -4,7 +4,6 @@ from typing import Callable, Optional, Union
 
 import inspect
 from functools import wraps
-from inspect import Parameter
 
 from copy import deepcopy
 from pathlib import Path
@@ -35,11 +34,11 @@ def optional_in_place(funct : Callable[[O, Args, KWArgs], None]) -> Callable[[O,
     # ADD IN-PLACE PARAMETER TO FUNCTION SIGNATURE
     new_sig = signatures.insert_parameter_at_index(
         old_sig,
-        new_param=Parameter(
+        new_param=inspect.Parameter(
             name='in_place',
             default=False,
             annotation=bool,
-            kind=Parameter.KEYWORD_ONLY
+            kind=inspect.Parameter.KEYWORD_ONLY
         ),
         index=signatures.get_index_after_positionals(old_sig)
     )
