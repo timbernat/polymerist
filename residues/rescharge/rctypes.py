@@ -22,3 +22,13 @@ class ChargedResidue:
 class ChargesByResidue:
     '''Class for storing substructure charge maps by residue'''
     charges : dict[str, ChargeMap] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        '''For ensuring substructure id keys to be integers (JSON forces these to be strings as keys when serializing)'''
+        self.charges = {
+            resname : {
+                int(substruct_id) : charge
+                    for substruct_id, charge in charge_map.items()
+            }
+            for resname, charge_map in self.charges.items()
+        }
