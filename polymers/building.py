@@ -2,6 +2,7 @@
 
 import logging
 LOGGER = logging.getLogger(__name__)
+import warnings
 
 from collections import Counter
 from pathlib import Path
@@ -9,9 +10,11 @@ from pathlib import Path
 from rdkit import Chem
 from openmm.app import PDBFile
 
-import mbuild as mb
-from mbuild import Compound
-from mbuild.lib.recipes.polymer import Polymer as MBPolymer
+with warnings.catch_warnings(record=True): # suppress numerous and irritating mbuild deprecation warnings
+    warnings.filterwarnings('ignore',  category=DeprecationWarning)
+    import mbuild as mb
+    from mbuild import Compound
+    from mbuild.lib.recipes.polymer import Polymer as MBPolymer
 
 from .exceptions import MorphologyError
 from .estimation import estimate_chain_len_linear
