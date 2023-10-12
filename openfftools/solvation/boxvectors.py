@@ -74,12 +74,13 @@ def get_box_volume(box_vectors : BoxVectorsQuantity, units_as_openm : bool=True)
 
 
 # CONVERSIONS
+@allow_openmm_units
 def box_vectors_flexible(box_vecs : Union[VectorQuantity, BoxVectorsQuantity]) -> BoxVectorsQuantity:
     '''Allows for passing XYZ box dimensions '''
-    if not isinstance(box_vecs, Quantity):
+    if not isinstance(box_vecs, PintQuantity):
         raise TypeError('Box vectors passed have no associated units')
     
-    if not isinstance(box_vecs._value, np.ndarray):
+    if not isinstance(box_vecs.magnitude, np.ndarray):
         raise TypeError('Must pass array-like Quantity as box vector')
     
     if box_vecs.ndim == 1:
