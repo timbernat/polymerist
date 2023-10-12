@@ -59,7 +59,7 @@ def initialize_simulation_and_files(out_dir : Path, prefix : str, sim_params : S
 
     if positions is not None:
         # TODO : add position type/shape checking
-        LOGGER.info('Setting positions in context')
+        LOGGER.info('Setting positions in Context')
         simulation.context.setPositions(positions) # set positions if provided
 
     return simulation, sim_paths
