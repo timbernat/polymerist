@@ -41,7 +41,10 @@ def pack_topology_with_solvent(offtop : Topology, solvent : Molecule, box_vecs :
         box_shape=packmol.UNIT_CUBE,
         center_solute='BRICK'
     )
+    LOGGER.info('Packmol packing converged')
+
     packed_top.box_vectors = box_vecs
+    LOGGER.info(f'Set solvated Topology box vectors to {box_vecs}')
     offmol = get_largest_offmol(packed_top)
     offmol.properties['solvent'] = solvent.name
 
