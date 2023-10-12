@@ -1,7 +1,7 @@
 '''For packing solvents into Topology boxes using packmol'''
 
 import logging
-LOGGER = logging.Logger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 from typing import Optional, Union
 

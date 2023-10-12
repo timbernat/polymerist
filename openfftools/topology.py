@@ -1,7 +1,7 @@
 '''Utilities for serializing, converting, and extracting info from OpenFF topologies'''
 
 import logging
-LOGGER = logging.Logger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 from pathlib import Path
 from ast import literal_eval

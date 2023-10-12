@@ -24,6 +24,7 @@ from ..genutils.fileutils.jsonio.serialize import PathSerializer
 class SimulationPaths:
     '''Encapsulates Paths to various files associated with an OpenMM Simulation'''
     parameters_path   : Optional[Path] = None
+    paths_path        : Optional[Path] = None
 
     system_path       : Optional[Path] = None
     topology_path     : Optional[Path] = None
@@ -66,6 +67,7 @@ class SimulationPaths:
             sim_params.to_file(path_obj.parameters_path) # record simulation parameters
         
             sim_paths_path = assemble_path(out_dir, prefix, extension='json', postfix='paths')
+            path_obj.paths_path = sim_paths_path # record path the SimulationsPaths object is being stored at within the object itself
             path_obj.to_file(sim_paths_path)
             
             for val in path_obj.__dict__.values():

@@ -62,6 +62,7 @@ def run_simulation_schedule(working_dir : Path, schedule : dict[str, SimulationP
         LOGGER.info(f'Integrating {sim_params.integ_params.total_time} OpenMM Simulation for {sim_params.integ_params.num_steps} steps')
         simulation.step(sim_params.integ_params.num_steps)
         LOGGER.info('Simulation integration completed successfully')
+        LOGGER.info('') # add whitespace between simulations to act as a "palate cleanser"
 
     if return_history:
         return history

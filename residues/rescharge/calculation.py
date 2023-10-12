@@ -72,7 +72,7 @@ def compute_residue_charges(cmol : Molecule, monomer_group : MonomerGroup, cds :
             charge_map = cds.redistributed_charges(charge_map, mol_frag)
 
         chgs_by_res.charges[res_name] = charge_map
-    LOGGER.info(f'Successfully computed library charges for {cmol}')
+    LOGGER.info(f'Successfully computed library charges for Molecule "{cmol.name}"')
 
     return chgs_by_res
 
@@ -85,4 +85,4 @@ def apply_residue_charges(offmol : Molecule, chgs_by_res : ChargesByResidue) -> 
             for atom in offmol.atoms
     ]
     offmol.partial_charges = np.array(new_charges) * elementary_charge # convert to array with units (otherwise assignment won't work)
-    LOGGER.info(f'Successfully mapped residue charges onto {offmol}')
+    LOGGER.info(f'Successfully mapped residue charges onto Molecule "{offmol.name}"')
