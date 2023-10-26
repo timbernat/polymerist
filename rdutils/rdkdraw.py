@@ -1,6 +1,6 @@
 '''Tools for drawing and visulaizing RDKit molecules'''
 
-from typing import Optional
+from typing import Optional, Type, Union
 from . import rdprops
 from .rdtypes import RDMol
 
@@ -38,33 +38,45 @@ def clear_highlights(rdmol : RDMol) -> None:
 
 
 # PLOTTING
-def rdmol_prop_heatmap(rdmol : RDMol, prop : str, cmap : Colormap, norm : Normalize, annotate : bool=False, precision : int=5, img_size : tuple[int, int]=(1_000, 1_000)) -> Image:
+def tight_norm_for_rdmol_prop(rdmol : RDMol, prop : str, prop_type : Union[Type[int], Type[float]]) -> tuple[Normalize, tuple[int, ...]]:
+    '''Generate a matplotlib Normalize object with bounds matching the maxima, minima, and midpoint of a numeric Prop'''
+    prop_vals = rdprops.aggregate_atom_prop(rdmol, prop, prop_type=prop_type) # explicitly ensure the property is interpreted as a numerical value
+    vmin, vmax = min(prop_vals.values()), max(prop_vals.values())
+    
+    norm = Normalize(vmin, vmax)
+    ticks = (norm.vmin, 0, norm.vmax)
+
+    return norm, ticks
+
+
+def rdmol_prop_heatmap(rdmol : RDMol, prop : str, cmap : Colormap, norm : Optional[Normalize]=None, annotate : bool=False, annotate_precision : int=5, img_size : tuple[int, int]=(1_000, 1_000)) -> Image:
     '''Take a charged RDKit Mol and color atoms based on the magnitude of a particular atomwise property'''
-    colors, prop_vals, atom_nums = {}, [], []
-    for atom in rdmol.GetAtoms():
-        atom_num, prop_val = atom.GetIdx(), atom.GetDoubleProp(prop)
-        colors[atom_num] = cmap(norm(prop_val))
-        atom_nums.append(atom_num)
-        prop_vals.append(prop_val)
+    prop_vals = rdprops.aggregate_atom_prop(rdmol, prop, prop_type=float) # currently only support floats for plotting
+    if norm is None:
+        norm, ticks = tight_norm_for_rdmol_prop(rdmol, prop, prop_type=float)
+    
+    if annotate:
+        rdprops.annotate_atom_prop(rdmol, prop, annotate_precision=annotate_precision, in_place=True)
 
-        if annotate:
-            atom.SetProp('atomNote', str(round(prop_val, precision))) # need to convert to string, as double is susceptible to float round display errors (shows all decimal places regardless of rounding)
+    colors = {
+        atom_num : cmap(norm(prop_val))
+            for atom_num, prop_val in prop_vals.items()
+    }
 
+    # generate image of Mol
     draw = rdMolDraw2D.MolDraw2DCairo(*img_size) # or MolDraw2DCairo to get PNGs
-    rdMolDraw2D.PrepareAndDrawMolecule(draw, rdmol, highlightAtoms=atom_nums, highlightAtomColors=colors)
+    rdMolDraw2D.PrepareAndDrawMolecule(draw, rdmol, highlightAtoms=prop_vals.keys(), highlightAtomColors=colors)
     draw.FinishDrawing()
     img_bytes = draw.GetDrawingText()
     
     return imageutils.img_from_bytes(img_bytes)
 
-def rdmol_prop_heatmap_colorscaled(rdmol : RDMol, prop : str, cmap : Colormap=plt.get_cmap('turbo'), cbar_label : str='', orient : Optional[str]=None, **heatmap_args) -> tuple[plt.Figure, plt.Axes]:
+def rdmol_prop_heatmap_colorscaled(rdmol : RDMol, prop : str, cmap : Colormap=plt.get_cmap('turbo'), norm : Optional[Normalize]=None, cbar_label : str='', orient : Optional[str]=None, **heatmap_args) -> tuple[plt.Figure, plt.Axes]:
     '''Plot a labelled heatmap of the charge differences between 2 structurally identical RDKit Molecules with different partial charges'''
-    prop_vals = rdprops.aggregate_atom_prop(rdmol, prop, prop_type=float) # explicitly ensure the property is interpreted as a numericla value
-    vmin, vmax = min(prop_vals), max(prop_vals)
-    norm = Normalize(vmin, vmax)
-    ticks = (vmin, 0, vmax)
+    if norm is None:
+        norm, ticks = tight_norm_for_rdmol_prop(rdmol, prop, prop_type=float)
 
     image = rdmol_prop_heatmap(rdmol, prop=prop, cmap=cmap, norm=norm, **heatmap_args)
     image = imageutils.crop_borders(image, bg_color=WHITE)
 
-    return plotutils.plot_image_with_colorbar(image, cmap, norm, label=cbar_label, ticks=ticks, orient=orient)
+    return plotutils.plot_image_with_colorbar(image, cmap, norm, ticks=ticks, label=cbar_label, orient=orient)

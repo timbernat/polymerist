@@ -74,7 +74,7 @@ def make_cmapper(cmap_name : str, vmin : float, vmax : float) -> ColorMapper:
 def plot_image_with_colorbar(image : Image, cmap : Colormap, norm : Normalize, label : str='', ticks : Optional[list[float]]=None, orient : Optional[str]=None, dim : int=8, aspect : float=1/1) -> tuple[plt.Figure, plt.Axes]:
     '''Plots a PIL image with a colorbar and norm of ones choice'''
     CAX_LOC_OPTIONS = {
-        'vertical' : 'right',
+        'vertical'   : 'right',
         'horizontal' : 'bottom'
     }
 

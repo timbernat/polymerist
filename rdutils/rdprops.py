@@ -1,6 +1,6 @@
 '''For assigning, transferring, and removing properties of RDKit objects'''
 
-from typing import Any, TypeVar
+from typing import Any, Optional, TypeVar
 from copy import deepcopy
 
 from .rdtypes import RDMol, RDObj, isrdobj
@@ -22,6 +22,9 @@ RDPROP_SETTERS = {
     float : 'SetDoubleProp'
 }
 
+T = TypeVar('T') # generic type for AtomProp attributes
+RD = TypeVar('RD') # generic type to represent an RDKit object
+
 # PROPERTY INSPECTION FUNCTIONS
 def atom_ids_with_prop(rdmol : RDMol, prop_name : str) -> list[int]:
     '''Returns list of atom IDs of atom which have a particular property assigned'''
@@ -31,17 +34,27 @@ def atom_ids_with_prop(rdmol : RDMol, prop_name : str) -> list[int]:
                 if atom.HasProp(prop_name)
     ]
 
-def aggregate_atom_prop(rdmol : RDMol, prop : str, prop_type : type=str) -> list[Any]:
+@optional_in_place
+def annotate_atom_prop(rdmol : RDMol, prop : str, prop_type : T=str, annotate_precision : Optional[int]=None) -> None:
+    '''Labels the desired Prop for all atoms in a Mol which have it'''
+    getter_type = RDPROP_GETTERS[prop_type]
+    for atom in rdmol.GetAtoms():
+        prop_val = getattr(atom, getter_type)(prop) # invoke type-appropriate getter on atom, with the name of the desired property
+        
+        if hasattr(prop_val, '__round__') and annotate_precision is not None: # only round on roundable objects, and only when
+            prop_val = round(prop_val, annotate_precision)
+        atom.SetProp('atomNote', str(prop_val)) # need to convert to string, as double is susceptible to float round display errors (shows all decimal places regardless of rounding)
+
+def aggregate_atom_prop(rdmol : RDMol, prop : str, prop_type : T=str) -> dict[int, T]:
     '''Collects the values of a given Prop across all atoms in an RDKit molecule'''
     getter_type = RDPROP_GETTERS[prop_type]
-    return [
-        getattr(atom, getter_type)(prop)
+    return {
+        atom.GetIdx() : getattr(atom, getter_type)(prop) # invoke type-appropriate getter on atom, with the name of the desired property
             for atom in rdmol.GetAtoms()
-    ]
+    }
 
 # PROPERTY TRANSFER FUNCTIONS
-R = TypeVar('R') # generic type to represent an RDKit object
-def copy_rd_props(from_rdobj : R, to_rdobj : R) -> None: # NOTE : no need to incorporate typing info, as RDKit objects can correctly interpret typed strings
+def copy_rd_props(from_rdobj : RD, to_rdobj : RD) -> None: # NOTE : no need to incorporate typing info, as RDKit objects can correctly interpret typed strings
     '''For copying properties between a pair of RDKit Atoms or Mols'''
     # NOTE : avoid use of GetPropsAsDict() to avoid errors from restrictive C++ typing
     assert isrdobj(from_rdobj) and isrdobj(to_rdobj) # verify that both objects passed are RDKit objects...
