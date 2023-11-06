@@ -43,7 +43,7 @@ def register_subclasses(cls : Optional[C]=None, key_attr : str='__name__', reg_a
     '''
     def class_decorator(cls : C) -> C:
         '''The actual (argument-free) class decorator'''
-        @classmethod # method should be accessibel class-wide
+        @classmethod # method should be accessible class-wide
         @property    # make property to allow for dynamic subclassing (generated at runtime, not compile time)
         def _registry(cls : C) -> dict[str, C]:
             return { # Keep a registry of all charger implementations for convenience

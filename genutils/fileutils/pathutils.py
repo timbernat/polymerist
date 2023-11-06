@@ -5,14 +5,28 @@ from pathlib import Path
     
 
 # PATH PROPERTY FUNCTIONS (DON'T MODIFY ANYTHING)
+def _dotless(extension : str) -> str:
+    '''Separate the dot from a SINGLE extension file suffix. Returns the original suffix if not dot is present'''
+    return extension.split('.')[-1] 
+
 def dotless(path : Path) -> str:
-    '''Separate the dot from a SINGLE extension file suffix'''
-    return path.suffix.split('.')[-1] 
+    '''Separate the dot from file path. Returns the original suffix if not dot is present'''
+    return _dotless(path.suffix)
 
 def is_empty(path : Path) -> bool:
     '''Check if a directory is empty'''
     assert(path.is_dir())
     return list(path.iterdir()) == [] # can't use "len" for generators : TODO : make this more efficient (i.e. iteration-based) for large directories
+
+
+# PATH CREATION FUNCTIONS
+def assemble_path(directory : Path, prefix : str, extension : str, postfix : str='') -> Path:
+    '''Combine output, naming, descriptive, and filetype info to generate a complete Path'''
+    if extension[0] == '.':
+        extension = extension[1:] # remove leading dots if included
+    path_name = f'{prefix}{"_" if postfix else ""}{postfix}.{extension}'
+
+    return directory / path_name
 
 
 # PATH CONVERSION FUNCTIONS (FOR CHANGING BETWEEN TYPES)

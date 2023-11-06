@@ -6,8 +6,13 @@ import numpy.typing as npt
 import numpy as np
 
 from openmm.unit import Quantity
+from pint import Quantity as PintQuantity
+
 from openff.toolkit import Topology
 from openff.interchange.components._packmol import _box_vectors_are_in_reduced_form
+from openff.units.openmm import to_openmm as units_to_openmm
+
+from ...genutils.unitutils import allow_openmm_units
 
 
 # CUSTOM TYPES FOR CLARITY, ESPECIALLY WITH UNITS
@@ -17,10 +22,15 @@ VectorQuantity = Union[Quantity, Vector] # 3x1 vector with associated units
 BoxVectors = Annotated[npt.NDArray[np.generic], Literal[3, 3]] # a 3x3 box-vector matrix (in reduced form), with each row representing a single unit cell vector
 BoxVectorsQuantity = Union[Quantity, BoxVectors] # 3x3 box vectors with associated units
 
+class BoxVectorError(Exception):
+    '''Raised when a provided set of box vectors is invalid (for whatever reason)'''
+    pass
+
 
 # OBTAINING AND SCALING BOX VECTORS
+@allow_openmm_units
 def xyz_to_box_vectors(xyz : VectorQuantity) -> BoxVectorsQuantity:
-    '''Convert into monoclinic box vectors in 3x3 diagonal reduced form'''
+    '''Convert 3-vector of XYZ box dimensions into monoclinic box vectors in 3x3 diagonal reduced form'''
     assert(xyz.shape) == (3,)
     return np.diag(xyz.magnitude) * xyz.units # convert to diagonal matrix
 
@@ -38,6 +48,7 @@ def _pad_box_vectors_unitless(box_vectors_mag : BoxVectors, pad_vec_mag : Vector
 
     return scale_matr @ box_vectors_mag # compute matrix product to scale each row. TODO : maybe convert this to row-wise product for efficiency?
     
+@allow_openmm_units
 def pad_box_vectors(box_vectors : BoxVectorsQuantity, pad_vec : VectorQuantity) -> BoxVectorsQuantity:
     '''Pad each box vector on either side by a fixed distance given by a component of a padding vector'''
     return _pad_box_vectors_unitless(box_vectors.magnitude, pad_vec.m_as(box_vectors.units)) * box_vectors.units
@@ -52,7 +63,26 @@ def _get_box_volume_unitless(box_vectors_mag : BoxVectors) -> float:
     '''Compute volume of a box given a set of 3x3 box vectors'''
     return np.abs(np.linalg.det(box_vectors_mag)) # return unsigned determinant
 
-def get_box_volume(box_vectors : BoxVectorsQuantity) -> Quantity:
+def get_box_volume(box_vectors : BoxVectorsQuantity, units_as_openm : bool=True) -> Quantity:
     '''Compute volume of a box given a set of 3x3 box vectors'''
     assert(_box_vectors_are_in_reduced_form(box_vectors))
-    return _get_box_volume_unitless(box_vectors.magnitude) * box_vectors.units**3
+    box_vol = _get_box_volume_unitless(box_vectors.magnitude) * box_vectors.units**3
+
+    if units_as_openm:
+        return units_to_openmm(box_vol)
+    return box_vol
+
+
+# CONVERSIONS
+@allow_openmm_units
+def box_vectors_flexible(box_vecs : Union[VectorQuantity, BoxVectorsQuantity]) -> BoxVectorsQuantity:
+    '''Allows for passing XYZ box dimensions '''
+    if not isinstance(box_vecs, PintQuantity):
+        raise TypeError('Box vectors passed have no associated units')
+    
+    if not isinstance(box_vecs.magnitude, np.ndarray):
+        raise TypeError('Must pass array-like Quantity as box vector')
+    
+    if box_vecs.ndim == 1:
+        return xyz_to_box_vectors(box_vecs)
+    return box_vecs

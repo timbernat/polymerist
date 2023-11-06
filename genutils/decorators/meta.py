@@ -1,16 +1,11 @@
 '''Decorators for modifying other decorators'''
 
 from typing import Concatenate, Callable, ParamSpec, TypeAlias, TypeVar
-from functools import partial
+from functools import update_wrapper
 
-from ..typetools import C, O, Args, KWArgs
-
-
-# CUSTOM TYPEHINTS
-P = ParamSpec('P') # for representing (preserved) input parameters
-R = TypeVar('R')   # for representing generic return values
-
+from ..typetools import C, O, P, R, Args, KWArgs
 Decorator : TypeAlias = Callable[[Callable[P, R]], Callable[P, R]]
+
 
 # META DECORATORS
 def extend_to_methods(dec : Decorator) -> Decorator:
@@ -22,6 +17,8 @@ def extend_to_methods(dec : Decorator) -> Decorator:
         def __init__(self, funct : Callable[P, R]) -> None:
             '''Record function'''
             self.funct = funct
+            update_wrapper(self, funct) # equivalent to functools.wraps, transfers docstring, module, etc. for documentation
+            # TODO : figure out how to transfer decorator signature updates to this level
 
         def __call__(self, *args : Args, **kwargs : KWArgs) -> dec.__annotations__.get('return'): # TODO : fix this to reflect the decorator's return signature
             '''Apply decorator to function, then call decorated function'''

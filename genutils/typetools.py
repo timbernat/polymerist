@@ -1,6 +1,6 @@
 '''Additional type-hinting and typechecking not provided by builtins'''
 
-from typing import Any, Callable, TypeVar, Union
+from typing import Any, Callable, ParamSpec, TypeVar, Union
 import numpy.typing # NOTE : this import is necessary to use np.typing calls
 import numpy as np
 
@@ -12,6 +12,9 @@ C = TypeVar('C') # generic type for a class
 O = TypeVar('O') # generic type for an object passed to a function
 F = TypeVar('F') # generic type for a function
 U = TypeVar('U') # generic class from representing Literal Unions (since arg-free union is not supported)
+
+P = ParamSpec('P') # for representing (preserved) input parameters
+R = TypeVar('R')   # for representing generic return values
 
 Args   = TypeVar('Args'  ) # generic type for arguments to a function
 KWArgs = TypeVar('KWArgs') # generic type for keyword arguments to a function

@@ -10,7 +10,7 @@ from rdkit import Chem
 from rdkit.Chem import rdChemReactions
 
 from ..rdtypes import RDMol
-from ..labeling.molwise import get_ordered_map_nums
+from ..labeling.molwise import ordered_map_nums
 from ..labeling.bondwise import get_bonded_pairs_by_map_nums
 from ...genutils.fileutils.pathutils import aspath, asstrpath
 
@@ -93,7 +93,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
             prod_info.reactive_atom_map_nums = [
                 map_num
                     for map_num in self.reacting_atom_map_nums
-                        if map_num in get_ordered_map_nums(product_template)
+                        if map_num in ordered_map_nums(product_template)
             ]
 
             for bond_id, atom_id_pair in get_bonded_pairs_by_map_nums(product_template, *prod_info.reactive_atom_map_nums).items(): # consider each pair of reactive atoms

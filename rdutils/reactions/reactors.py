@@ -84,7 +84,7 @@ class Reactor:
         return products
 
 @dataclass
-class CondensationReactor(Reactor):
+class AdditionReactor(Reactor):
     '''Special case of Reactor with two reactant species forming one product'''
     def __post_init__(self) -> None:
         assert(self.rxn_schema.GetNumReactantTemplates() == 2)
@@ -102,7 +102,12 @@ class CondensationReactor(Reactor):
             return products[0]
 
 @dataclass
-class PolymerizationReactor(CondensationReactor):
+class CondensationReactor(Reactor):
+    '''Special case of Reactor with two reactant species forming one product plus a small-molecule side product'''
+    pass # TODO : implement behavior here
+
+@dataclass
+class PolymerizationReactor(AdditionReactor):
     '''Reactor which handles monomer partitioning post-polymerization condensation reaction'''
     def _inter_monomer_bond_candidates(self, product : RDMol, valid_backbone_atoms : tuple[str]=('C', 'N', 'O')) -> list[int]:
         '''Returns the bond index of the most likely candidate for a newly-formed bond in a product which was formed between the reactants
