@@ -22,6 +22,10 @@ class MolPortError(Exception):
     '''Raised when port-related errors as encountered'''
     pass
 
+def is_linker(rdatom : RDAtom) -> bool:
+    '''Indicate whether an atom is a linker (intermonomer "*" type atom)'''
+    return rdatom.GetAtomicNum() == 0
+
 @dataclass(frozen=True)
 class Port:
     '''Class for encapsulating the components of a "port" bonding site (linker-bond-bridgehead)'''
