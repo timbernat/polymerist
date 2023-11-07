@@ -33,6 +33,20 @@ def atom_ids_by_map_nums(rdmol : RDMol, *query_map_nums : list[int]) -> Generato
         except ValueError: # if the provided map number is not found, return NoneType
             yield None
 
+# CHECKING FUNCTIONS
+def has_fully_mapped_atoms(rdmol : RDMol) -> bool:
+    '''Check whether an RDMol has a map number explicitly assigned to each member RDAtom'''
+    for atom in rdmol.GetAtoms():
+        if atom.GetAtomMapNum() == 0:
+            return False
+    else:
+        return True
+    
+def has_uniquely_mapped_atoms(rdmol : RDMol) -> bool:
+    '''Check whether an RDMol has distinct atom map numbers for each member RDAtom'''
+    map_nums = ordered_map_nums(rdmol)
+    return (len(map_nums) == len(set(map_nums))) # NOTE : not using rdmol.GetNumAtoms() as reference to avoid ambiguity with SMILES without explicit Hs
+
 
 # WRITING FUNCTIONS
 @optional_in_place    
