@@ -6,6 +6,8 @@ from rdkit import Chem
 from rdkit.Chem.rdchem import BondType
 
 from . import portlib
+from .smileslib import BOND_SMILES_BY_ORDER
+
 from ..rdtypes import RWMol, RDMol, RDAtom
 from ..rdkdraw import clear_highlights
 from ..labeling import molwise
@@ -13,13 +15,6 @@ from ...genutils.decorators.functional import optional_in_place
 
 
 # BOND REFERENCE
-BONDS_BY_ORDER = { # conrete bond objects (since these can't be directly instantiated from bond order in Python)
-    BondType.SINGLE    : Chem.BondFromSmiles('-'),
-    BondType.DOUBLE    : Chem.BondFromSmiles('='),
-    BondType.TRIPLE    : Chem.BondFromSmiles('#'),
-    BondType.QUADRUPLE : Chem.BondFromSmiles('$'),
-    BondType.AROMATIC  : Chem.BondFromSmiles(':'),
-}
 
 class BondOrderModificationError(Exception):
     '''Raised when an invalid RDBond modification is attempted'''
@@ -82,7 +77,7 @@ def _increase_bond_order_alt(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int) ->
         rwmol.AddBond(atom_id_1, atom_id_2, order=BondType.SINGLE) # create new bond or specified order
     else: 
         new_bond_type = BondType.values[curr_bond.GetBondTypeAsDouble() + 1] # with pre-existing bond, need to get the next order up by numeric lookup
-        rwmol.ReplaceBond(curr_bond.GetIdx(), BONDS_BY_ORDER[new_bond_type], preserveProps=True)
+        rwmol.ReplaceBond(curr_bond.GetIdx(), BOND_SMILES_BY_ORDER[new_bond_type], preserveProps=True)
 
 
 # SINGLE BOND-ORDER CHANGES 
