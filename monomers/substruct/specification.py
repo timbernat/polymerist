@@ -101,6 +101,7 @@ def compliant_mol_SMARTS(smarts : str) -> str:
     rdmol = Chem.MolFromSmarts(smarts)
     assert(molwise.has_fully_mapped_atoms(rdmol))
     assert(molwise.has_uniquely_mapped_atoms(rdmol))
+    # TODO : add aromaticity checks
     
     # assign query info to atoms and bonds
     for atom in rdmol.GetAtoms():
@@ -120,6 +121,6 @@ def compliant_mol_SMARTS(smarts : str) -> str:
         count=rdmol.GetNumAtoms() # can't possibly replace more queries than there are atoms
     )
     if num_repl > 0:
-        LOGGER.warn(f'Cleaned {num_repl} SMARTS atom query aberrations by RDKit')
+        LOGGER.warn(f'Cleaned {num_repl} SMARTS atom query aberrations introduced by RDKit')
 
     return sanitized_smarts
