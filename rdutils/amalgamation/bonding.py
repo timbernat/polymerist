@@ -83,7 +83,7 @@ def _increase_bond_order_alt(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int) ->
 # SINGLE BOND-ORDER CHANGES 
 @optional_in_place
 def decrease_bond_order(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, new_port_flavor : int=0) -> None: 
-    '''Lower the order of a bond between two atoms and insert two new ports in its place, raising Expection if no bond exists'''
+    '''Lower the order of a bond between two atoms and insert two new ports in its place, raising Exception if no bond exists'''
     _decrease_bond_order(rwmol, atom_id_1, atom_id_2, in_place=True) # NOTE : must explicitly be called in-place to ensure correct top-level behavior, since this function is also decorated
     
     # free_isotope_labels = int_complement(get_isotopes(rwmol, unique=True), bounded=False) # generate unused isotope labels
@@ -155,8 +155,10 @@ def saturate_ports(rdmol : RDMol, cap : RDMol=Chem.MolFromSmarts('[#0]-[#1]'), f
     
     return Chem.rdchem.Mol(rwmol) # revert to "regular" Mol from RWMol
 
-@optional_in_place # temporarily placed here for backwards-compatibility reasons
-def hydrogenate_rdmol_ports(rdmol : RDMol) -> None:
+# @optional_in_place # temporarily placed here for backwards-compatibility reasons
+# def hydrogenate_rdmol_ports(rdmol : RDMol) -> None:
+def hydrogenate_rdmol_ports(rdmol : RDMol) -> RDMol:
     '''Replace all port atoms with hydrogens'''
-    for port_id in portlib.get_linker_ids(rdmol):
-        rdmol.GetAtomWithIdx(port_id).SetAtomicNum(1)
+    return Chem.ReplaceSubstructs(rdmol, Chem.MolFromSmarts('[#0]'), Chem.MolFromSmarts('[#1]'), replaceAll=True)[0]
+    # for port_id in portlib.get_linker_ids(rdmol):
+    #     rdmol.GetAtomWithIdx(port_id).SetAtomicNum(1)
