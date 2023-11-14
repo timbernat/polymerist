@@ -50,3 +50,6 @@ def estimate_DOP_lower(monomers : MonomerGroup, max_chain_len : int, min_DOP : i
 def estimate_DOP_upper(monomers : MonomerGroup, min_chain_len : int, min_DOP : int=3) -> int: # NOTE : as currently defined, this also subsumes the case when the estimate and calculated length are exactly equal
     '''Returns the smallest DOP for a set of monomers which yields a chain no shorter than the specified chain length'''
     return estimate_DOP_lower(monomers, min_chain_len, min_DOP=min_DOP) + 1 # by definition, this is just 1 monomer longer than the lower bound
+
+estimate_DOP_infimum  = estimate_DOP_upper # more descriptive aliases to alleviate confusion (originals kept in for backwards compatibility)
+estimate_DOP_supremum = estimate_DOP_lower # more descriptive aliases to alleviate confusion (originals kept in for backwards compatibility)
