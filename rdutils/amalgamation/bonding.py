@@ -155,10 +155,9 @@ def saturate_ports(rdmol : RDMol, cap : RDMol=Chem.MolFromSmarts('[#0]-[#1]'), f
     
     return Chem.rdchem.Mol(rwmol) # revert to "regular" Mol from RWMol
 
-# @optional_in_place # temporarily placed here for backwards-compatibility reasons
-# def hydrogenate_rdmol_ports(rdmol : RDMol) -> None:
-def hydrogenate_rdmol_ports(rdmol : RDMol) -> RDMol:
+@optional_in_place # temporarily placed here for backwards-compatibility reasons
+def hydrogenate_rdmol_ports(rdmol : RDMol) -> None:
     '''Replace all port atoms with hydrogens'''
-    return Chem.ReplaceSubstructs(rdmol, Chem.MolFromSmarts('[#0]'), Chem.MolFromSmarts('[#1]'), replaceAll=True)[0]
-    # for port_id in portlib.get_linker_ids(rdmol):
-    #     rdmol.GetAtomWithIdx(port_id).SetAtomicNum(1)
+    # return Chem.ReplaceSubstructs(rdmol, Chem.MolFromSmarts('[#0]'), Chem.MolFromSmarts('[#1]'), replaceAll=True)[0]
+    for port_id in portlib.get_linker_ids(rdmol):
+        rdmol.GetAtomWithIdx(port_id).SetAtomicNum(1)

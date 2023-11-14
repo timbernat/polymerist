@@ -33,7 +33,7 @@ def mbmol_from_mono_rdmol(rdmol : RDMol) -> tuple[Compound, list[int]]:
     linker_ids = [i for i in get_linker_ids(rdmol)] # record indices of ports - MUST unpack generator for mbuild compatibility
     
     # create chemically-complete 
-    prot_mol = hydrogenate_rdmol_ports(rdmol)#, in_place=False)
+    prot_mol = hydrogenate_rdmol_ports(rdmol, in_place=False)
     # prot_mol = saturate_ports(rdmol) # TOSELF : custom, port-based saturation methods are not yet ready for deployment - yield issues in RDKit representation under-the-hood 
     Chem.SanitizeMol(prot_mol, sanitizeOps=SANITIZE_AS_KEKULE) # ensure Mol is valid (avoids implicitValence issues)
     mb_compound = mb.conversion.from_rdkit(prot_mol) # native from_rdkit() method actually appears to preserve atom ordering
@@ -66,7 +66,7 @@ def mbmol_to_openmm_pdb(pdb_path : Path, mbmol : Compound, num_atom_digits : int
 
 
 # LINEAR POLYMER BUILDING
-def build_linear_polymer(monomers : MonomerGroup, DOP : int, sequence : str='A', add_Hs : bool=False) -> MBPolymer:
+def build_linear_polymer(monomers : MonomerGroup, DOP : int, sequence : str='A', add_Hs : bool=False, energy_minimize : bool=False) -> MBPolymer:
     '''Accepts a dict of monomer residue names and SMARTS (as one might find in a monomer JSON)
     and a degree of polymerization (i.e. chain length in number of monomers)) and returns an mbuild Polymer object'''
     # 0) VERIFY THAT CHAIN ACTUAL CAN DEFINE LINEAR POLYMER
@@ -88,7 +88,6 @@ def build_linear_polymer(monomers : MonomerGroup, DOP : int, sequence : str='A',
     for (resname, middle_monomer), sequence_key in zip(monomers.iter_rdmols(term_only=False), sequence): # zip with sequence limits number of middle monomers to length of block sequence
         LOGGER.info(f'Registering middle monomer {resname} (block identifier "{sequence_key}")')
         mb_monomer, linker_ids = mbmol_from_mono_rdmol(middle_monomer)
-        print(linker_ids)
         chain.add_monomer(compound=mb_monomer, indices=linker_ids)
 
     # 2) ADD TERMINAL MONOMERS TO CHAIN
@@ -110,4 +109,9 @@ def build_linear_polymer(monomers : MonomerGroup, DOP : int, sequence : str='A',
         atom.charge = 0.0 # initialize all atoms as being uncharged (gets rid of pesky blocks of warnings)
     LOGGER.info(f'Successfully assembled linear polymer chain with {DOP} monomers ({n_atoms} atoms)')
     
+    if energy_minimize:
+        LOGGER.info('Energy-minimizing chain to find more stabile conformer')
+        chain.energy_minimize()
+        LOGGER.info('Energy minimization completed')
+
     return chain
