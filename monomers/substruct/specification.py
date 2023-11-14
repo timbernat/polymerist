@@ -15,6 +15,8 @@ from ...rdutils.labeling import molwise
 
 
 # CHEMICAL INFO SPECIFICATION
+SANITIZE_AS_KEKULE = (Chem.SANITIZE_ALL & ~Chem.SANITIZE_SETAROMATICITY) # sanitize everything EXCEPT reassignment of aromaticity
+
 def expanded_SMILES(smiles : str, assign_map_nums : bool=True, start_from : int=1) -> str:
     '''Takes a SMILES string and clarifies chemical information, namely explicit hydrogens, kekulized aromatic bonds, and atom map numbers'''
     assert(smileslib.is_valid_SMILES(smiles))
