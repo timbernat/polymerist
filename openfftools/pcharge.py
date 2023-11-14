@@ -44,7 +44,7 @@ class ABE10Charger(MolCharger):
     @optional_in_place
     def _charge_molecule(self, uncharged_mol : Molecule) -> None:
         '''Concrete implementation for AM1-BCC-ELF10'''
-        uncharged_mol.assign_partial_charges(partial_charge_method='am1bccelf10', toolkit_registry=TKREGS['OpenEye Toolkit'])
+        uncharged_mol.assign_partial_charges(partial_charge_method='am1bccelf10', toolkit_registry=TKREGS['OpenEye Toolkit']) # TODO : provide support for AMBER / RDKit if OE license is unavailable
 
 class EspalomaCharger(MolCharger):
     '''Charger class for EspalomaCharge charging'''
