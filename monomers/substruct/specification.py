@@ -124,5 +124,6 @@ def compliant_mol_SMARTS(smarts : str) -> str:
     )
     if num_repl > 0:
         LOGGER.warn(f'Cleaned {num_repl} SMARTS atom query aberrations introduced by RDKit')
+    sanitized_smarts = sanitized_smarts.replace('#0', '*') # replace explicit atom number 0 calls with star (easier to do post-processing, as #0 is easier to implement)
 
     return sanitized_smarts
