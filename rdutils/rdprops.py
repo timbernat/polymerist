@@ -3,7 +3,7 @@
 from typing import Any, Optional, TypeVar
 from copy import deepcopy
 
-from .rdtypes import RDMol, RDObj, isrdobj
+from .rdtypes import RDMol, RDAtom, RDObj, isrdobj
 from .mapping.bijection import bijective_atom_id_iter
 from ..genutils.decorators.functional import optional_in_place
 
@@ -26,6 +26,19 @@ T = TypeVar('T') # generic type for AtomProp attributes
 RD = TypeVar('RD') # generic type to represent an RDKit object
 
 # PROPERTY INSPECTION FUNCTIONS
+def detailed_atom_info(atom : RDAtom) -> dict[str, Any]:
+    '''Extract all get-able info about a particular RDKit atom
+    Does NOT include any non-default Prop values (e.g. atomMapNumber)'''
+    atom_info = {}
+    for attr_name in dir(atom):
+        if 'Get' in attr_name:
+            try:
+                atom_info[attr_name.removeprefix('Get')] = getattr(atom, attr_name)()
+            except: # TODO : refine this Exception call (can't directly reference RDKit Boost.Python.ArgumentError due to C++ nonsense)
+                pass
+    
+    return atom_info
+
 def atom_ids_with_prop(rdmol : RDMol, prop_name : str) -> list[int]:
     '''Returns list of atom IDs of atom which have a particular property assigned'''
     return [
