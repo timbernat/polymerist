@@ -1,7 +1,8 @@
 '''Tools for making and breaking bonds, with correct conversions of ports'''
 
-from typing import Optional, Union
-from IPython.display import display
+from typing import Iterable, Optional, Union
+from functools import reduce
+
 from rdkit import Chem
 from rdkit.Chem.rdchem import BondType
 
@@ -24,10 +25,10 @@ def are_bonded_atoms(rdmol : RDMol, atom_id_1 : int, atom_id_2 : int) -> bool:
     '''Check if pair of atoms in an RDMol have a bond between then'''
     return (rdmol.GetBondBetweenAtoms(atom_id_1, atom_id_2) is not None)
 
-def combined_rdmol(rdmol_1 : RDMol, rdmol_2 : RDMol, editable : bool=True) -> Union[RDMol, RWMol]:
+def combined_rdmol(*rdmols : Iterable[RDMol], editable : bool=True) -> Union[RDMol, RWMol]:
     '''Merge two RDMols into a single molecule with contiguous, non-overlapping atom map numbers'''
-    rdmol_1, rdmol_2 = molwise.assign_contiguous_atom_map_nums(rdmol_1, rdmol_2, in_place=False) 
-    combo = Chem.CombineMols(rdmol_1, rdmol_2) # combine into single Mol object to allow for bonding
+    numbered_mols = molwise.assign_contiguous_atom_map_nums(*rdmols, in_place=False) 
+    combo = reduce(Chem.CombineMols, numbered_mols) # combine into single Mol object to allow for bonding
 
     if editable:
         return Chem.RWMol(combo) # make combined Mol modifiable
@@ -82,16 +83,21 @@ def _increase_bond_order_alt(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int) ->
 
 # SINGLE BOND-ORDER CHANGES 
 @optional_in_place
-def decrease_bond_order(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, new_port_flavor : int=0) -> None: 
+def decrease_bond_order(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, new_flavor_pair : Optional[tuple[int, int]]=None) -> None: 
     '''Lower the order of a bond between two atoms and insert two new ports in its place, raising Exception if no bond exists'''
-    _decrease_bond_order(rwmol, atom_id_1, atom_id_2, in_place=True) # NOTE : must explicitly be called in-place to ensure correct top-level behavior, since this function is also decorated
+    atom_ids = (atom_id_1, atom_id_2)
+    if new_flavor_pair is None:
+        new_flavor_pair = (0, 0)
+    assert(len(new_flavor_pair) == 2)
     
+    _decrease_bond_order(rwmol, atom_id_1, atom_id_2, in_place=True) # NOTE : must explicitly be called in-place to ensure correct top-level behavior, since this function is also decorated
     # free_isotope_labels = int_complement(get_isotopes(rwmol, unique=True), bounded=False) # generate unused isotope labels
     # add new ports for broken bond
-    for atom_id in (atom_id_1, atom_id_2):
+    for atom_id, flavor in zip(atom_ids, new_flavor_pair):
         new_linker = Chem.AtomFromSmarts('[#0]') 
-        new_linker.SetIsotope(new_port_flavor)
+        new_linker.SetIsotope(flavor)
         new_port_id = rwmol.AddAtom(new_linker)# insert new port into molecule, taking note of index (TOSELF : ensure that this inserts indices at END of existing ones, could cause unexpected modification if not)
+        
         rwmol.AddBond(atom_id, new_port_id, order=BondType.SINGLE) # bond the atom to the new port
         # _increase_bond_order(rwmol, atom_id, new_port_id)
 
@@ -113,10 +119,10 @@ def increase_bond_order(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, flavor_
 
 # TOTAL BOND CHANGES
 @optional_in_place
-def dissolve_bond(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, new_port_flavor : int=0) -> None:
+def dissolve_bond(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, new_flavor_pair : int=0) -> None:
     '''Completely decompose a bond between two atoms, filling in ports with the chosen flavor''' 
     while rwmol.GetBondBetweenAtoms(atom_id_1, atom_id_2) is not None:
-        decrease_bond_order(rwmol, atom_id_1, atom_id_2, new_port_flavor=new_port_flavor, in_place=True)
+        decrease_bond_order(rwmol, atom_id_1, atom_id_2, new_flavor_pair=new_flavor_pair, in_place=True)
 
 @optional_in_place
 def splice_atoms(rwmol : RWMol, atom_id_1 : Optional[int]=None, atom_id_2 : Optional[int]=None, flavor_pair : tuple[Optional[int], Optional[int]]=(None, None)) -> None:
