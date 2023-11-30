@@ -1,7 +1,11 @@
 '''Tools for making and breaking bonds, with correct conversions of ports'''
 
+import logging
+LOGGER = logging.getLogger(__name__)
+
 from typing import Iterable, Optional, Union
 from functools import reduce
+from IPython.display import display # for Jupyter display support
 
 from rdkit import Chem
 from rdkit.Chem.rdchem import BondType
@@ -12,11 +16,12 @@ from .smileslib import BOND_SMILES_BY_ORDER
 from ..rdtypes import RWMol, RDMol, RDAtom
 from ..rdkdraw import clear_highlights
 from ..labeling import molwise
+
+from ...genutils.maths.sequences import int_complement
 from ...genutils.decorators.functional import optional_in_place
 
 
 # BOND REFERENCE
-
 class BondOrderModificationError(Exception):
     '''Raised when an invalid RDBond modification is attempted'''
     pass
@@ -167,3 +172,71 @@ def hydrogenate_rdmol_ports(rdmol : RDMol) -> None:
     # return Chem.ReplaceSubstructs(rdmol, Chem.MolFromSmarts('[#0]'), Chem.MolFromSmarts('[#1]'), replaceAll=True)[0]
     for port_id in portlib.get_linker_ids(rdmol):
         rdmol.GetAtomWithIdx(port_id).SetAtomicNum(1)
+
+
+# BOND SWAPS
+def _is_valid_bond_derangement(bond_derangement : dict[int, tuple[int, int]]) -> bool:
+    '''Determine whether an interatomic bond remapping describes a valid derangement'''
+    # 1) check that each swap maps to a new element (no identity swaps)
+    for begin_map_num, (curr_end_map_num, targ_end_map_num) in bond_derangement.items():
+        if curr_end_map_num == targ_end_map_num:
+            LOGGER.warn(f'Swap defined for initial index {begin_map_num} maps back to current partner ({curr_end_map_num} -> {targ_end_map_num})')
+            return False
+        
+    # 2) check bijection (i.e. no repeated elements in current or )
+    # begin_map_nums = set(bond_derangement.keys())
+    curr_end_map_nums, targ_end_map_nums = [set(i) for i in zip(*bond_derangement.values())]
+    if curr_end_map_nums.symmetric_difference(targ_end_map_nums) != set():
+        LOGGER.warn('Symmetric difference is non-empty (elements remap to outside the current set)')
+        return False
+    
+    ## 3) check that target elements are beginning elements (not combinatorially invalid, but can always rewrite in a form which avoids this)
+
+    return True # only return if all aabove checks pass
+
+@optional_in_place
+def swap_bonds(rwmol : RWMol, bond_derangement : dict[int, tuple[int, int]], debug_display : bool=False) -> Optional[RWMol]:
+    '''
+    Takes a modifiable Mol and a bond derangement dict and performs the requested bond swaps
+    Derangement dict should have th following form:
+        keys   : int             = corresponds to the beginning atom of a bond
+        values : tuple[int, int] = corresponds to the current end atom map number and target end atom map number (in that order) 
+    Modifiable Mol can contain multiple disconnected molecular components) 
+    ''' 
+    # TODO : check for complete atom map num assignment
+    if not _is_valid_bond_derangement(bond_derangement):
+        raise ValueError('Invalid interatomic bond derangement provided')
+
+    # determine non-interfering port flavors for new bonds (preserves parity between permutation sets)
+    available_port_flavors = int_complement(molwise.get_isotopes(rwmol), bounded=False) # ensures newly-created temporary ports don't clash with any existing ones
+    flavor_pair = (next(available_port_flavors), next(available_port_flavors)) # grab first two available flavors
+    portlib.Port.bondable_flavors.insert(flavor_pair) # temporarily register pair as bondable
+
+    # break current bonds
+    for begin_map_num, (curr_end_map_num, _) in bond_derangement.items():
+        decrease_bond_order(
+            rwmol,
+            *molwise.atom_ids_by_map_nums(rwmol, begin_map_num, curr_end_map_num),
+            new_flavor_pair=flavor_pair,
+            in_place=True # must be done in-place to allow optional_in_place decoration
+        )
+
+        if debug_display:
+            print(f'{begin_map_num} --x-> {curr_end_map_num}')
+            display(rwmol)
+
+    # form new bonds - must be done AFTER breakage to ensure all necessary ports exist
+    for begin_map_num, (_, targ_end_map_num) in bond_derangement.items():
+        increase_bond_order(
+            rwmol,
+            *molwise.atom_ids_by_map_nums(rwmol, begin_map_num, targ_end_map_num), 
+            flavor_pair=flavor_pair,
+            in_place=True # must be done in-place to allow optional_in_place decoration
+        )
+
+        if debug_display:
+            print(f'{begin_map_num} ----> {curr_end_map_num}')
+            display(rwmol)
+
+    # deregister bondable pair
+    portlib.Port.bondable_flavors.pop(flavor_pair) 
