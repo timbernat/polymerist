@@ -62,6 +62,7 @@ def assign_atom_map_nums_from_ref(rdmol : RDMol, ref : Iterable[int]) -> None:
     for atom, map_num in zip(rdmol.GetAtoms(), ref): # TODO : add some way to check that lengths match (may be generator-like)
         atom.SetAtomMapNum(map_num) 
 
+# NOTE : this deliberately does NOT have an optional_in_place decorator (is implemented internally due to Iterable input)
 def assign_contiguous_atom_map_nums(*rdmols : Iterable[RDMol], start_from : int=1, in_place : bool=False) -> Optional[list[RDMol]]: 
     '''Assign sequential numbering to a collection of molecules such that their map numbers span a contiguous range of integers
     Can optionally specify what value to begin counting from (by default 1)'''
