@@ -62,8 +62,8 @@ def aggregate_atom_prop(rdmol : RDMol, prop : str, prop_type : T=str) -> dict[in
     '''Collects the values of a given Prop across all atoms in an RDKit molecule'''
     getter_type = RDPROP_GETTERS[prop_type]
     return {
-        atom.GetIdx() : getattr(atom, getter_type)(prop) # invoke type-appropriate getter on atom, with the name of the desired property
-            for atom in rdmol.GetAtoms()
+        atom_idx : getattr(rdmol.GetAtomWithIdx(atom_idx), getter_type)(prop) # invoke type-appropriate getter on atom, with the name of the desired property
+            for atom_idx in atom_ids_with_prop(rdmol, prop_name=prop)
     }
 
 # PROPERTY TRANSFER FUNCTIONS
