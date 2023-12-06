@@ -5,6 +5,7 @@ LOGGER = logging.getLogger(__name__)
 
 from typing import Iterable, Optional, Union
 from functools import reduce
+from collections import Counter
 from IPython.display import display # for Jupyter display support
 
 from rdkit import Chem
@@ -186,24 +187,28 @@ def _is_valid_bond_derangement(bond_derangement : dict[int, tuple[int, int]]) ->
             return False
         
     # 2) check bijection (i.e. no repeated elements in current or )
-    # begin_map_nums = set(bond_derangement.keys())
-    curr_end_map_nums, targ_end_map_nums = [set(i) for i in zip(*bond_derangement.values())]
-    if curr_end_map_nums.symmetric_difference(targ_end_map_nums) != set():
-        LOGGER.warn('Symmetric difference is non-empty (elements remap to outside the current set)')
+    # curr_end_map_nums, targ_end_map_nums = [set(i) for i in zip(*bond_derangement.values())] # TODO : change from set to collections.Counter (multisets are permissible)
+    # if curr_end_map_nums.symmetric_difference(targ_end_map_nums) != set():
+    #     LOGGER.warn('Symmetric difference is non-empty (elements remap to outside the current set)')
+    #     return False
+    curr_end_counts, targ_end_counts = [Counter(i) for i in zip(*bond_derangement.values())] # TODO : change from set to collections.Counter (multisets are permissible)
+    if curr_end_counts != targ_end_counts:
+        LOGGER.warn('Bond derangement does not define a 1-1 correspondence between elements in the multiset')
         return False
     
-    ## 3) check that target elements are beginning elements (not combinatorially invalid, but can always rewrite in a form which avoids this)
+    ## 3) check that target elements are not beginning elements (not combinatorially invalid, but can always rewrite in a form which avoids this)
+    # begin_map_nums = set(bond_derangement.keys())
 
     return True # only return if all aabove checks pass
 
 @optional_in_place
-def swap_bonds(rwmol : RWMol, bond_derangement : dict[int, tuple[int, int]], debug_display : bool=False) -> Optional[RWMol]:
+def swap_bonds(rwmol : RWMol, bond_derangement : dict[int, tuple[int, int]], show_steps : bool=False) -> Optional[RWMol]:
     '''
     Takes a modifiable Mol and a bond derangement dict and performs the requested bond swaps
     Derangement dict should have th following form:
         keys   : int             = corresponds to the beginning atom of a bond
         values : tuple[int, int] = corresponds to the current end atom map number and target end atom map number (in that order) 
-    Modifiable Mol can contain multiple disconnected molecular components) 
+    Modifiable Mol can contain multiple disconnected molecular components
     ''' 
     # TODO : check for complete atom map num assignment
     if not _is_valid_bond_derangement(bond_derangement):
@@ -223,7 +228,7 @@ def swap_bonds(rwmol : RWMol, bond_derangement : dict[int, tuple[int, int]], deb
             in_place=True # must be done in-place to allow optional_in_place decoration
         )
 
-        if debug_display:
+        if show_steps:
             print(f'{begin_map_num} --x-> {curr_end_map_num}')
             display(rwmol)
 
@@ -236,8 +241,8 @@ def swap_bonds(rwmol : RWMol, bond_derangement : dict[int, tuple[int, int]], deb
             in_place=True # must be done in-place to allow optional_in_place decoration
         )
 
-        if debug_display:
-            print(f'{begin_map_num} ----> {curr_end_map_num}')
+        if show_steps:
+            print(f'{begin_map_num} ----> {targ_end_map_num}')
             display(rwmol)
 
     # deregister bondable pair
