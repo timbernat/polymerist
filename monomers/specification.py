@@ -9,9 +9,9 @@ from typing import Union
 from rdkit import Chem
 from rdkit.Chem import QueryAtom
 
-from ...rdutils.rdtypes import RDAtom, RDMol
-from ...rdutils.amalgamation import smileslib 
-from ...rdutils.labeling import molwise
+from ..rdutils.rdtypes import RDAtom, RDMol
+from ..rdutils import smileslib 
+from ..rdutils.labeling import molwise
 
 
 # CHEMICAL INFO SPECIFICATION
@@ -111,7 +111,7 @@ def compliant_mol_SMARTS(smarts : str) -> str:
         atom.SetQuery(atom_query)
 
     for bond in rdmol.GetBonds():
-        bond_query = smileslib.BOND_SMARTS_BY_ORDER[bond.GetBondType()]
+        bond_query = smileslib.primitives.BOND_SMARTS_BY_ORDER[bond.GetBondType()]
         bond.SetQuery(bond_query)
 
     # sanitize away RDKit artifacts
