@@ -33,7 +33,7 @@ def are_bonded_atoms(rdmol : RDMol, atom_id_1 : int, atom_id_2 : int) -> bool:
 
 def combined_rdmol(*rdmols : Iterable[RDMol], assign_map_nums : bool=True, editable : bool=True) -> Union[RDMol, RWMol]:
     '''Merge two RDMols into a single molecule with contiguous, non-overlapping atom map numbers'''
-    if assign_map_nums: # assign coniguous, unique atom map numbers
+    if assign_map_nums: # assign contiguous, unique atom map numbers
         rdmols = molwise.assign_contiguous_atom_map_nums(*rdmols, in_place=False) 
     
     combo = reduce(Chem.CombineMols, rdmols) # combine into single Mol object to allow for bonding
@@ -180,24 +180,17 @@ def hydrogenate_rdmol_ports(rdmol : RDMol) -> None:
 # BOND SWAPS
 def _is_valid_bond_derangement(bond_derangement : dict[int, tuple[int, int]]) -> bool:
     '''Determine whether an interatomic bond remapping describes a valid derangement'''
-    # 1) check that each swap maps to a new element (no identity swaps)
+    # 1) check that each swap maps to a new element (i.e. no identity swaps)
     for begin_map_num, (curr_end_map_num, targ_end_map_num) in bond_derangement.items():
         if curr_end_map_num == targ_end_map_num:
             LOGGER.warn(f'Swap defined for initial index {begin_map_num} maps back to current partner ({curr_end_map_num} -> {targ_end_map_num})')
             return False
         
-    # 2) check bijection (i.e. no repeated elements in current or )
-    # curr_end_map_nums, targ_end_map_nums = [set(i) for i in zip(*bond_derangement.values())] # TODO : change from set to collections.Counter (multisets are permissible)
-    # if curr_end_map_nums.symmetric_difference(targ_end_map_nums) != set():
-    #     LOGGER.warn('Symmetric difference is non-empty (elements remap to outside the current set)')
-    #     return False
-    curr_end_counts, targ_end_counts = [Counter(i) for i in zip(*bond_derangement.values())] # TODO : change from set to collections.Counter (multisets are permissible)
+    # 2) check bijection (i.e. terminal atom remappings form a closed multiset)
+    curr_end_counts, targ_end_counts = [Counter(i) for i in zip(*bond_derangement.values())] #  multisets are permissible for when multiple current/target bonds connect to the same atom 
     if curr_end_counts != targ_end_counts:
         LOGGER.warn('Bond derangement does not define a 1-1 correspondence between elements in the multiset')
         return False
-    
-    ## 3) check that target elements are not beginning elements (not combinatorially invalid, but can always rewrite in a form which avoids this)
-    # begin_map_nums = set(bond_derangement.keys())
 
     return True # only return if all aabove checks pass
 
