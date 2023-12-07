@@ -12,7 +12,7 @@ from openff.toolkit import Topology
 from openff.interchange.components._packmol import _box_vectors_are_in_reduced_form
 from openff.units.openmm import to_openmm as units_to_openmm
 
-from ...genutils.unitutils import allow_openmm_units
+from ...unitutils import allow_openmm_units
 
 
 # CUSTOM TYPES FOR CLARITY, ESPECIALLY WITH UNITS

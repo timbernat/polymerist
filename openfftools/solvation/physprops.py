@@ -8,7 +8,7 @@ from openmm.unit import gram, centimeter, mole
 from openmm.unit import Quantity, AVOGADRO_CONSTANT_NA
 from openff.units.openmm import to_openmm as units_to_openmm
 
-from ...genutils.unitutils import is_volume, allow_openff_units
+from ...unitutils import is_volume, allow_openff_units
 
 
 def molecular_weight(rdmol : RDMol, exact_isotopes : bool=False) -> Quantity:
