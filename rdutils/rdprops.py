@@ -4,7 +4,7 @@ from typing import Any, Optional, TypeVar
 from copy import deepcopy
 
 from .rdtypes import RDMol, RDAtom, RDObj, isrdobj
-from .mapping.bijection import bijective_atom_id_iter
+from .labeling.bijection import bijective_atom_id_iter
 from ..genutils.decorators.functional import optional_in_place
 
 
