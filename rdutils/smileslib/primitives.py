@@ -1,10 +1,10 @@
-'''General-purpose utilities related to SMILES and SMARTS string manipulations'''
+'''SMILES and SMARTS primitives and functions for validation'''
 
 from rdkit import Chem
 from rdkit.Chem.rdchem import BondType
 
 
-BOND_SMILES_BY_ORDER = { # conrete bond objects (since these can't be directly instantiated from bond order in Python)
+BOND_SMILES_BY_ORDER = { # concrete bond objects (since these can't be directly instantiated from bond order in Python)
     BondType.SINGLE    : Chem.BondFromSmiles('-'),
     BondType.DOUBLE    : Chem.BondFromSmiles('='),
     BondType.TRIPLE    : Chem.BondFromSmiles('#'),
@@ -12,7 +12,7 @@ BOND_SMILES_BY_ORDER = { # conrete bond objects (since these can't be directly i
     BondType.AROMATIC  : Chem.BondFromSmiles(':'),
 }
 
-BOND_SMARTS_BY_ORDER = { # conrete bond objects (since these can't be directly instantiated from bond order in Python)
+BOND_SMARTS_BY_ORDER = { # concrete bond objects (since these can't be directly instantiated from bond order in Python)
     BondType.SINGLE    : Chem.BondFromSmarts('-'),
     BondType.DOUBLE    : Chem.BondFromSmarts('='),
     BondType.TRIPLE    : Chem.BondFromSmarts('#'),
