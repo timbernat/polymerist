@@ -12,7 +12,7 @@ from rdkit import Chem
 from rdkit.Chem.rdchem import BondType
 
 from . import portlib
-from .smileslib import BOND_SMILES_BY_ORDER
+from ..smileslib.primitives import BOND_SMILES_BY_ORDER
 
 from ..rdtypes import RWMol, RDMol, RDAtom
 from ..rdkdraw import clear_highlights

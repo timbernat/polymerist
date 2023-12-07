@@ -19,7 +19,7 @@ with warnings.catch_warnings(record=True): # suppress numerous and irritating mb
 from .exceptions import MorphologyError
 from .estimation import estimate_chain_len_linear
 from ..monomers.repr import MonomerGroup
-from ..monomers.substruct.specification import SANITIZE_AS_KEKULE
+from ..monomers.specification import SANITIZE_AS_KEKULE
 
 from ..genutils.decorators.functional import allow_string_paths
 from ..rdutils.amalgamation.portlib import get_linker_ids
