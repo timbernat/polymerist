@@ -8,9 +8,11 @@ from itertools import combinations, chain
 from rdkit import Chem
 
 from .reactions import AnnotatedReaction, RxnProductInfo
-from ..labeling import bondwise, molwise
+
 from .. import rdprops
+from ..labeling import bondwise, molwise
 from ..rdtypes import RDMol
+from ..smileslib.queries import heavy_and_former_dummy
 
 
 @dataclass
@@ -109,14 +111,13 @@ class CondensationReactor(Reactor):
 @dataclass
 class PolymerizationReactor(AdditionReactor):
     '''Reactor which handles monomer partitioning post-polymerization condensation reaction'''
-    def _inter_monomer_bond_candidates(self, product : RDMol, valid_backbone_atoms : tuple[str]=('C', 'N', 'O')) -> list[int]:
+    def _inter_monomer_bond_candidates(self, product : RDMol) -> list[int]:
         '''Returns the bond index of the most likely candidate for a newly-formed bond in a product which was formed between the reactants
         Can optionally define which atoms are valid as main-chain atoms (by default just CNO)'''
-        possible_bridgehead_ids = [ # determine all atomic positions which are: 
+        possible_bridgehead_ids = [ # determine all atomic positions which are former linkers (i.e. outside of monomers) and heavy (i.e. non-hydrogen) 
             atom_id
-                for atom_id in rdprops.atom_ids_with_prop(product, 'was_dummy')           # 1) former ports (i.e. outside of monomers)
-                    if product.GetAtomWithIdx(atom_id).GetSymbol() in valid_backbone_atoms # 2) valid backbone atoms (namely, not hydrogens)
-        ]
+                for match in product.GetSubstructMatches(heavy_and_former_dummy)
+                    for atom_id in match]
         
         return [
             new_bond_id
