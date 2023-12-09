@@ -22,6 +22,3 @@ SPECIAL_QUERY_MOLS = { # TODO : make these lambda-like so that a unique object i
 }
 
 # TODO : add "magic" Prop queries (rxns, SDFile, and mapping)
-dummy_prop_query = rdqueries.HasPropQueryAtom('was_dummy') # heavy atom which was converted from a dummy atom in a reaction
-heavy_and_former_dummy = Chem.MolFromSmarts('A')
-heavy_and_former_dummy.GetAtomWithIdx(0).ExpandQuery(dummy_prop_query) # cast as Mol to allow for quick check via GetSubstructMatch
