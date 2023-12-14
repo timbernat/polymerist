@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from itertools import combinations, chain
 
 from rdkit import Chem
+from rdkit.Chem import rdqueries
 
 from .reactions import AnnotatedReaction, RxnProductInfo
 from .. import rdprops
@@ -14,7 +15,7 @@ from ..rdtypes import RDMol
 
 
 # CUSTOM QUERIES FOR ATOMS MODIFIED DURING A RXN
-dummy_prop_query = Chem.rdqueries.HasPropQueryAtom('was_dummy') # heavy atom which was converted from a dummy atom in a reaction
+dummy_prop_query = rdqueries.HasPropQueryAtom('was_dummy') # heavy atom which was converted from a dummy atom in a reaction
 HEAVY_FORMER_LINKER_QUERY = Chem.MolFromSmarts('A')
 HEAVY_FORMER_LINKER_QUERY.GetAtomWithIdx(0).ExpandQuery(dummy_prop_query) # cast as Mol to allow for quick check via GetSubstructMatch
 
