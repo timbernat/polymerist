@@ -12,6 +12,8 @@ from rdkit.Chem import rdChemReactions
 from ..rdtypes import RDMol
 from ..labeling.molwise import ordered_map_nums
 from ..labeling.bondwise import get_bonded_pairs_by_map_nums
+from ..amalgamation import bonding
+
 from ...genutils.fileutils.pathutils import aspath, asstrpath
 
 
@@ -37,24 +39,30 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     @classmethod
     def from_smarts(cls, rxn_smarts : str) -> 'AnnotatedReaction':
         '''For instantiating reactions from SMARTS strings'''
-        rdrxn = rdChemReactions.ReactionFromSmarts(rxn_smarts)
+        return cls(rdChemReactions.ReactionFromSmarts(rxn_smarts)) # pass to init method
 
-        return cls(rdrxn) # pass to init method
-
-    @classmethod
-    def from_rdmols(cls, reactant_templates : Iterable[RDMol], product_templates : Iterable[RDMol]) -> 'AnnotatedReaction':
-        '''For instantiating reactions directly from molecules instead of SMARTS strings'''
-        react_str = '.'.join(Chem.MolToSmarts(react_template) for react_template in reactant_templates)
-        prod_str  = '.'.join(Chem.MolToSmarts(prod_template) for prod_template in product_templates)
-        rxn_smarts = f'{react_str}>>{prod_str}'
-
-        return cls.from_smarts(rxn_smarts)
-    
     @classmethod
     def from_rxnfile(cls, rxnfile_path : Union[str, Path]) -> 'AnnotatedReaction':
         '''For instantiating reactions directly from MDL .rxn files'''
         return cls(rdChemReactions.ReactionFromRxnFile(asstrpath(rxnfile_path)))
 
+    @classmethod
+    def from_rdmols(cls, reactant_templates : Iterable[RDMol], product_templates : Iterable[RDMol]) -> 'AnnotatedReaction':
+        '''For instantiating reactions directly from molecules instead of SMARTS strings'''
+        # 1) label atoms as belonging to reactant or product via RDKit 'magic' internal property (1 = reactant, 2 = product, 3 = agent)
+        for reactant in reactant_templates: # TODO : implement non-in-place assignment of these properties
+            for atom in reactant.GetAtoms():
+                atom.SetIntProp('molRxnRole', 1) 
+
+        for product in product_templates: # TODO : implement non-in-place assignment of these properties
+            for atom in product.GetAtoms():
+                atom.SetIntProp('molRxnRole', 2) 
+
+        # 2) generate single combined molecule to fit RDKit reaction spec
+        rxn_mol = bonding.combined_rdmol(*reactant_templates, *product_templates, assign_map_nums=False, editable=False) # kwargs are explicitly needed here
+
+        return cls(rdChemReactions.ReactionFromMolecule(rxn_mol))
+    
     # I/O METHODS
     def to_rxnfile(self, rxnfile_path : Union[str, Path]) -> None:
         '''Save reaction to an MDL .RXN file. Replaces ports with R-groups to enable proper loading'''

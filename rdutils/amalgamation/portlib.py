@@ -22,6 +22,10 @@ class MolPortError(Exception):
     '''Raised when port-related errors as encountered'''
     pass
 
+def is_linker(rdatom : RDAtom) -> bool:
+    '''Indicate whether an atom is a linker (intermonomer "*" type atom)'''
+    return rdatom.GetAtomicNum() == 0
+
 @dataclass(frozen=True)
 class Port:
     '''Class for encapsulating the components of a "port" bonding site (linker-bond-bridgehead)'''
@@ -97,7 +101,8 @@ def get_ports(rdmol : RDMol, target_atom_id : Optional[int]=None, target_flavor 
         )
 
         if port.matches_flavor(target_flavor):
-            if (target_atom is None) or port.bridgehead.Match(target_atom):# will match if no atom is given OR if an atom is given and the bridgehead matches that Atom
+            # if (target_atom is None) or port.bridgehead.Match(target_atom):# will match if no atom is given OR if an atom is given and the bridgehead matches that Atom
+            if (target_atom_id is None) or (port.bridgehead.GetIdx() == target_atom_id):# will match if no atom is given OR if an atom is given and the bridgehead matches that Atom
                 yield port
 
 def get_num_ports(rdmol : RDMol, target_atom_id : Optional[int]=None, target_flavor : Optional[int]=None) -> int: 

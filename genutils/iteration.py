@@ -2,7 +2,7 @@
 
 from typing import Any, Callable, Generator, Iterable, TypeVar, Union
 
-from itertools import islice, product as cartesian_product
+from itertools import islice, combinations, product as cartesian_product
 from collections import deque
 
 from .typetools import Args, KWArgs
@@ -29,9 +29,16 @@ def sliding_window(items : Iterable[T], n : int=1) -> Generator[tuple[T], None, 
     window = deque(islice(it, n), maxlen=n)
     if len(window) == n:
         yield tuple(window)
-    for x in it:
+
+    for x in it: # implicit else
         window.append(x)
         yield tuple(window)
+
+def subsets(items : Iterable[T], exclude_empty : bool=False, exclude_full : bool=False) -> Generator[tuple[T], None, None]:
+    '''Generate all possible subsets of a set. Can optionally exclude the empty set or the complete set (or both)'''
+    base_set = set(items)
+    for i in range(int(exclude_empty), len(base_set) + int(not exclude_full)):
+        yield from combinations(base_set, i)
 
 def swappable_loop_order(iter1 : Iterable[T1], iter2 : Iterable[T2], swap : bool=False) -> Union[Iterable[tuple[T1, T2]], Iterable[tuple[T2, T1]]]:
     '''Enables dynamic swapping of the order of execution of a 2-nested for loop'''

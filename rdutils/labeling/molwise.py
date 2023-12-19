@@ -33,6 +33,20 @@ def atom_ids_by_map_nums(rdmol : RDMol, *query_map_nums : list[int]) -> Generato
         except ValueError: # if the provided map number is not found, return NoneType
             yield None
 
+# CHECKING FUNCTIONS
+def has_fully_mapped_atoms(rdmol : RDMol) -> bool:
+    '''Check whether an RDMol has a map number explicitly assigned to each member RDAtom'''
+    for atom in rdmol.GetAtoms():
+        if atom.GetAtomMapNum() == 0:
+            return False
+    else:
+        return True
+    
+def has_uniquely_mapped_atoms(rdmol : RDMol) -> bool:
+    '''Check whether an RDMol has distinct atom map numbers for each member RDAtom'''
+    map_nums = ordered_map_nums(rdmol)
+    return (len(map_nums) == len(set(map_nums))) # NOTE : not using rdmol.GetNumAtoms() as reference to avoid ambiguity with SMILES without explicit Hs
+
 
 # WRITING FUNCTIONS
 @optional_in_place    
@@ -43,11 +57,22 @@ def assign_ordered_atom_map_nums(rdmol : RDMol, start_from : int=1) -> None:
         atom.SetAtomMapNum(atom.GetIdx() + start_from) # NOTE that starting from anything below 1 will cause an atom somewhere to be mapped to 0 (i.e. not mapped)
 
 @optional_in_place    
-def assign_atom_map_nums_from_ref(rdmol : RDMol, ref : Iterable[int]) -> None:
-    '''Assigns atom map numbers using an external collection of values'''
-    for atom, map_num in zip(rdmol.GetAtoms(), ref): # TODO : add some way to check that lengths match (may be generator-like)
-        atom.SetAtomMapNum(map_num) 
+def assign_atom_map_nums_from_ref(rdmol : RDMol, ref : dict[int, int]) -> None:
+    '''Assigns atom map numbers by atom idx reference (described by a dict of atom_idx : map_num)'''
+    for atom_idx, map_num in ref.items(): # TODO : add some way to check that lengths match (may be generator-like)
+        rdmol.GetAtomWithIdx(atom_idx).SetAtomMapNum(map_num) 
 
+@optional_in_place
+def relabel_map_nums(rdmol : RDMol, relabeling : dict[int, int]) -> None:
+    '''Applies a relabelling of atom map numbers to a subset of mapped atoms (described by a dict of old_map_num : new_map_num)'''
+    relabeling_by_ids = { # recast keys from current atom map nums to current atom ids (if even present)
+        atom_id : new_map_num
+            for atom_id, new_map_num in zip(atom_ids_by_map_nums(rdmol, *relabeling.keys()), relabeling.values())
+                if atom_id is not None # TOSELF : consider adding check for duplicate remapping?
+    }
+    assign_atom_map_nums_from_ref(rdmol, relabeling_by_ids, in_place=True)
+
+# NOTE : this deliberately does NOT have an optional_in_place decorator (is implemented internally due to Iterable input)
 def assign_contiguous_atom_map_nums(*rdmols : Iterable[RDMol], start_from : int=1, in_place : bool=False) -> Optional[list[RDMol]]: 
     '''Assign sequential numbering to a collection of molecules such that their map numbers span a contiguous range of integers
     Can optionally specify what value to begin counting from (by default 1)'''

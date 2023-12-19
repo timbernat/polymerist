@@ -1,26 +1,28 @@
 '''Tools for making and breaking bonds, with correct conversions of ports'''
 
-from typing import Optional, Union
-from IPython.display import display
+import logging
+LOGGER = logging.getLogger(__name__)
+
+from typing import Iterable, Optional, Union
+from functools import reduce
+from collections import Counter
+from IPython.display import display # for Jupyter display support
+
 from rdkit import Chem
 from rdkit.Chem.rdchem import BondType
 
 from . import portlib
+from .smileslib import BOND_SMILES_BY_ORDER
+
 from ..rdtypes import RWMol, RDMol, RDAtom
 from ..rdkdraw import clear_highlights
 from ..labeling import molwise
+
+from ...genutils.maths.sequences import int_complement
 from ...genutils.decorators.functional import optional_in_place
 
 
 # BOND REFERENCE
-BONDS_BY_ORDER = { # conrete bond objects (since these can't be directly instantiated from bond order in Python)
-    BondType.SINGLE    : Chem.BondFromSmiles('-'),
-    BondType.DOUBLE    : Chem.BondFromSmiles('='),
-    BondType.TRIPLE    : Chem.BondFromSmiles('#'),
-    BondType.QUADRUPLE : Chem.BondFromSmiles('$'),
-    BondType.AROMATIC  : Chem.BondFromSmiles(':'),
-}
-
 class BondOrderModificationError(Exception):
     '''Raised when an invalid RDBond modification is attempted'''
     pass
@@ -29,10 +31,12 @@ def are_bonded_atoms(rdmol : RDMol, atom_id_1 : int, atom_id_2 : int) -> bool:
     '''Check if pair of atoms in an RDMol have a bond between then'''
     return (rdmol.GetBondBetweenAtoms(atom_id_1, atom_id_2) is not None)
 
-def combined_rdmol(rdmol_1 : RDMol, rdmol_2 : RDMol, editable : bool=True) -> Union[RDMol, RWMol]:
+def combined_rdmol(*rdmols : Iterable[RDMol], assign_map_nums : bool=True, editable : bool=True) -> Union[RDMol, RWMol]:
     '''Merge two RDMols into a single molecule with contiguous, non-overlapping atom map numbers'''
-    rdmol_1, rdmol_2 = molwise.assign_contiguous_atom_map_nums(rdmol_1, rdmol_2, in_place=False) 
-    combo = Chem.CombineMols(rdmol_1, rdmol_2) # combine into single Mol object to allow for bonding
+    if assign_map_nums: # assign contiguous, unique atom map numbers
+        rdmols = molwise.assign_contiguous_atom_map_nums(*rdmols, in_place=False) 
+    
+    combo = reduce(Chem.CombineMols, rdmols) # combine into single Mol object to allow for bonding
 
     if editable:
         return Chem.RWMol(combo) # make combined Mol modifiable
@@ -82,21 +86,26 @@ def _increase_bond_order_alt(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int) ->
         rwmol.AddBond(atom_id_1, atom_id_2, order=BondType.SINGLE) # create new bond or specified order
     else: 
         new_bond_type = BondType.values[curr_bond.GetBondTypeAsDouble() + 1] # with pre-existing bond, need to get the next order up by numeric lookup
-        rwmol.ReplaceBond(curr_bond.GetIdx(), BONDS_BY_ORDER[new_bond_type], preserveProps=True)
+        rwmol.ReplaceBond(curr_bond.GetIdx(), BOND_SMILES_BY_ORDER[new_bond_type], preserveProps=True)
 
 
 # SINGLE BOND-ORDER CHANGES 
 @optional_in_place
-def decrease_bond_order(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, new_port_flavor : int=0) -> None: 
-    '''Lower the order of a bond between two atoms and insert two new ports in its place, raising Expection if no bond exists'''
-    _decrease_bond_order(rwmol, atom_id_1, atom_id_2, in_place=True) # NOTE : must explicitly be called in-place to ensure correct top-level behavior, since this function is also decorated
+def decrease_bond_order(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, new_flavor_pair : Optional[tuple[int, int]]=None) -> None: 
+    '''Lower the order of a bond between two atoms and insert two new ports in its place, raising Exception if no bond exists'''
+    atom_ids = (atom_id_1, atom_id_2)
+    if new_flavor_pair is None:
+        new_flavor_pair = (0, 0)
+    assert(len(new_flavor_pair) == 2)
     
+    _decrease_bond_order(rwmol, atom_id_1, atom_id_2, in_place=True) # NOTE : must explicitly be called in-place to ensure correct top-level behavior, since this function is also decorated
     # free_isotope_labels = int_complement(get_isotopes(rwmol, unique=True), bounded=False) # generate unused isotope labels
     # add new ports for broken bond
-    for atom_id in (atom_id_1, atom_id_2):
+    for atom_id, flavor in zip(atom_ids, new_flavor_pair):
         new_linker = Chem.AtomFromSmarts('[#0]') 
-        new_linker.SetIsotope(new_port_flavor)
+        new_linker.SetIsotope(flavor)
         new_port_id = rwmol.AddAtom(new_linker)# insert new port into molecule, taking note of index (TOSELF : ensure that this inserts indices at END of existing ones, could cause unexpected modification if not)
+        
         rwmol.AddBond(atom_id, new_port_id, order=BondType.SINGLE) # bond the atom to the new port
         # _increase_bond_order(rwmol, atom_id, new_port_id)
 
@@ -118,10 +127,10 @@ def increase_bond_order(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, flavor_
 
 # TOTAL BOND CHANGES
 @optional_in_place
-def dissolve_bond(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, new_port_flavor : int=0) -> None:
+def dissolve_bond(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, new_flavor_pair : int=0) -> None:
     '''Completely decompose a bond between two atoms, filling in ports with the chosen flavor''' 
     while rwmol.GetBondBetweenAtoms(atom_id_1, atom_id_2) is not None:
-        decrease_bond_order(rwmol, atom_id_1, atom_id_2, new_port_flavor=new_port_flavor, in_place=True)
+        decrease_bond_order(rwmol, atom_id_1, atom_id_2, new_flavor_pair=new_flavor_pair, in_place=True)
 
 @optional_in_place
 def splice_atoms(rwmol : RWMol, atom_id_1 : Optional[int]=None, atom_id_2 : Optional[int]=None, flavor_pair : tuple[Optional[int], Optional[int]]=(None, None)) -> None:
@@ -163,5 +172,71 @@ def saturate_ports(rdmol : RDMol, cap : RDMol=Chem.MolFromSmarts('[#0]-[#1]'), f
 @optional_in_place # temporarily placed here for backwards-compatibility reasons
 def hydrogenate_rdmol_ports(rdmol : RDMol) -> None:
     '''Replace all port atoms with hydrogens'''
+    # return Chem.ReplaceSubstructs(rdmol, Chem.MolFromSmarts('[#0]'), Chem.MolFromSmarts('[#1]'), replaceAll=True)[0]
     for port_id in portlib.get_linker_ids(rdmol):
         rdmol.GetAtomWithIdx(port_id).SetAtomicNum(1)
+
+
+# BOND SWAPS
+def _is_valid_bond_derangement(bond_derangement : dict[int, tuple[int, int]]) -> bool:
+    '''Determine whether an interatomic bond remapping describes a valid derangement'''
+    # 1) check that each swap maps to a new element (i.e. no identity swaps)
+    for begin_map_num, (curr_end_map_num, targ_end_map_num) in bond_derangement.items():
+        if curr_end_map_num == targ_end_map_num:
+            LOGGER.warn(f'Swap defined for initial index {begin_map_num} maps back to current partner ({curr_end_map_num} -> {targ_end_map_num})')
+            return False
+        
+    # 2) check bijection (i.e. terminal atom remappings form a closed multiset)
+    curr_end_counts, targ_end_counts = [Counter(i) for i in zip(*bond_derangement.values())] #  multisets are permissible for when multiple current/target bonds connect to the same atom 
+    if curr_end_counts != targ_end_counts:
+        LOGGER.warn('Bond derangement does not define a 1-1 correspondence between elements in the multiset')
+        return False
+
+    return True # only return if all aabove checks pass
+
+@optional_in_place
+def swap_bonds(rwmol : RWMol, bond_derangement : dict[int, tuple[int, int]], show_steps : bool=False) -> Optional[RWMol]:
+    '''
+    Takes a modifiable Mol and a bond derangement dict and performs the requested bond swaps
+    Derangement dict should have th following form:
+        keys   : int             = corresponds to the beginning atom of a bond
+        values : tuple[int, int] = corresponds to the current end atom map number and target end atom map number (in that order) 
+    Modifiable Mol can contain multiple disconnected molecular components
+    ''' 
+    # TODO : check for complete atom map num assignment
+    if not _is_valid_bond_derangement(bond_derangement):
+        raise ValueError('Invalid interatomic bond derangement provided')
+
+    # determine non-interfering port flavors for new bonds (preserves parity between permutation sets)
+    available_port_flavors = int_complement(molwise.get_isotopes(rwmol), bounded=False) # ensures newly-created temporary ports don't clash with any existing ones
+    flavor_pair = (next(available_port_flavors), next(available_port_flavors)) # grab first two available flavors
+    portlib.Port.bondable_flavors.insert(flavor_pair) # temporarily register pair as bondable
+
+    # break current bonds
+    for begin_map_num, (curr_end_map_num, _) in bond_derangement.items():
+        decrease_bond_order(
+            rwmol,
+            *molwise.atom_ids_by_map_nums(rwmol, begin_map_num, curr_end_map_num),
+            new_flavor_pair=flavor_pair,
+            in_place=True # must be done in-place to allow optional_in_place decoration
+        )
+
+        if show_steps:
+            print(f'{begin_map_num} --x-> {curr_end_map_num}')
+            display(rwmol)
+
+    # form new bonds - must be done AFTER breakage to ensure all necessary ports exist
+    for begin_map_num, (_, targ_end_map_num) in bond_derangement.items():
+        increase_bond_order(
+            rwmol,
+            *molwise.atom_ids_by_map_nums(rwmol, begin_map_num, targ_end_map_num), 
+            flavor_pair=flavor_pair,
+            in_place=True # must be done in-place to allow optional_in_place decoration
+        )
+
+        if show_steps:
+            print(f'{begin_map_num} ----> {targ_end_map_num}')
+            display(rwmol)
+
+    # deregister bondable pair
+    portlib.Port.bondable_flavors.pop(flavor_pair) 
