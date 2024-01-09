@@ -71,7 +71,7 @@ def rdmol_prop_heatmap(rdmol : RDMol, prop : str, cmap : Colormap, norm : Option
     
     return imageutils.img_from_bytes(img_bytes)
 
-def rdmol_prop_heatmap_colorscaled(rdmol : RDMol, prop : str, cmap : Colormap=plt.get_cmap('turbo'), norm : Optional[Normalize]=None, cbar_label : str='', orient : Optional[str]=None, **heatmap_args) -> tuple[plt.Figure, plt.Axes]:
+def rdmol_prop_heatmap_colorscaled(rdmol : RDMol, prop : str, cmap : Colormap=plt.get_cmap('turbo'), norm : Optional[Normalize]=None, ticks : Optional[tuple[float]]=None, cbar_label : str='', orient : Optional[str]=None, **heatmap_args) -> tuple[plt.Figure, plt.Axes]:
     '''Plot a labelled heatmap of the charge differences between 2 structurally identical RDKit Molecules with different partial charges'''
     if norm is None:
         norm, ticks = tight_norm_for_rdmol_prop(rdmol, prop, prop_type=float)
