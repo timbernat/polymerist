@@ -36,15 +36,6 @@ def multiset_coeff(n : int, k : int) -> float:
     Counts the number of ways to form a multiset of cardinality n from a support of size k'''
     return binomial_coeff(n + k -1, k)
 
-def pentagonal(n : int) -> float:
-    '''Calculates the n-th pentagonal number
-    Counts the number of points in n "concentric" pentagon figures which share a corner vertex
-
-    Related to the generating function for numbers of partitions'''
-    # return binomial_coeff(n, 1) + 3*binomial_coeff(n, 2)
-    return (3*n**2 - n) / 2
-
-
 def multinomial_coeff(multips : Iterable[int]) -> float:
     '''Calculate the multinomial coefficient of a set of multiplicities
     Counts the number of distinct permutations of a multiset with given multiplicites'''
@@ -65,8 +56,22 @@ def multinomial_coeff_native(multips : Iterable[int]) -> float:
 
     return multicoeff
 
+def catalan_number(n : int) -> float:
+    '''Calculates the n-th Catalan number
+    Counts dozens of different things, including the number of monotonic 2D random walks
+    and the number of valid (i.e. fully closed) groupings of n pairs of parentheses'''
+    return binomial_coeff(2*n, n) / (n + 1)
+
 
 # Counting partitions and cycles
+def pentagonal(n : int) -> float:
+    '''Calculates the n-th pentagonal number
+    Counts the number of points in n "concentric" pentagon figures which share a corner vertex
+
+    Related to the generating function for numbers of partitions'''
+    # return binomial_coeff(n, 1) + 3*binomial_coeff(n, 2)
+    return (3*n**2 - n) / 2
+
 @lru_cache
 def stirling_second(n : int, k : int) -> float:
     '''Calculates the Stirling number of the second kind S(n, k)
