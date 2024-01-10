@@ -33,12 +33,20 @@ def multiset_coeff(n : int, k : int) -> float:
     Counts the number of ways to form a multiset of cardinality n from a support of size k'''
     return binomial_coeff(n + k -1, k)
 
+def pentagonal(n : int) -> float:
+    '''Calculates the n-th pentagonal number
+    Counts the number of points in n "concentric" pentagon figures which share a corner vertex
+
+    Related to the generating function for numbers of partitions'''
+    # return binomial_coeff(n, 1) + 3*binomial_coeff(n, 2)
+    return (3*n**2 - n) / 2
+
 
 def multinomial_coeff(multips : Iterable[int]) -> float:
     '''Calculate the multinomial coefficient of a set of multiplicities
     Counts the number of distinct permutations of a multiset with given multiplicites'''
     num = factorial(sum(multips))
-    denom = reduce(mul, (factorial(i) for i in multips))
+    denom = reduce(mul, (factorial(i) for i in multips)) # this implementation turns out to be faster than the binomial coeff product definition
 
     return num / denom
 
