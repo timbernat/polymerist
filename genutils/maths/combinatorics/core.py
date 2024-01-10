@@ -20,6 +20,9 @@ def binomial_coeff(n : complex, k : int) -> float: # appears to be quicker than 
     Counts the number of distinct ways to make and unordered selection of k elemnts from a set of n items'''
     if (k < 0):
         return 0.0
+    
+    if k > n//2:
+        return binomial_coeff(n, n - k)
 
     bincoeff = 1.0
     for i in range(k):
@@ -46,7 +49,7 @@ def multinomial_coeff(multips : Iterable[int]) -> float:
     '''Calculate the multinomial coefficient of a set of multiplicities
     Counts the number of distinct permutations of a multiset with given multiplicites'''
     num = factorial(sum(multips))
-    denom = reduce(mul, (factorial(i) for i in multips)) # this implementation turns out to be faster than the binomial coeff product definition
+    denom = reduce(mul, (factorial(i) for i in multips)) 
 
     return num / denom
 
