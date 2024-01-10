@@ -9,7 +9,7 @@ from itertools import count
 
 T = TypeVar('T') # generic type for sequence element
 def product(seq : Iterable[T]) -> T:
-    '''Analogous to builtin sum()'''
+    '''Multiplicative analogue to builtin sum()'''
     return reduce(mul, seq)
 
 def int_complement(seq : Iterable[int], bounded : bool=False) -> Generator[int, None, None]:
