@@ -21,7 +21,7 @@ def binomial_coeff(n : complex, k : int) -> float: # appears to be quicker than 
     if (k < 0):
         return 0.0
     
-    if k > n//2:
+    if (k > n//2) and isinstance(n, int):
         return binomial_coeff(n, n - k)
 
     bincoeff = 1.0
