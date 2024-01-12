@@ -15,7 +15,7 @@ from openmm.unit import elementary_charge
 from .rctypes import ChargesByResidue
 from .redistribution import ChargeRedistributionStrategy, UniformDistributionStrategy
 from ...monomers.repr import MonomerGroup
-from ...genutils.maths.statistics import Accumulator
+from ...maths.statistics import Accumulator
 from ...genutils.decorators.functional import optional_in_place
 
 

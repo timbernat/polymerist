@@ -18,7 +18,7 @@ from ..rdtypes import RWMol, RDMol, RDAtom
 from ..rdkdraw import clear_highlights
 from ..labeling import molwise
 
-from ...genutils.maths.combinatorics.sequences import int_complement
+from ...maths.combinatorics.sequences import int_complement
 from ...genutils.decorators.functional import optional_in_place
 
 
