@@ -1,8 +1,9 @@
 '''Classes for representing information about reaction mechanisms and tracing bonds and atoms along a reaction'''
 
-from typing import Iterable, Union
+from typing import Iterable, Optional, Union
 from dataclasses import dataclass, field
 
+from io import StringIO
 from pathlib import Path
 from functools import cached_property
 
@@ -64,13 +65,17 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         return cls(rdChemReactions.ReactionFromMolecule(rxn_mol))
     
     # I/O METHODS
-    def to_rxnfile(self, rxnfile_path : Union[str, Path]) -> None:
+    def to_rxnfile(self, rxnfile_path : Union[str, Path], rxnname : Optional[str]=None, _rxnname_line : int=1) -> None:
         '''Save reaction to an MDL .RXN file. Replaces ports with R-groups to enable proper loading'''
         rxn_block = rdChemReactions.ReactionToRxnBlock(self)
         rxn_block = rxn_block.replace('*', 'R')
 
         with aspath(rxnfile_path).open('w') as rxnfile:
-            rxnfile.write(rxn_block)
+            for i, line in enumerate(StringIO(rxn_block)):
+                if (rxnname is not None) and (i == _rxnname_line): # name inserted into second line per CTFile spec (https://discover.3ds.com/sites/default/files/2020-08/biovia_ctfileformats_2020.pdf) 
+                    rxnfile.write(f'\t\t\t{rxnname}\n')
+                else:
+                    rxnfile.write(line)
 
     # RXN INFO METHODS
     @cached_property
