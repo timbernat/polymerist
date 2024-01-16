@@ -1,9 +1,13 @@
 '''Utilities related to handling SMARTS queries'''
 
+from typing import Generator
+
 from rdkit import Chem
 from rdkit.Chem import rdqueries
+from rdkit.Chem.rdchem import Mol as RDMol
 
 
+# REFERENCE TABLES FOR SPECIAL ATOM TYPES
 _special = { # shorthand for special, non-element queries
     'metal'           : 'M',
     'halogen'         : 'X',
@@ -21,4 +25,34 @@ SPECIAL_QUERY_MOLS = { # TODO : make these lambda-like so that a unique object i
         for query_name, smarts in SPECIAL_SMARTS.items()
 }
 
-# TODO : add "magic" Prop queries (rxns, SDFile, and mapping)
+
+# SUBSTRUCTURE QUERY UTILITIES
+def matching_labels_from_substruct_dict(target_mol : RDMol, substruct_queries : dict[str, RDMol]) -> Generator[str, None, None]:
+    '''Takes a target RDKit Mol and a string-keyed dict of SMARTS substructure query Mols and 
+    yields ONLY the keys of substructures which are found in the target'''
+    for match_mol_name, match_mol in substruct_queries.items():
+        if target_mol.HasSubstructMatch(match_mol):
+            yield match_mol_name
+
+def matching_dict_from_substruct_dict(target_mol : RDMol, substruct_queries : dict[str, RDMol]) -> dict[str, bool]:
+    '''Takes a target RDKit Mol and a string-keyed dict of SMARTS substructure query Mols and 
+    returns a dict of bools with the same keys indicating whether each match is present'''
+    return {
+        match_mol_name : target_mol.HasSubstructMatch(match_mol)
+            for match_mol_name, match_mol in substruct_queries.items()
+    }
+
+def matching_dict_from_substruct_dict_alt(target_mol : RDMol, substruct_queries : dict[str, RDMol]) -> dict[str, bool]:
+    '''Takes a target RDKit Mol and a string-keyed dict of SMARTS substructure query Mols and 
+    returns a dict of bools with the same keys indicating whether each match is present
+    
+    Alternate implementation with lazy evaluation'''
+    matching_dict = {
+        match_mol_name : False # set False as sentinel value
+            for match_mol_name in substruct_queries.keys()
+    }
+
+    for label in matching_labels_from_substruct_dict(target_mol, substruct_queries=substruct_queries):
+        matching_dict[label] = True
+
+    return matching_dict
