@@ -1,6 +1,6 @@
 '''Query chemical data from the NIH NCI CACTUS Chemical Identifier Resolver (https://cactus.nci.nih.gov/)'''
 
-import requests
+import requests # TOSELF : may consider switching to urllib instead
 
 
 # CACTUS constants
@@ -51,8 +51,8 @@ def _get_CACTUS_prop_key(prop_query : str) -> str:
             f'\nOR one of the following value aliases : {list(CACTUS_PROPERTIES.keys())}'
         )
 
-def query_NIH_CACTUS(smiles : str, prop : str) -> str:
-    '''Format URL and send request for data to NCI Resolver'''
+def query_NIH_CACTUS(smiles : str, prop : str) -> str:         # TODO : eventually requests.ConnectionError when submitting many requests in rapid succession...
+    '''Format URL and send request for data to NCI Resolver''' # ...need to find way to avoid this saturation by the NIH server
     prop = _get_CACTUS_prop_key(prop) # sanitize and validate query
 
     url = f'{CACTUS_URL}/{smiles}/{prop}'

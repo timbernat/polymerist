@@ -70,7 +70,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         rxn_block = rdChemReactions.ReactionToRxnBlock(self)
         rxn_block = rxn_block.replace('*', 'R')
 
-        with aspath(rxnfile_path).open('w') as rxnfile:
+        with aspath(rxnfile_path).open('w') as rxnfile: # TODO : replace aspath with allow_str_paths decorator
             for i, line in enumerate(StringIO(rxn_block)):
                 if (rxnname is not None) and (i == _rxnname_line): # name inserted into second line per CTFile spec (https://discover.3ds.com/sites/default/files/2020-08/biovia_ctfileformats_2020.pdf) 
                     rxnfile.write(f'\t\t\t{rxnname}\n')
