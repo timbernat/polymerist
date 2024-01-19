@@ -13,6 +13,8 @@ from .. import rdprops
 from ..labeling import bondwise, molwise
 from ..rdtypes import RDMol
 
+from ...monomers.specification import SANITIZE_AS_KEKULE
+
 
 # CUSTOM QUERIES FOR ATOMS MODIFIED DURING A RXN
 dummy_prop_query = rdqueries.HasPropQueryAtom('was_dummy') # heavy atom which was converted from a dummy atom in a reaction
@@ -133,7 +135,7 @@ class PolymerizationReactor(AdditionReactor):
                 if new_bond_id in bondwise.get_shortest_path_bonds(product, *bridgehead_id_pair): # ...and check if the new bond lies along it
                     yield new_bond_id
 
-    def polymerized_fragments(self, product :  RDMol, separate : bool=True) -> Union[RDMol, tuple[RDMol]]:
+    def polymerized_fragments(self, product : RDMol, separate : bool=True) -> Union[RDMol, tuple[RDMol]]:
         '''Cut product on inter-monomer bond, returning the resulting fragments'''
         try:
             inter_monomer_bond_idx = next(self._inter_monomer_bond_candidates(product)) # take first candidate bond index as intermonomer bond
@@ -157,6 +159,8 @@ class PolymerizationReactor(AdditionReactor):
             dimer = self.react(reactants, repetitions=1, clear_props=False) # can't clear properties here, otherwise fragment finding won't work
             if not dimer: # stop propagating once monomers can no longer react
                 break
+            # implicit "else"
+            Chem.SanitizeMol(dimer, sanitizeOps=SANITIZE_AS_KEKULE)
             reactants = self.polymerized_fragments(dimer, separate=True)
             
             yield dimer, reactants # yield the dimerized fragment and the 2 new reactive fragments
