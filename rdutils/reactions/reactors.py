@@ -126,8 +126,8 @@ class NoIntermonomerBondsFound(Exception):
 class PolymerizationReactor(AdditionReactor):
     '''Reactor which handles monomer partitioning post-polymerization condensation reaction'''
     def _inter_monomer_bond_candidates(self, product : RDMol) -> Generator[int, None, None]:
-        '''Returns the bond index of the most likely candidate for a newly-formed bond in a product which was formed between the reactants
-        Can optionally define which atoms are valid as main-chain atoms (by default just CNO)'''
+        '''Returns the bond indices of the most likely candidate for a newly-formed bond # TODO : expand this to 
+        between heavy atoms in a product formed by the reat() method of this Reactor'''
         # determine indices of former linkers (i.e. outside of monomers) which are now heavy atoms (i.e. non-hydrogen) 
         possible_bridgehead_ids = [atom_id for match in product.GetSubstructMatches(HEAVY_FORMER_LINKER_QUERY) for atom_id in match]
         for new_bond_id in self.product_info.new_bond_ids_to_map_nums.keys():                     # for each newly formed bond...
