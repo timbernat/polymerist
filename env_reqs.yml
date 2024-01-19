@@ -57,6 +57,8 @@ dependencies:
   - certifi=2023.11.17=pyhd8ed1ab_0
   - cffi=1.15.1=py311h409f033_3
   - charset-normalizer=3.2.0=pyhd8ed1ab_0
+  - chemspipy=2.0.0=py_0
+  - cirpy=1.0.2=py_0
   - click=8.1.7=unix_pyh707e725_0
   - click-option-group=0.5.6=pyhd8ed1ab_0
   - colorama=0.4.6=pyhd8ed1ab_0
@@ -191,9 +193,11 @@ dependencies:
   - libwebp-base=1.3.2=hd590300_0
   - libxcb=1.15=h0b41bf4_0
   - libxml2=2.11.5=h232c23b_1
+  - libxslt=1.1.37=h0054252_1
   - libzip=1.10.1=h2629f0a_3
   - libzlib=1.2.13=hd590300_5
   - lightning-utilities=0.9.0=pyhd8ed1ab_0
+  - lxml=4.9.3=py311h1a07684_1
   - lz4-c=1.9.4=hcb278e6_0
   - lzo=2.10=h516909a_1000
   - markdown-it-py=3.0.0=pyhd8ed1ab_0
