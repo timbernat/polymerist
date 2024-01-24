@@ -16,6 +16,7 @@ from ..smileslib.primitives import BOND_SMILES_BY_ORDER
 
 from ..rdtypes import RWMol, RDMol, RDAtom
 from ..rdkdraw import clear_highlights
+from ..labeling.bondwise import are_bonded_atoms
 from ..labeling import molwise
 
 from ...maths.combinatorics.sequences import int_complement
@@ -26,10 +27,6 @@ from ...genutils.decorators.functional import optional_in_place
 class BondOrderModificationError(Exception):
     '''Raised when an invalid RDBond modification is attempted'''
     pass
-
-def are_bonded_atoms(rdmol : RDMol, atom_id_1 : int, atom_id_2 : int) -> bool:
-    '''Check if pair of atoms in an RDMol have a bond between then'''
-    return (rdmol.GetBondBetweenAtoms(atom_id_1, atom_id_2) is not None)
 
 def combined_rdmol(*rdmols : Iterable[RDMol], assign_map_nums : bool=True, editable : bool=True) -> Union[RDMol, RWMol]:
     '''Merge two RDMols into a single molecule with contiguous, non-overlapping atom map numbers'''
@@ -102,7 +99,7 @@ def decrease_bond_order(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, new_fla
     # free_isotope_labels = int_complement(get_isotopes(rwmol, unique=True), bounded=False) # generate unused isotope labels
     # add new ports for broken bond
     for atom_id, flavor in zip(atom_ids, new_flavor_pair):
-        new_linker = Chem.AtomFromSmarts('[#0]') 
+        new_linker = Chem.AtomFromSmarts('[#0]') # TODO : see if this can be made into a SMILES mol instead?
         new_linker.SetIsotope(flavor)
         new_port_id = rwmol.AddAtom(new_linker)# insert new port into molecule, taking note of index (TOSELF : ensure that this inserts indices at END of existing ones, could cause unexpected modification if not)
         
@@ -172,7 +169,7 @@ def saturate_ports(rdmol : RDMol, cap : RDMol=Chem.MolFromSmarts('[#0]-[#1]'), f
 @optional_in_place # temporarily placed here for backwards-compatibility reasons
 def hydrogenate_rdmol_ports(rdmol : RDMol) -> None:
     '''Replace all port atoms with hydrogens'''
-    # return Chem.ReplaceSubstructs(rdmol, Chem.MolFromSmarts('[#0]'), Chem.MolFromSmarts('[#1]'), replaceAll=True)[0]
+    # return Chem.ReplaceSubstructs(rdmol, Chem.MolFromSmarts('[#0]'), Chem.MolFromSmarts('[#1]'), replaceAll=True)[0] # changes order of atom ids, undesiredly
     for port_id in portlib.get_linker_ids(rdmol):
         rdmol.GetAtomWithIdx(port_id).SetAtomicNum(1)
 
