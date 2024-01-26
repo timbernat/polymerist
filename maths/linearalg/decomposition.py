@@ -1,7 +1,6 @@
-'''Custom linear algebra utilities not already supplied by a numeric processing library (like numpy)'''
+'''Tools for matric decomposition'''
 
 import numpy as np
-
 
 def diagonalize(matrix : np.ndarray) -> tuple[np.ndarray]:
     '''Diagonalize a matrix into it's eigenbasis. Return rotation and diagonal matrices P, D, and P^-1''' 

@@ -1,7 +1,7 @@
 '''Direct implementations of property calculations'''
 
 import numpy as np
-from ..maths.linearalg import diagonalize
+from ..maths.linearalg.decomposition import diagonalize
 
 
 # RECOMMEND USING (SUCH AS MDTraj, MDAnalysis, ETC) FOR SPEED
