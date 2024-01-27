@@ -27,6 +27,10 @@ SPECIAL_QUERY_MOLS = { # TODO : make these lambda-like so that a unique object i
 
 
 # SUBSTRUCTURE QUERY UTILITIES
+def num_substruct_queries(target_mol : RDMol, substruct_query : RDMol, *args, **kwargs) -> int:
+    '''Get just the number of matching substructure queries in a target Mol'''
+    return len(target_mol.GetSubstructMatches(substruct_query, *args, **kwargs)) # default "asMols=False" is fine here for length
+
 def matching_labels_from_substruct_dict(target_mol : RDMol, substruct_queries : dict[str, RDMol]) -> Generator[str, None, None]:
     '''Takes a target RDKit Mol and a string-keyed dict of SMARTS substructure query Mols and 
     yields ONLY the keys of substructures which are found in the target'''
