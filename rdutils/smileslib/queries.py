@@ -26,11 +26,23 @@ SPECIAL_QUERY_MOLS = { # TODO : make these lambda-like so that a unique object i
 }
 
 
-# SUBSTRUCTURE QUERY UTILITIES
+# COUNTING SUBSTRUCTURE QUERIES
 def num_substruct_queries(target_mol : RDMol, substruct_query : RDMol, *args, **kwargs) -> int:
-    '''Get just the number of matching substructure queries in a target Mol'''
+    '''Get the number of RDKit substruct matches to a SMARTS query within a given target Mol'''
     return len(target_mol.GetSubstructMatches(substruct_query, *args, **kwargs)) # default "asMols=False" is fine here for length
 
+def num_substruct_queries_distinct(target_mol : RDMol, substruct_query : RDMol) -> int: # TODO : also include stereochemical symmetries (via "useChirality" flag) 
+    '''Get the number of distinct, non-overlapping RDKit substruct matches to a SMARTS query within a given target Mol
+    Accounts for automorphic symmetries of the query to avoid double-counting distinct groups'''
+    num_distinct : float = num_substruct_queries(target_mol, substruct_query, uniquify=False) # !CRITICAL! that matches be non-unique
+    num_distinct /= num_substruct_queries(  substruct_query, substruct_query, uniquify=False) # quotient out number of substructure automorphisms
+    if num_distinct.is_integer(): # should be guaranteed to be an integer by Lagrange's Theorem, but good to double check here
+        return int(num_distinct)
+    else:
+        raise ValueError('Automorphism normalization returned a non-integer number of query matches')
+
+
+# MAPPING SUBSTRUCTURE QUERIES
 def matching_labels_from_substruct_dict(target_mol : RDMol, substruct_queries : dict[str, RDMol]) -> Generator[str, None, None]:
     '''Takes a target RDKit Mol and a string-keyed dict of SMARTS substructure query Mols and 
     yields ONLY the keys of substructures which are found in the target'''
