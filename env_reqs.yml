@@ -249,7 +249,7 @@ dependencies:
   - openmoltools=0.8.8=pyhd8ed1ab_1
   - openmpi=4.1.5=h414af15_101
   - openpyxl=3.1.2=py311h459d7ec_0
-  - openssl=3.2.0=hd590300_1
+  - openssl=3.2.1=hd590300_0
   - orc=1.9.0=h52d3b3c_2
   - overrides=7.4.0=pyhd8ed1ab_0
   - packaging=23.1=pyhd8ed1ab_0
@@ -314,7 +314,7 @@ dependencies:
   - requests=2.31.0=pyhd8ed1ab_0
   - rfc3339-validator=0.1.4=pyhd8ed1ab_0
   - rfc3986-validator=0.1.1=pyh9f0ad1d_0
-  - rich=13.5.3=pyhd8ed1ab_0
+  - rich=13.7.0=pyhd8ed1ab_0
   - rlpycairo=0.2.0=pyhd8ed1ab_0
   - rpds-py=0.10.3=py311h46250e7_0
   - ruamel.yaml=0.17.32=py311h459d7ec_0
