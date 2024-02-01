@@ -60,6 +60,21 @@ def zRot(angle_rad : float=0.0) -> AffineMatrix:
         [0,  0, 0, 1],
     ], dtype='float64')
 
+def randRot(about_x : bool=True, about_y : bool=True, about_z : bool=True) -> AffineMatrix:
+    '''Returns an affine matrix for a rotation by some random angle(s) about the x, y, and z axes (or any subset of those axes)'''
+    rot_dir = { # concise way to encapsulate what rotations can be performed and whther to perform them
+        xRot : about_x,
+        yRot : about_y,
+        zRot : about_z,
+    }
+
+    matrix = np.eye(4, dtype=float)
+    for (rot_fn, should_rotate) in rot_dir.items():
+        if should_rotate:
+            matrix = rot_fn(2 * np.pi * np.random.rand()) @ matrix # generate random angle and multiply rotation into overall transform matrix (in order)
+
+    return matrix
+
 
 # SCALING AND SHEAR
 def xyzScale(sx : float=1.0, sy : float=1.0, sz : float=1.0) -> AffineMatrix:
