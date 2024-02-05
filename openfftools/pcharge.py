@@ -5,9 +5,11 @@ LOGGER = logging.getLogger(__name__)
 
 from typing import Any, ClassVar
 from abc import ABC, abstractmethod, abstractproperty
-from openff.toolkit.topology.molecule import Molecule
 
-from . import TKREGS
+from openff.toolkit.topology.molecule import Molecule
+from openff.units import unit as offunit
+
+from . import TKREGS, NAGL_MODEL
 from ..genutils.decorators.classmod import register_subclasses
 from ..genutils.decorators.functional import optional_in_place
 
@@ -43,7 +45,6 @@ class ABE10Charger(MolCharger):
 
     @optional_in_place
     def _charge_molecule(self, uncharged_mol : Molecule) -> None:
-        '''Concrete implementation for AM1-BCC-ELF10'''
         uncharged_mol.assign_partial_charges(partial_charge_method='am1bccelf10', toolkit_registry=TKREGS['OpenEye Toolkit']) # TODO : provide support for AMBER / RDKit if OE license is unavailable
 
 class EspalomaCharger(MolCharger):
@@ -53,3 +54,12 @@ class EspalomaCharger(MolCharger):
     @optional_in_place
     def _charge_molecule(self, uncharged_mol : Molecule) -> None:
         uncharged_mol.assign_partial_charges(partial_charge_method='espaloma-am1bcc', toolkit_registry=TKREGS['Espaloma Charge Toolkit'])
+
+class NAGLCharger(MolCharger):
+    '''Charger class for NAGL charging'''
+    CHARGING_METHOD : ClassVar[str] = 'NAGL'
+
+    @optional_in_place
+    def _charge_molecule(self, uncharged_mol : Molecule) -> None:
+        nagl_charges = NAGL_MODEL.compute_property(uncharged_mol, check_domains=True, error_if_unsupported=True)
+        uncharged_mol.partial_charges = nagl_charges * offunit.elementary_charge # need to have OpenFF-style units attached to set "partial_charges" property
