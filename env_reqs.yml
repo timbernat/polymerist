@@ -36,6 +36,8 @@ dependencies:
   - backports=1.0=pyhd8ed1ab_3
   - backports.functools_lru_cache=1.6.5=pyhd8ed1ab_0
   - beautifulsoup4=4.12.2=pyha770c72_0
+  - binutils_impl_linux-64=2.40=hf600244_0
+  - binutils_linux-64=2.40=hbdbef99_2
   - bleach=6.0.0=pyhd8ed1ab_0
   - blinker=1.6.2=pyhd8ed1ab_0
   - blosc=1.21.5=h0f2a231_0
@@ -49,12 +51,12 @@ dependencies:
   - bzip2=1.0.8=h7f98852_4
   - c-ares=1.19.1=hd590300_0
   - c-blosc2=2.10.2=hb4ffafa_0
-  - ca-certificates=2023.11.17=hbcca054_0
+  - ca-certificates=2024.2.2=hbcca054_0
   - cached-property=1.5.2=hd8ed1ab_1
   - cached_property=1.5.2=pyha770c72_1
   - cachetools=5.3.1=pyhd8ed1ab_0
   - cairo=1.16.0=h0c91306_1017
-  - certifi=2023.11.17=pyhd8ed1ab_0
+  - certifi=2024.2.2=pyhd8ed1ab_0
   - cffi=1.15.1=py311h409f033_3
   - charset-normalizer=3.2.0=pyhd8ed1ab_0
   - chemspipy=2.0.0=py_0
@@ -96,13 +98,19 @@ dependencies:
   - freetype=2.12.1=h267a509_2
   - freetype-py=2.3.0=pyhd8ed1ab_0
   - fsspec=2023.9.1=pyh1a96a4e_0
+  - gcc_impl_linux-64=11.4.0=h7aa1c59_5
+  - gcc_linux-64=11.4.0=hfd045f2_2
   - gettext=0.21.1=h27087fc_0
   - gflags=2.2.2=he1b5a44_1004
+  - gfortran_impl_linux-64=11.4.0=h86428dc_5
+  - gfortran_linux-64=11.4.0=h3047280_2
   - glog=0.6.0=h6f12383_0
   - gmp=6.2.1=h58526e2_0
   - gmpy2=2.1.2=py311h6a5fa03_1
   - greenlet=2.0.2=py311hb755f60_1
   - gsl=2.7=he838d99_0
+  - gxx_impl_linux-64=11.4.0=h7aa1c59_5
+  - gxx_linux-64=11.4.0=hfc1ae95_2
   - h5py=3.9.0=nompi_py311he78b9b8_101
   - hdf4=4.2.15=h501b40f_6
   - hdf5=1.14.1=nompi_h4f84152_100
@@ -138,8 +146,9 @@ dependencies:
   - jupyterlab_pygments=0.2.2=pyhd8ed1ab_0
   - jupyterlab_server=2.25.0=pyhd8ed1ab_0
   - jupyterlab_widgets=1.1.5=pyhd8ed1ab_0
+  - kernel-headers_linux-64=2.6.32=he073ed8_16
   - keyutils=1.6.1=h166bdaf_0
-  - kim-api=2.3.0=h94b5c5c_0
+  - kim-api=2.3.0=h097297d_1
   - kiwisolver=1.4.5=py311h9547e67_0
   - krb5=1.21.2=h659d440_0
   - lammps=2023.08.02=cpu_py311_hb661868_openmpi_0
@@ -162,6 +171,7 @@ dependencies:
   - libevent=2.1.12=hf998b51_1
   - libexpat=2.5.0=hcb278e6_1
   - libffi=3.4.2=h7f98852_5
+  - libgcc-devel_linux-64=11.4.0=h922705a_105
   - libgcc-ng=13.2.0=h807b86a_1
   - libgfortran-ng=13.2.0=h69a702a_1
   - libgfortran5=13.2.0=ha4646dd_1
@@ -180,9 +190,11 @@ dependencies:
   - libopenblas=0.3.24=pthreads_h413a1c8_0
   - libpng=1.6.39=h753d276_0
   - libprotobuf=4.23.4=hf27288f_6
+  - libsanitizer=11.4.0=h4dcbe23_5
   - libsodium=1.0.18=h36c2ea0_1
   - libsqlite=3.43.0=h2797004_0
   - libssh2=1.11.0=h0841786_0
+  - libstdcxx-devel_linux-64=11.4.0=h922705a_105
   - libstdcxx-ng=13.2.0=h7e041cc_1
   - libthrift=0.19.0=h8fd135c_0
   - libtiff=4.6.0=h29866fb_1
@@ -200,6 +212,7 @@ dependencies:
   - lxml=4.9.3=py311h1a07684_1
   - lz4-c=1.9.4=hcb278e6_0
   - lzo=2.10=h516909a_1000
+  - make=4.3=hd18ef5c_1
   - markdown-it-py=3.0.0=pyhd8ed1ab_0
   - markupsafe=2.1.3=py311h459d7ec_0
   - matplotlib-base=3.8.0=py311h54ef318_0
@@ -314,6 +327,7 @@ dependencies:
   - requests=2.31.0=pyhd8ed1ab_0
   - rfc3339-validator=0.1.4=pyhd8ed1ab_0
   - rfc3986-validator=0.1.1=pyh9f0ad1d_0
+  - rhash=1.4.4=hd590300_0
   - rich=13.7.0=pyhd8ed1ab_0
   - rlpycairo=0.2.0=pyhd8ed1ab_0
   - rpds-py=0.10.3=py311h46250e7_0
@@ -340,6 +354,7 @@ dependencies:
   - sqlalchemy=2.0.21=py311h459d7ec_0
   - stack_data=0.6.2=pyhd8ed1ab_0
   - sympy=1.12=pypyh9d50eac_103
+  - sysroot_linux-64=2.12=he073ed8_16
   - terminado=0.17.1=pyh41d4057_0
   - tinycss2=1.2.1=pyhd8ed1ab_0
   - tk=8.6.12=h27826a3_0
