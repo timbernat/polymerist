@@ -3,9 +3,10 @@
 import logging
 LOGGER = logging.getLogger(__name__)
 
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Union
 from abc import ABC, abstractmethod, abstractproperty
 
+from rdkit import Chem
 from openff.toolkit.topology.molecule import Molecule
 from openff.units import unit as offunit
 
@@ -14,6 +15,15 @@ from ..genutils.decorators.classmod import register_subclasses
 from ..genutils.decorators.functional import optional_in_place
 
 
+def has_partial_charges(mol : Union[Molecule, Chem.Mol]) -> bool:
+    '''Check if a molecular representation (either a OpenFF Molecule or and RDKit Mol) has partial charges assigned'''
+    if isinstance(mol, Molecule):
+        return (mol.partial_charges is not None)
+    elif isinstance(mol, Chem.Mol): # NOTE : would work just as well with just an "if" here, but elif communicates intent better
+        return bool(mol.HasProp('atom.dprop.PartialCharge')) # RDKit returns as int 0 or 1 instead of bool for some reason
+    else:
+        raise TypeError(f'Cannot check partial charge status of object of type {mol.__class__.__name__}')
+    
 # ABSTRACT AND CONCRETE CLASSES FOR CHARGING MOLECULES
 @register_subclasses(key_attr='CHARGING_METHOD')
 class MolCharger(ABC):
