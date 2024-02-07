@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 
 from string import Template
 from datetime import timedelta
-from openmm.unit import Quantity, millisecond, second, minute, hour, day, year # TODO : remove dependence on OpenMM for Unit support
+from openmm.unit import Quantity, microsecond, millisecond, second, minute, hour, day, year # TODO : remove dependence on OpenMM for Unit support
 
 from polymerist.genutils.typetools import _union_member_factory
 
@@ -13,7 +13,7 @@ from polymerist.genutils.typetools import _union_member_factory
 # TIME CONVERSION CONSTANTS
 SECONDS_PER_INTERVAL = { # lookup of conversion factors to seconds
     unit.get_name() : unit.conversion_factor_to(second)
-        for unit in (year, day, hour, minute, second, millisecond)
+        for unit in (year, day, hour, minute, second, millisecond, microsecond)
 }
 SECONDS_PER_INTERVAL['year'] = SECONDS_PER_INTERVAL.pop('julian year') # rename year from OpenMM default for clarity
 
@@ -23,12 +23,13 @@ SECONDS_PER_INTERVAL_ORDERED = { # arrange in descending order by magnitude of c
 }
 
 # SECONDS_PER_INTERVAL_ORDERED = { # hard-coded version which omits dependency on OpenMM/other unit engine
-#     'year'       : 31_557_600.0,
-#     'day'        : 86_400.0,
-#     'hour'       : 3_600.0,
-#     'minute'     : 60.0,
-#     'second'     : 1.0,
-#     'millisecond': 0.001,
+#     'year'        : 31_557_600.0,
+#     'day'         : 86_400.0,
+#     'hour'        : 3_600.0,
+#     'minute'      : 60.0,
+#     'second'      : 1.0,
+#     'millisecond' : 1E-3,
+#     'microsecond' : 1E-6,
 # }
 
 
@@ -66,6 +67,7 @@ class Duration:
     minute      : int = field(default_factory=int)
     second      : int = field(default_factory=int)
     millisecond : int = field(default_factory=int)
+    microsecond : int = field(default_factory=int)
 
     # formatting constants
     _FMT_ALIASES : ClassVar[dict[str, str]] = { # hard-coded aliases for units of time for string formatting
@@ -74,7 +76,8 @@ class Duration:
         'hour'        : 'H',
         'minute'      : 'M',
         'second'      : 'S',
-        'millisecond' : 's'
+        'millisecond' : 's',
+        'microsecond' : 'f',
 
     }
 
@@ -84,7 +87,8 @@ class Duration:
         'hour'        : 2,
         'minute'      : 2,
         'second'      : 2,
-        'millisecond' : 3
+        'millisecond' : 3,
+        'microsecond' : 3,
 
     }
 
