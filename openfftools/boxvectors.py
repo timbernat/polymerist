@@ -10,9 +10,8 @@ from pint import Quantity as PintQuantity
 
 from openff.toolkit import Topology
 from openff.interchange.components._packmol import _box_vectors_are_in_reduced_form
-from openff.units.openmm import to_openmm as units_to_openmm
 
-from ..unitutils import allow_openmm_units
+from ..unitutils.interop import allow_openmm_units, openff_to_openmm
 
 
 # CUSTOM TYPES FOR CLARITY, ESPECIALLY WITH UNITS
@@ -69,7 +68,7 @@ def get_box_volume(box_vectors : BoxVectorsQuantity, units_as_openm : bool=True)
     box_vol = _get_box_volume_unitless(box_vectors.magnitude) * box_vectors.units**3
 
     if units_as_openm:
-        return units_to_openmm(box_vol)
+        return openff_to_openmm(box_vol)
     return box_vol
 
 
