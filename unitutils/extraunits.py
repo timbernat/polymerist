@@ -7,7 +7,7 @@ from openmm.unit import Unit, BaseUnit, ScaledUnit
 from openmm.unit.prefix import define_prefixed_units
 
 
-# PHYSICIST UNITS
+# PHYSICIST UNITS - TODO : make atomic_unit_system UnitSystem subclass
 ## ENERGY
 from openmm.unit import joule
 from scipy.constants import electron_volt as electron_volt_in_joules
@@ -15,6 +15,14 @@ from scipy.constants import electron_volt as electron_volt_in_joules
 electronvolt_base_unit = ScaledUnit(electron_volt_in_joules, joule, 'electronvolt', 'eV')
 electronvolt = eV = Unit({electronvolt_base_unit : 1.0})
 define_prefixed_units(electronvolt_base_unit, module=_MODULE)
+
+## TIME
+from openmm.unit import time_dimension, second_base_unit, hartree
+from scipy.constants import hbar
+
+atomic_time_base_unit = BaseUnit(time_dimension, 'atomic_time', 'au')
+atomic_time_base_unit.define_conversion_factor_to(second_base_unit, hbar / hartree.conversion_factor_to(joule))
+atomic_time = Unit({atomic_time_base_unit : 1.0})
 
 
 # CGS units
