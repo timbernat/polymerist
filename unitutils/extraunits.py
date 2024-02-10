@@ -7,7 +7,8 @@ from openmm.unit import Unit, BaseUnit, ScaledUnit
 from openmm.unit.prefix import define_prefixed_units
 
 
-# ENERGY
+# PHYSICIST UNITS
+## ENERGY
 from openmm.unit import joule
 from scipy.constants import electron_volt as electron_volt_in_joules
 
@@ -31,3 +32,11 @@ from scipy.constants import c
 statcoulomb_base_unit = BaseUnit(charge_dimension, 'statcoulomb', 'statC') # TOSELF : evidently, this correspondence isn;t always exact
 statcoulomb_base_unit.define_conversion_factor_to(coulomb_base_unit, 1/(10*c)) # derived from the speed of light
 statcoulomb = Unit({statcoulomb_base_unit : 1.0})
+# deliberately omitted prefix registration for now
+
+# ELECTRICAL POTENTIAL
+from openmm.unit import erg
+
+statvolt_base_unit = ScaledUnit(1.0, erg / statcoulomb, 'statvolt', 'statV')
+statvolt = Unit({statvolt_base_unit : 1.0})
+# deliberately omitted prefix registration for now
