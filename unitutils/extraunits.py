@@ -31,6 +31,11 @@ atomic_time_base_unit = BaseUnit(time_dimension, 'atomic_time', 'au')
 atomic_time_base_unit.define_conversion_factor_to(second_base_unit, reduced_planck_const / hartree.conversion_factor_to(joule))
 atomic_time = Unit({atomic_time_base_unit : 1.0})
 
+## FREQUENCY
+hertz_base_unit = ScaledUnit(1.0, second**-1, 'hertz', 'Hz')
+hertz = Unit({hertz_base_unit : 1.0})
+define_prefixed_units(hertz_base_unit, module=_MODULE) # TODO : add conversion to radian per second (base units are incompatible though!!)
+
 
 # CGS units
 ## VISCOSITY
