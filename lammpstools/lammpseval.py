@@ -7,7 +7,7 @@ from pathlib import Path
 
 import lammps
 from openmm.unit import Unit, Quantity
-from openmm.unit import degree
+from openmm.unit import degree, kilocalorie_per_mole
 
 from .unitstyles import LAMMPSUnitStyle
 from ..genutils.decorators.functional import allow_string_paths
@@ -69,8 +69,9 @@ def parse_lammps_input(lmp_in_path : Path) -> dict[str, Union[str, LAMMPSUnitSty
                 
     return info_dict
 
-def get_lammps_energies(lmp_in_path : Path) -> dict[str, Quantity]:
+def get_lammps_energies(lmp_in_path : Path, preferred_unit : Unit=kilocalorie_per_mole) -> dict[str, Quantity]:
     '''Perform an energy evaluation using a LAMMPS input file'''
+    assert(preferred_unit.is_compatible(kilocalorie_per_mole)) # whatever unit is desired, it must be one of energy
     lammps_info = parse_lammps_input(lmp_in_path)
     energy_unit     = lammps_info['unit_style'].energy
     energy_contribs = lammps_info['energy_evals']
@@ -79,7 +80,7 @@ def get_lammps_energies(lmp_in_path : Path) -> dict[str, Quantity]:
         # lmp.commands_string( ENERGY_EVAL_STR.replace('$INP_FILE', str(lammps_file)) )
         lmp.file(str(lmp_in_path)) # read input file and calculate energies
         return {
-            f'{LAMMPS_ENERGY_KW[contrib]}' : lmp.get_thermo(contrib) * energy_unit
+            f'{LAMMPS_ENERGY_KW[contrib]}' : (lmp.get_thermo(contrib) * energy_unit).in_units_of(preferred_unit)
                 for contrib in energy_contribs
         }
 
