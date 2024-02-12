@@ -50,7 +50,6 @@ statcoulomb = Unit({statcoulomb_base_unit : 1.0})
 # deliberately omitted prefix registration for now
 
 # ELECTRICAL POTENTIAL
-
 statvolt_base_unit = ScaledUnit(1.0, erg / statcoulomb, 'statvolt', 'statV')
 statvolt = Unit({statvolt_base_unit : 1.0})
 # deliberately omitted prefix registration for now
