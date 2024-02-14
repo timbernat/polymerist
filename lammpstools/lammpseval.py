@@ -10,7 +10,7 @@ from openmm.unit import Unit, Quantity
 from openmm.unit import degree, kilocalorie_per_mole
 
 from .unitstyles import LAMMPSUnitStyle
-from ..genutils.decorators.functional import allow_string_paths
+from ..genutils.decorators.functional import allow_string_paths, allow_pathlib_paths
 
 
 _DISTANCE_WILDCARD : str = '$DISTANCE'
@@ -69,8 +69,8 @@ def parse_lammps_input(lmp_in_path : Path) -> dict[str, Union[str, LAMMPSUnitSty
                 
     return info_dict
 
-@allow_string_paths
-def get_lammps_energies(lmp_in_path : Path, preferred_unit : Unit=kilocalorie_per_mole) -> dict[str, Quantity]:
+@allow_pathlib_paths
+def get_lammps_energies(lmp_in_path : str, preferred_unit : Unit=kilocalorie_per_mole) -> dict[str, Quantity]:
     '''Perform an energy evaluation using a LAMMPS input file
     Alternative to interchange.drivers.get_lammps_energies which is dynamically aware of energy units and assumes nothing about which energies are specified by thermo_style'''
     assert(preferred_unit.is_compatible(kilocalorie_per_mole)) # whatever unit is desired, it must be one of energy
@@ -80,20 +80,20 @@ def get_lammps_energies(lmp_in_path : Path, preferred_unit : Unit=kilocalorie_pe
 
     with lammps.lammps() as lmp: # need to create new lammps() object instance for each run
         # lmp.commands_string( ENERGY_EVAL_STR.replace('$INP_FILE', str(lammps_file)) )
-        lmp.file(str(lmp_in_path)) # read input file and calculate energies
+        lmp.file(lmp_in_path) # read input file and calculate energies; NOTE that this NEEDS to be a string (not Path!)
         return {
             f'{LAMMPS_ENERGY_KW[contrib]}' : (lmp.get_thermo(contrib) * energy_unit).in_units_of(preferred_unit)
                 for contrib in energy_contribs
         }
 
-@allow_string_paths
-def get_lammps_unit_cell(lmp_in_path : Path) -> dict[str, Quantity]:
+@allow_pathlib_paths
+def get_lammps_unit_cell(lmp_in_path : str) -> dict[str, Quantity]:
     '''Extract the 6 unit cell parameters specified by a LAMMPS input file'''
     lammps_info = parse_lammps_input(lmp_in_path)
     length_unit = lammps_info['unit_style'].distance
 
     with lammps.lammps() as lmp: # need to create new lammps() object instance for each run
-        lmp.file(str(lmp_in_path)) # read input file and calculate energies
+        lmp.file(lmp_in_path) # read input file and calculate energies; NOTE that this NEEDS to be a string (not Path!)
         cell_params = {}
         for cell_param_kw in LAMMPS_CELL_KW:
             cell_param_unit = LAMMPS_CELL_UNITS[cell_param_kw]
