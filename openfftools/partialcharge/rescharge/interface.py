@@ -7,8 +7,8 @@ from openff.toolkit import Molecule
 
 from .rctypes import ChargesByResidue
 from .calculation import apply_residue_charges
-from ...openfftools.pcharge import MolCharger
-from ...genutils.decorators.functional import optional_in_place
+from ..molchargers import MolCharger
+from ....genutils.decorators.functional import optional_in_place
 
 
 @dataclass

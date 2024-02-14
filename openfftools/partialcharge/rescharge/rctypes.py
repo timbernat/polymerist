@@ -4,7 +4,7 @@ from typing import TypeAlias
 from dataclasses import dataclass, field
 
 from rdkit.Chem import Mol as RDMol
-from ...genutils.fileutils.jsonio.jsonify import make_jsonifiable
+from ....genutils.fileutils.jsonio.jsonify import make_jsonifiable
 
 
 ChargeMap : TypeAlias = dict[int, float] # maps substructure IDs to partial charge values
