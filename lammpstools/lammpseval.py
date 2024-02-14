@@ -52,7 +52,7 @@ LAMMPS_CELL_UNITS : dict[str, Union[str, Unit]] = { # units associated with unit
 
 @allow_string_paths
 def parse_lammps_input(lmp_in_path : Path) -> dict[str, Union[str, LAMMPSUnitStyle]]: # NOTE : this can and will be expanded in the future
-    '''Read which thermodynamic energy contributions will be calculated from a LAMMPS input file block'''
+    '''Read unit style, thermo style, and energies to evaluate from a LAMMPS input file'''
     info_dict = {}
     with lmp_in_path.open('r') as lmp_in_file:
         for line in lmp_in_file.read().split('\n'):
@@ -69,8 +69,10 @@ def parse_lammps_input(lmp_in_path : Path) -> dict[str, Union[str, LAMMPSUnitSty
                 
     return info_dict
 
+@allow_string_paths
 def get_lammps_energies(lmp_in_path : Path, preferred_unit : Unit=kilocalorie_per_mole) -> dict[str, Quantity]:
-    '''Perform an energy evaluation using a LAMMPS input file'''
+    '''Perform an energy evaluation using a LAMMPS input file
+    Alternative to interchange.drivers.get_lammps_energies which is dynamically aware of energy units and assumes nothing about which energies are specified by thermo_style'''
     assert(preferred_unit.is_compatible(kilocalorie_per_mole)) # whatever unit is desired, it must be one of energy
     lammps_info = parse_lammps_input(lmp_in_path)
     energy_unit     = lammps_info['unit_style'].energy
@@ -84,6 +86,7 @@ def get_lammps_energies(lmp_in_path : Path, preferred_unit : Unit=kilocalorie_pe
                 for contrib in energy_contribs
         }
 
+@allow_string_paths
 def get_lammps_unit_cell(lmp_in_path : Path) -> dict[str, Quantity]:
     '''Extract the 6 unit cell parameters specified by a LAMMPS input file'''
     lammps_info = parse_lammps_input(lmp_in_path)
