@@ -6,11 +6,11 @@ from dataclasses import dataclass, field
 from collections import defaultdict
 from rdkit import Chem
 
-from ..genutils.fileutils.jsonio.jsonify import make_jsonifiable
 from ..genutils.iteration import iter_len
+from ..genutils.fileutils.jsonio.jsonify import make_jsonifiable
 
 from ..rdutils.rdtypes import RDMol
-from ..rdutils.amalgamation.portlib import get_num_ports
+from ..rdutils.bonding.portlib import get_num_ports
 
 
 ResidueSmarts : TypeAlias = dict[str, list[str]] # monomer SMARTS strings keyed by residue name

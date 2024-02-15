@@ -22,8 +22,8 @@ from ..monomers.repr import MonomerGroup
 from ..monomers.specification import SANITIZE_AS_KEKULE
 
 from ..genutils.decorators.functional import allow_string_paths
-from ..rdutils.amalgamation.portlib import get_linker_ids
-from ..rdutils.amalgamation.bonding import saturate_ports, hydrogenate_rdmol_ports
+from ..rdutils.bonding.portlib import get_linker_ids
+from ..rdutils.bonding.substitution import saturate_ports, hydrogenate_rdmol_ports
 from ..rdutils.rdtypes import RDMol
 
 
@@ -32,7 +32,7 @@ def mbmol_from_mono_rdmol(rdmol : RDMol) -> tuple[Compound, list[int]]:
     '''Accepts a monomer-spec-compliant SMARTS string and returns an mbuild Compound and a list of the indices of atom ports'''
     linker_ids = [i for i in get_linker_ids(rdmol)] # record indices of ports - MUST unpack generator for mbuild compatibility
     
-    # create chemically-complete 
+    # create port-free version of molecule which RDKit can embed without errors
     prot_mol = hydrogenate_rdmol_ports(rdmol, in_place=False)
     # prot_mol = saturate_ports(rdmol) # TOSELF : custom, port-based saturation methods are not yet ready for deployment - yield issues in RDKit representation under-the-hood 
     Chem.SanitizeMol(prot_mol, sanitizeOps=SANITIZE_AS_KEKULE) # ensure Mol is valid (avoids implicitValence issues)

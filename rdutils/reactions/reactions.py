@@ -13,7 +13,7 @@ from rdkit.Chem import rdChemReactions
 from ..rdtypes import RDMol
 from ..labeling.molwise import ordered_map_nums
 from ..labeling.bondwise import get_bonded_pairs_by_map_nums
-from ..amalgamation import bonding
+from ..bonding._bonding import combined_rdmol
 
 from ...genutils.fileutils.pathutils import aspath, asstrpath
 
@@ -50,7 +50,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     @classmethod
     def from_rdmols(cls, reactant_templates : Iterable[RDMol], product_templates : Iterable[RDMol]) -> 'AnnotatedReaction':
         '''For instantiating reactions directly from molecules instead of SMARTS strings'''
-        # 1) label atoms as belonging to reactant or product via RDKit 'magic' internal property (1 = reactant, 2 = product, 3 = agent)
+        # label atoms as belonging to reactant or product via RDKit 'magic' internal property (1 = reactant, 2 = product, 3 = agent)
         for reactant in reactant_templates: # TODO : implement non-in-place assignment of these properties
             for atom in reactant.GetAtoms():
                 atom.SetIntProp('molRxnRole', 1) 
@@ -59,8 +59,9 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
             for atom in product.GetAtoms():
                 atom.SetIntProp('molRxnRole', 2) 
 
-        # 2) generate single combined molecule to fit RDKit reaction spec
-        rxn_mol = bonding.combined_rdmol(*reactant_templates, *product_templates, assign_map_nums=False, editable=False) # kwargs are explicitly needed here
+        # TODO : add assignment for Agent(s)?
+
+        rxn_mol = combined_rdmol(*reactant_templates, *product_templates, assign_map_nums=False, editable=False) # kwargs are explicitly needed here
 
         return cls(rdChemReactions.ReactionFromMolecule(rxn_mol))
     

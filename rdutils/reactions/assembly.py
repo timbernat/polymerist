@@ -8,7 +8,8 @@ from rdkit import Chem
 from .reactions import AnnotatedReaction
 from ..rdtypes import RDMol
 from ..labeling import molwise
-from ..amalgamation import bonding
+from ..bonding._bonding import combined_rdmol
+from ..bonding.permutation import swap_bonds
 from ...monomers import specification
 
 
@@ -34,7 +35,7 @@ class ReactionAssembler:
             raise ValueError('Must provide non-empty bond derangement')
 
         # 2) defining and swapping bonds to form product
-        products = bonding.swap_bonds(Chem.RWMol(self.reactants), self.bond_derangement, show_steps=show_steps) # create editable Mol
+        products = swap_bonds(Chem.RWMol(self.reactants), self.bond_derangement, show_steps=show_steps) # create editable Mol
         Chem.SanitizeMol(products, sanitizeOps=specification.SANITIZE_AS_KEKULE)
 
         return products
@@ -54,7 +55,7 @@ class ReactionAssembler:
             return product_partition
         
         return [ # implicit else
-            bonding.combined_rdmol(*mol_list, assign_map_nums=False, editable=False) if mol_list else None
+            combined_rdmol(*mol_list, assign_map_nums=False, editable=False) if mol_list else None
                 for mol_list in product_partition
         ]
     
