@@ -5,7 +5,7 @@ from openmm import unit as openmm_unit
 from openmm.unit import Unit, dimensionless
 
 from . import extraunits
-from ..maths.combinatorics.sequences import product
+from ..genutils.sequences import product
 
 
 # GENERATING REFERENCE TABLES OF DEFAULTS AND ADDITIONAL UNITS

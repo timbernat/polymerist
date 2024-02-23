@@ -13,7 +13,7 @@ from .dissolution import decrease_bond_order
 from ..rdtypes import RWMol
 from ..labeling import molwise
 
-from ...maths.combinatorics.sequences import int_complement
+from ...genutils.sequences import int_complement
 from ...genutils.decorators.functional import optional_in_place
 
 
