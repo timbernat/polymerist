@@ -3,6 +3,7 @@
 from typing import ClassVar, Union, TypeAlias
 from dataclasses import dataclass, field
 
+from time import time
 from string import Template
 from datetime import timedelta
 from openmm.unit import Quantity, microsecond, millisecond, second, minute, hour, day, year # TODO : remove dependence on OpenMM for Unit support
@@ -131,4 +132,16 @@ class Duration:
         template = TimeTemplate(fmt_str)
         return template.substitute(**self._fmt_dict)
     fmt = format # alias for convenience
-    
+
+class Timer:
+    '''Simple context manager for measuring how long something takes'''
+    def __init__(self) -> None:
+        self.start_time = time()
+        self.time_taken = None
+
+    def __enter__(self) -> 'Timer':
+        return self
+
+    def __exit__(self, type, value, traceback) -> bool:
+        self.time_taken = time() - self.start_time
+        return True
