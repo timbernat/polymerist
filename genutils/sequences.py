@@ -33,6 +33,25 @@ def pad_sequence(target_list : Sequence[T], to_length : int, pad_value : U=0, fr
         return padding_list + target_list
     return target_list + padding_list
 
+def cycle_items(seq : Sequence[T], places : int=1) -> list[T]:
+    '''
+    Cyclically shift all items in a sequence over by the target number of indices
+    By default shifts right, but can also move to left with negative "places" argument
+    
+    Examples:
+        cycle_items([1,2,3,4],  2) -> [3,4,1,2]
+        cycle_items([1,2,3,4], -1) -> [4,1,2,3]
+    '''
+    n_items = len(seq) # this length call is what requires the input to be a Seuquence and not just an Iterable
+    indices = range(places, places + n_items)
+    if places < 0:
+        indices = reversed(indices)
+
+    return [
+        seq[i % n_items]
+            for i in range(places, places + n_items)
+    ]
+
 def bin_ids_forming_sequence(sequence : Iterable[T], choice_bins : Iterable[Iterable[T]]) -> Generator[tuple[int, ...], None, None]:
     '''Takes an ordered sequence of N objects and a collection of any number of bins containing arbitrary objects and generates
     all possible N-tuples of bin indices which could produce the target sequence when drawing from those bins WITH replacement'''
