@@ -43,10 +43,6 @@ def cycle_items(seq : Sequence[T], places : int=1) -> list[T]:
         cycle_items([1,2,3,4], -1) -> [4,1,2,3]
     '''
     n_items = len(seq) # this length call is what requires the input to be a Seuquence and not just an Iterable
-    indices = range(places, places + n_items)
-    if places < 0:
-        indices = reversed(indices)
-
     return [
         seq[i % n_items]
             for i in range(places, places + n_items)
