@@ -436,7 +436,9 @@ class Permutation:
     @classmethod
     def alternating_group(cls, order : int) -> Generator['Permutation', None, None]:
         '''Generate all even permutations of a given order'''
-        raise NotImplemented
+        for perm in cls.symmetric_group(order):
+            if perm.is_even:
+                yield perm
 
     @classmethod
     def cyclic_group(cls, order : int) -> Generator['Permutation', None, None]:
