@@ -117,7 +117,7 @@ class Cycle(tuple):
         }
 
     @staticmethod
-    def cycle_index_sym(cycle_type : dict[int, int], var_sym : str='x', mul_sym : str='*', exp_sym : str='^') -> str:
+    def cycle_index_sym(cycle_type : dict[int, int], var_sym : str='x', mul_sym : str='*', exp_sym : str='^') -> str: # TODO : add support for excluding x_n**0 (i.e. null) cycles
         '''Represent a single cycle type in symbolic variable form
         Can optionally supply custom symbols for variable (single-char only), multiplication sign, and exponentiation sign'''
         if len(var_sym) > 1:
@@ -184,6 +184,10 @@ class Permutation:
     def reverse(self) -> 'Permutation':
         '''The reversed-order of a permutation'''
         return self.__class__(*reversed(self.elems))
+    
+    def copy(self) -> 'Permutation':
+        '''Create a copy of the current Permutation'''
+        return self.__class__(*self.elems)
     
     # COMPOSITIONS AND MAPS
     def image(self, coll : Iterable[T]) -> Iterable[T]:
@@ -441,11 +445,21 @@ class Permutation:
                 yield perm
 
     @classmethod
-    def cyclic_group(cls, order : int) -> Generator['Permutation', None, None]:
-        '''Generate all cyclic permutations of a given order'''
-        raise NotImplemented
+    def cyclic_group(cls, order : int, _base_perm : Optional['Permutation']=None) -> Generator['Permutation', None, None]:
+        '''Generate all cyclic shifts of a given permutation of a given order'''
+        if _base_perm is None:
+            generator = cls.identity(order) # the identity permutation is the generator of the cyclic group
+        elif _base_perm.degree != order:
+            raise ValueError(f'Cannot use the {cls.__name__} {_base_perm} of degree {_base_perm.degree} as generator of the Cyclic Group of order {order}')
+        else:
+            generator = _base_perm
+
+        cycle = generator.as_cycle()
+        for i in range(order):
+            yield cls(*cycle.starting_from_index(i))
 
     @classmethod
     def dihedral_group(cls, order : int) -> Generator['Permutation', None, None]:
         '''Generate all permutations of vertex-numbered regular polygon'''
-        raise NotImplemented
+        yield from cls.cyclic_group(order)
+        yield from cls.cyclic_group(order, _base_perm=cls.identity(order).reverse) # reflect, then cycle element again
