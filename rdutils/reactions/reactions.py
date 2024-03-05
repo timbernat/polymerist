@@ -1,8 +1,9 @@
 '''Classes for representing information about reaction mechanisms and tracing bonds and atoms along a reaction'''
 
-from typing import Iterable, Optional, Union
+from typing import ClassVar, Iterable, Optional, Union
 from dataclasses import dataclass, field
 
+import re
 from io import StringIO
 from pathlib import Path
 from functools import cached_property
@@ -15,10 +16,12 @@ from ..labeling.molwise import ordered_map_nums
 from ..labeling.bondwise import get_bonded_pairs_by_map_nums
 from ..bonding._bonding import combined_rdmol
 
-from ...genutils.fileutils.pathutils import aspath, asstrpath
+from ...genutils.decorators.functional import allow_string_paths, allow_pathlib_paths
 
 
 # REACTION INFORMATICS CLASSES
+RXNNAME_RE = re.compile(r'^\t*(?P<rxnname>.*?)\n$')
+
 @dataclass
 class RxnProductInfo:
     '''For storing atom map numbers associated with product atoms and bonds participating in a reaction'''
@@ -30,12 +33,12 @@ class RxnProductInfo:
     
 class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     '''
-    RDKit ChemicalReaction with additional useful information about product atom and bond mappings
-
-    Initialization must be done either via AnnotatedReaction.from_smarts or AnnotatedReaction.from_rdmols,
-    asdirect override of pickling in __init__ method not yet implemented
+    RDKit ChemicalReaction subclass with additional useful information about product atom and bond mappings and reaction naming
+    Initialization must be done either via AnnotatedReaction.from_smarts, AnnotatedReaction.from_rdmols, or AnnotatedReaction.from_rxnfile
     '''
-
+    # line number in .rxn file where (optional) name of reaction should be located (per the CTFile spec https://discover.3ds.com/sites/default/files/2020-08/biovia_ctfileformats_2020.pdf) 
+    _RXNNAME_LINE_NO : ClassVar[int] = 1
+    
     # LOADING METHODS
     @classmethod
     def from_smarts(cls, rxn_smarts : str) -> 'AnnotatedReaction':
@@ -43,38 +46,66 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         return cls(rdChemReactions.ReactionFromSmarts(rxn_smarts)) # pass to init method
 
     @classmethod
-    def from_rxnfile(cls, rxnfile_path : Union[str, Path]) -> 'AnnotatedReaction':
-        '''For instantiating reactions directly from MDL .rxn files'''
-        return cls(rdChemReactions.ReactionFromRxnFile(asstrpath(rxnfile_path)))
-
-    @classmethod
-    def from_rdmols(cls, reactant_templates : Iterable[RDMol], product_templates : Iterable[RDMol]) -> 'AnnotatedReaction':
+    def from_rdmols(cls, reactant_templates : Iterable[RDMol], product_templates : Iterable[RDMol], agent_templates : Optional[Iterable[RDMol]]=None) -> 'AnnotatedReaction':
         '''For instantiating reactions directly from molecules instead of SMARTS strings'''
         # label atoms as belonging to reactant or product via RDKit 'magic' internal property (1 = reactant, 2 = product, 3 = agent)
-        for reactant in reactant_templates: # TODO : implement non-in-place assignment of these properties
-            for atom in reactant.GetAtoms():
-                atom.SetIntProp('molRxnRole', 1) 
+        if agent_templates is None:
+            agent_templates = []
 
-        for product in product_templates: # TODO : implement non-in-place assignment of these properties
-            for atom in product.GetAtoms():
-                atom.SetIntProp('molRxnRole', 2) 
+        template_role_map = { # RDKit "magic" aliases which define what role each atom plays in a reaction
+            1 : reactant_templates,
+            2 : product_templates,
+            3 : agent_templates,
+        }
 
-        # TODO : add assignment for Agent(s)?
-
-        rxn_mol = combined_rdmol(*reactant_templates, *product_templates, assign_map_nums=False, editable=False) # kwargs are explicitly needed here
+        for mol_rxn_role, templates in template_role_map.items():
+            for template in templates: # TODO : implement non-in-place assignment of these properties
+                for atom in template.GetAtoms():
+                    atom.SetIntProp('molRxnRole', mol_rxn_role) 
+        rxn_mol = combined_rdmol(*reactant_templates, *product_templates, *agent_templates, assign_map_nums=False, editable=False) # kwargs are explicitly needed here
 
         return cls(rdChemReactions.ReactionFromMolecule(rxn_mol))
-    
+
     # I/O METHODS
-    def to_rxnfile(self, rxnfile_path : Union[str, Path], rxnname : Optional[str]=None, _rxnname_line : int=1) -> None:
+    @classmethod
+    @allow_string_paths
+    def rxnname_from_rxnfile(cls, rxnfile_path : Union[str, Path]) -> str:
+        '''Extract the reaction name from a (properly-formatted) .RXN file'''
+        with rxnfile_path.open('r') as file:
+            for i, line in enumerate(file):
+                if i == cls._RXNNAME_LINE_NO:
+                    return re.match(RXNNAME_RE, line).group('rxnname')
+                
+    @property
+    def rxnname(self) -> str:
+        '''A string handle associated with this reaction'''
+        return getattr(self, '_rxnname', '') # default to the empty string if unset
+    
+    @rxnname.setter
+    def rxnname(self, new_rxnname : str) -> None:
+        '''Set a new name for the current reaction'''
+        self._rxnname = new_rxnname
+
+    @classmethod
+    @allow_pathlib_paths
+    def from_rxnfile(cls, rxnfile_path : Union[str, Path]) -> 'AnnotatedReaction':
+        '''For instantiating reactions directly from MDL .rxn files'''
+        rxn = cls(rdChemReactions.ReactionFromRxnFile(rxnfile_path))
+        rxn.rxnname = cls.rxnname_from_rxnfile(rxnfile_path)
+
+        return rxn
+    
+    @allow_string_paths
+    def to_rxnfile(self, rxnfile_path : Union[str, Path], wilds_to_R_groups : bool=True) -> None:
         '''Save reaction to an MDL .RXN file. Replaces ports with R-groups to enable proper loading'''
         rxn_block = rdChemReactions.ReactionToRxnBlock(self)
-        rxn_block = rxn_block.replace('*', 'R')
+        if wilds_to_R_groups:
+            rxn_block = rxn_block.replace('*', 'R')
 
-        with aspath(rxnfile_path).open('w') as rxnfile: # TODO : replace aspath with allow_str_paths decorator
+        with rxnfile_path.open('w') as rxnfile:
             for i, line in enumerate(StringIO(rxn_block)):
-                if (rxnname is not None) and (i == _rxnname_line): # name inserted into second line per CTFile spec (https://discover.3ds.com/sites/default/files/2020-08/biovia_ctfileformats_2020.pdf) 
-                    rxnfile.write(f'\t\t\t{rxnname}\n')
+                if (i == self._RXNNAME_LINE_NO):
+                    rxnfile.write(f'\t\t\t{self.rxnname}\n')
                 else:
                     rxnfile.write(line)
 
@@ -123,4 +154,3 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
             prod_info_map[i] = prod_info
         
         return prod_info_map
-    
