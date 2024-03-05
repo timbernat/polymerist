@@ -1,4 +1,4 @@
-name: polymerist-env-updated
+name: polymerist-env
 channels:
   - openeye
   - conda-forge
@@ -481,4 +481,4 @@ dependencies:
       - sander==22.0
       - torch==2.2.1
       - triton==2.2.0
-prefix: /home/timber/miniconda3/envs/polymerist-env-updated
+prefix: /home/timber/miniconda3/envs/polymerist-env
