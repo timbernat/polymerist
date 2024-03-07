@@ -7,7 +7,7 @@ from math import pi
 from openmm.unit import Unit, BaseUnit, ScaledUnit
 from openmm.unit.prefix import define_prefixed_units
 
-from openmm.unit import second_base_unit, coulomb_base_unit
+from openmm.unit import second_base_unit, coulomb_base_unit, watt_base_unit
 from openmm.unit import time_dimension, charge_dimension
 from openmm.unit import joule, erg, hartree
 from openmm.unit import centimeter, gram, second
@@ -22,6 +22,7 @@ from scipy.constants import (
 
 # PREFIX EXPANSIONS NOT FOUND BY DEFAULT IN OPENMM UNITS
 define_prefixed_units(coulomb_base_unit, module=_MODULE)
+define_prefixed_units(watt_base_unit   , module=_MODULE)
 
 # PHYSICIST units - TODO : make atomic_unit_system UnitSystem subclass
 ## ENERGY
