@@ -3,6 +3,7 @@
 import sys
 _MODULE = sys.modules[__name__]
 
+from math import pi
 from openmm.unit import Unit, BaseUnit, ScaledUnit
 from openmm.unit.prefix import define_prefixed_units
 
@@ -10,6 +11,8 @@ from openmm.unit import second_base_unit, coulomb_base_unit
 from openmm.unit import time_dimension, charge_dimension
 from openmm.unit import joule, erg, hartree
 from openmm.unit import centimeter, gram, second
+from openmm.unit import meter, candela
+
 from scipy.constants import (
     c as speed_of_light,
     hbar as reduced_planck_const,
@@ -35,6 +38,15 @@ atomic_time = Unit({atomic_time_base_unit : 1.0})
 hertz_base_unit = ScaledUnit(1.0, second**-1, 'hertz', 'Hz')
 hertz = Unit({hertz_base_unit : 1.0})
 define_prefixed_units(hertz_base_unit, module=_MODULE) # TODO : add conversion to radian per second (base units are incompatible though!!)
+
+## PHOTOMETRIC UNITS
+lumen_base_unit = ScaledUnit(1/(4*pi), candela, 'lumen', 'lm')
+lumen = lumens = Unit({lumen_base_unit : 1})
+# deliberately omitted prefix registration for now
+
+lux_base_unit = ScaledUnit(1.0, lumen / meter**2, 'lux', 'lx')
+lux = Unit({lux_base_unit : 1.0})
+# deliberately omitted prefix registration for now
 
 
 # CGS units
