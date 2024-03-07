@@ -7,8 +7,8 @@ from math import pi
 from openmm.unit import Unit, BaseUnit, ScaledUnit
 from openmm.unit.prefix import define_prefixed_units
 
-from openmm.unit import second_base_unit, coulomb_base_unit, watt_base_unit
-from openmm.unit import time_dimension, charge_dimension
+from openmm.unit import second_base_unit, coulomb_base_unit, watt_base_unit, single_item_amount_base_unit
+from openmm.unit import time_dimension, charge_dimension, amount_dimension
 from openmm.unit import joule, erg, hartree
 from openmm.unit import centimeter, gram, second
 from openmm.unit import meter, candela
@@ -23,6 +23,17 @@ from scipy.constants import (
 # PREFIX EXPANSIONS NOT FOUND BY DEFAULT IN OPENMM UNITS
 define_prefixed_units(coulomb_base_unit, module=_MODULE)
 define_prefixed_units(watt_base_unit   , module=_MODULE)
+
+
+# UNITS FOR AMOUNTS OF ITEMS
+percent_base_unit = BaseUnit(amount_dimension, 'percent', '%')
+percent_base_unit.define_conversion_factor_to(single_item_amount_base_unit, 1 / 100)
+percent = Unit({percent_base_unit : 1})
+
+dozen_base_unit = BaseUnit(amount_dimension, 'dozen', 'doz')
+dozen_base_unit.define_conversion_factor_to(single_item_amount_base_unit, 12)
+dozen = Unit({dozen_base_unit : 1})
+
 
 # PHYSICIST units - TODO : make atomic_unit_system UnitSystem subclass
 ## ENERGY
@@ -40,7 +51,8 @@ hertz_base_unit = ScaledUnit(1.0, second**-1, 'hertz', 'Hz')
 hertz = Unit({hertz_base_unit : 1.0})
 define_prefixed_units(hertz_base_unit, module=_MODULE) # TODO : add conversion to radian per second (base units are incompatible though!!)
 
-## PHOTOMETRIC UNITS
+
+# PHOTOMETRIC UNITS
 lumen_base_unit = ScaledUnit(1/(4*pi), candela, 'lumen', 'lm')
 lumen = lumens = Unit({lumen_base_unit : 1})
 # deliberately omitted prefix registration for now
