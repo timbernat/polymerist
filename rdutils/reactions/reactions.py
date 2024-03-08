@@ -1,6 +1,6 @@
 '''Classes for representing information about reaction mechanisms and tracing bonds and atoms along a reaction'''
 
-from typing import ClassVar, Iterable, Optional, Union
+from typing import ClassVar, Iterable, Optional, Sequence, Union
 from dataclasses import dataclass, field
 
 import re
@@ -12,16 +12,25 @@ from rdkit import Chem
 from rdkit.Chem import rdChemReactions
 
 from ..rdtypes import RDMol
+from ..bonding._bonding import combined_rdmol
 from ..labeling.molwise import ordered_map_nums
 from ..labeling.bondwise import get_bonded_pairs_by_map_nums
-from ..bonding._bonding import combined_rdmol
+from ..smileslib.queries import matching_labels_from_substruct_dict
 
 from ...genutils.decorators.functional import allow_string_paths, allow_pathlib_paths
+from ...genutils.sequences import bin_ids_forming_sequence
+
+# CUSTOM EXCEPTIONS
+class BadNumberReactants(Exception):
+    '''To be raised when too many or too few Mols are provided than expected'''
+    pass
+
+class ReactantTemplateMismatch(Exception):
+    '''To be raised when a provded sequence of Mols does not match ChemicalReaction Templates'''
+    pass
 
 
 # REACTION INFORMATICS CLASSES
-RXNNAME_RE = re.compile(r'^\t*(?P<rxnname>.*?)\n$')
-
 @dataclass
 class RxnProductInfo:
     '''For storing atom map numbers associated with product atoms and bonds participating in a reaction'''
@@ -31,6 +40,7 @@ class RxnProductInfo:
     new_bond_ids_to_map_nums : dict[int, tuple[int, int]] = field(default_factory=dict)
     mod_bond_ids_to_map_nums : dict[int, tuple[int, int]] = field(default_factory=dict)
     
+RXNNAME_RE = re.compile(r'^\t*(?P<rxnname>.*?)\n$')
 class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     '''
     RDKit ChemicalReaction subclass with additional useful information about product atom and bond mappings and reaction naming
@@ -154,3 +164,29 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
             prod_info_map[i] = prod_info
         
         return prod_info_map
+    
+    def valid_reactant_ordering(self, reactants : Sequence[RDMol]) -> Optional[list[RDMol]]:
+        '''Given an RDKit chemical reaction mechanism and a sequence of reactant Mols, will determine if there is
+        an ordering of the reactants which is compatible with the reactant templates defined in the reaction
+
+        Returns the first found ordering, or NoneType if no such ordering exists'''
+        reactant_templates_by_index = {i : reac_templ for i, reac_templ in enumerate(self.GetReactants())}
+        num_reactants_in_mechanism = self.GetNumReactantTemplates() # = len(reactant_templates_by_index)
+        num_reactants_provided = len(reactants)
+
+        # preliminary (quick) check; are there the right number of Mols
+        if num_reactants_provided != num_reactants_in_mechanism:
+            raise BadNumberReactants(f'{self.__class__.__name__} expected {num_reactants_in_mechanism} reactants, but {num_reactants_provided} were provided')
+
+        # if number of fragments is correct, perform more complex subset choice evaluation
+        possible_fragment_orderings = bin_ids_forming_sequence( # generates all possible orders of the fragments which match the expected reactant templates for the reaction
+            sequence=reactant_templates_by_index.keys(),
+            choice_bins = ( # generator (rather than list) comprehension will suffice here, since there is no need to reuse these bins
+                matching_labels_from_substruct_dict(reactant, reactant_templates_by_index)
+                    for reactant in reactants
+            )
+        )
+        try:
+            return [reactants[i] for i in next(possible_fragment_orderings)] # get first valid ordering
+        except StopIteration:
+            return None # slightly verbose, but prefer to be explicit here
