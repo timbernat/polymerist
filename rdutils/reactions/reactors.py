@@ -1,6 +1,6 @@
 '''Classes for implementing reactions with respect to some set of reactant RDMols'''
 
-from typing import ClassVar, Generator, Iterable, Optional, Union
+from typing import ClassVar, Generator, Iterable, Optional, Type
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from itertools import combinations, chain
@@ -120,10 +120,6 @@ class CondensationReactor(Reactor):
     pass # TODO : implement behavior here
 
 ## POLYMERIZATION
-class NoIntermonomerBondsFound(Exception):
-    '''To be raised when search for newly-formed inter-monoer bonds fail'''
-    pass
-
 class IntermonomerBondIdentificationStrategy(ABC):
     '''Abstract base for Intermonomer Bond Identification Strategies for fragmentation during in-silico polymerization'''
     @abstractmethod
@@ -154,44 +150,33 @@ class ReseparateRGroups(IBIS):
                     yield new_bond_id
 
 @dataclass
-class PolymerizationReactor(AdditionReactor):
-    '''Reactor which handles monomer partitioning post-polymerization condensation reaction'''
-    def _inter_monomer_bond_candidates(self, product : RDMol) -> Generator[int, None, None]:
-        '''Returns the bond indices of the most likely candidate for a newly-formed bond # TODO : expand this to 
-        between heavy atoms in a product formed by the reat() method of this Reactor'''
-        # determine indices of former linkers (i.e. outside of monomers) which are now heavy atoms (i.e. non-hydrogen) 
-        possible_bridgehead_ids = [atom_id for match in product.GetSubstructMatches(HEAVY_FORMER_LINKER_QUERY) for atom_id in match]
-        for new_bond_id in self.product_info.new_bond_ids_to_map_nums.keys():                     # for each newly formed bond...
-            for bridgehead_id_pair in combinations(possible_bridgehead_ids, 2):                   # ...find the most direct path between bridgehead atoms...
-                if new_bond_id in bondwise.get_shortest_path_bonds(product, *bridgehead_id_pair): # ...and check if the new bond lies along it
-                    yield new_bond_id
-
-    def polymerized_fragments(self, product : RDMol, separate : bool=True) -> Union[RDMol, tuple[RDMol]]:
-        '''Cut product on inter-monomer bond, returning the resulting fragments'''
-        try:
-            inter_monomer_bond_idx = next(self._inter_monomer_bond_candidates(product)) # take first candidate bond index as intermonomer bond
-        except StopIteration:
-            raise NoIntermonomerBondsFound
-        
-        fragments = Chem.FragmentOnBonds(
-            molwise.clear_atom_map_nums(product, in_place=False), # fragment unmapped copy of product for clarity 
-            bondIndices=[inter_monomer_bond_idx] 
-        )
-
-        if separate:
-            return Chem.GetMolFrags(fragments, asMols=True)
-        return fragments # if separation is not requested, return as single unfragmented molecule object
-    
-    def propagate(self, monomers : Iterable[RDMol]) -> Generator[tuple[RDMol, tuple[RDMol]], None, None]:
+class PolymerizationReactor(Reactor):
+    '''Reactor which exhaustively generates monomers fragments according to a given a polymerization mechanism'''
+    def propagate(self, monomers : Iterable[RDMol], fragment_strategy_type : Type[IntermonomerBondIdentificationStrategy]=ReseparateRGroups,
+                   clear_map_nums : bool=True, count_steps_from : int=1) -> Generator[tuple[list[RDMol], list[RDMol]], None, None]:
         '''Keep reacting and fragmenting a pair of monomers until all reactive sites have been reacted
         Returns fragment pairs at each step of the chain propagation process'''
+        ibis = fragment_strategy_type() # initialize fragmenter class
+        polym_step = count_steps_from
         reactants = monomers # initialize reactive pair with monomers
-        while True:
-            dimer = self.react(reactants, repetitions=1, clear_props=False) # can't clear properties here, otherwise fragment finding won't work
-            if not dimer: # stop propagating once monomers can no longer react
-                break
-            # implicit "else"
-            Chem.SanitizeMol(dimer, sanitizeOps=SANITIZE_AS_KEKULE)
-            reactants = self.polymerized_fragments(dimer, separate=True)
-            
-            yield dimer, reactants # yield the dimerized fragment and the 2 new reactive fragments
+
+        while (reactants := self.rxn_schema.valid_reactant_ordering(reactants)) is not None: # check if the reactants can be applied under the reaction template
+            intermediates = self.react(reactants, repetitions=1, clear_props=False) # can't clear properties yet, otherwise intermonomer bond finder would have nothing to go off of
+            fragments : list[RDMol] = []
+            for i, product in enumerate(intermediates):
+                Chem.SanitizeMol(product, sanitizeOps=SANITIZE_AS_KEKULE) # clean up molecule, specifically avoiding de-ekulization in the case of aromatics
+                if clear_map_nums:
+                    molwise.clear_atom_map_nums(product, in_place=True)
+                
+                fragments.extend( # list extension preserves insertion order at each step
+                    rdprops.clear_atom_props(fragment, in_place=False) # essential to avoid reaction mapping info from prior steps from contaminating future ones
+                        for fragment in ibis.produce_fragments(
+                            product,
+                            product_info=self.rxn_schema.product_info_maps[i],
+                            separate=True
+                        )
+                )
+
+            yield intermediates, fragments # yield the dimerized fragment and the 2 new reactive fragments
+            reactants = fragments # set fragments from current round of polymerizatio as reactants for next round
+            polym_step += 1 # increment step counter
