@@ -20,6 +20,7 @@ from ..smileslib.queries import matching_labels_from_substruct_dict
 from ...genutils.decorators.functional import allow_string_paths, allow_pathlib_paths
 from ...genutils.sequences import bin_ids_forming_sequence
 
+
 # CUSTOM EXCEPTIONS
 class BadNumberReactants(Exception):
     '''To be raised when too many or too few Mols are provided than expected'''
@@ -27,6 +28,10 @@ class BadNumberReactants(Exception):
 
 class ReactantTemplateMismatch(Exception):
     '''To be raised when a provded sequence of Mols does not match ChemicalReaction Templates'''
+    pass
+
+class NoIntermonomerBondsFound(Exception):
+    '''To be raised when search for newly-formed inter-monoer bonds fail'''
     pass
 
 
