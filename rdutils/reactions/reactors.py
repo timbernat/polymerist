@@ -1,7 +1,7 @@
 '''Classes for implementing reactions with respect to some set of reactant RDMols'''
 
 from typing import ClassVar, Generator, Iterable, Optional, Union
-
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from itertools import combinations, chain
 
@@ -95,6 +95,7 @@ class Reactor:
 
 
 # REACTOR SUBCLASSES
+## SPECIAL CASES WITH SPECIFIC NUMBERS OF REACTANTS/PRODUCTS
 @dataclass
 class AdditionReactor(Reactor):
     '''Special case of Reactor with two reactant species forming one product'''
@@ -118,9 +119,39 @@ class CondensationReactor(Reactor):
     '''Special case of Reactor with two reactant species forming one product plus a small-molecule side product'''
     pass # TODO : implement behavior here
 
+## POLYMERIZATION
 class NoIntermonomerBondsFound(Exception):
     '''To be raised when search for newly-formed inter-monoer bonds fail'''
     pass
+
+class IntermonomerBondIdentificationStrategy(ABC):
+    '''Abstract base for Intermonomer Bond Identification Strategies for fragmentation during in-silico polymerization'''
+    @abstractmethod
+    def locate_intermonomer_bonds(self, product : RDMol, product_info : RxnProductInfo) -> Generator[int, None, None]:
+        '''Generates the indices of all identified inter-monomer bonds by molecule'''
+        pass
+
+    def produce_fragments(self, product : RDMol, product_info : RxnProductInfo, separate : bool=True):
+        '''Apply break all bonds identified by this IBIS algorithm and return the resulting fragments'''
+        fragments = Chem.FragmentOnBonds(
+            mol=product,
+            bondIndices=self.locate_intermonomer_bonds(product, product_info) # TODO : check that the multiplicity of any bond to cut is no greater than the bond order
+        ) # TODO : add config for "dummyLabels" arg to support port flavor setting
+        if separate:
+            return Chem.GetMolFrags(fragments, asMols=True)
+        return fragments # if separation is not requested, return as single unfragmented molecule object
+IBIS = IntermonomerBondIdentificationStrategy # shorthand alias for convenience
+
+class ReseparateRGroups(IBIS):
+    '''IBIS which cleaves any new bonds formed between atoms that were formerly the start of an R-group in the reaction template'''
+    def locate_intermonomer_bonds(self, product: RDMol,product_info : RxnProductInfo) -> Generator[int, None, None]:
+        possible_bridgehead_ids = [atom_id for match in product.GetSubstructMatches(HEAVY_FORMER_LINKER_QUERY) for atom_id in match]
+        for new_bond_id in product_info.new_bond_ids_to_map_nums.keys():                     # for each newly formed bond...
+            print(new_bond_id)
+            for bridgehead_id_pair in combinations(possible_bridgehead_ids, 2):                   # ...find the most direct path between bridgehead atoms...
+                print('\t', bridgehead_id_pair)
+                if new_bond_id in bondwise.get_shortest_path_bonds(product, *bridgehead_id_pair): # ...and check if the new bond lies along it
+                    yield new_bond_id
 
 @dataclass
 class PolymerizationReactor(AdditionReactor):
