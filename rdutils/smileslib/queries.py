@@ -1,6 +1,7 @@
 '''Utilities related to handling SMARTS queries'''
 
-from typing import Generator
+from typing import Generator, TypeVar
+T = TypeVar('T')
 
 from rdkit import Chem
 from rdkit.Chem import rdqueries
@@ -47,14 +48,14 @@ def num_substruct_queries_distinct(target_mol : RDMol, substruct_query : RDMol) 
 
 
 # MAPPING SUBSTRUCTURE QUERIES
-def matching_labels_from_substruct_dict(target_mol : RDMol, substruct_queries : dict[str, RDMol]) -> Generator[str, None, None]:
+def matching_labels_from_substruct_dict(target_mol : RDMol, substruct_queries : dict[T, RDMol]) -> Generator[T, None, None]:
     '''Takes a target RDKit Mol and a string-keyed dict of SMARTS substructure query Mols and 
     yields ONLY the keys of substructures which are found in the target'''
     for match_mol_name, match_mol in substruct_queries.items():
         if target_mol.HasSubstructMatch(match_mol):
             yield match_mol_name
 
-def matching_dict_from_substruct_dict(target_mol : RDMol, substruct_queries : dict[str, RDMol]) -> dict[str, bool]:
+def matching_dict_from_substruct_dict(target_mol : RDMol, substruct_queries : dict[T, RDMol]) -> dict[T, bool]:
     '''Takes a target RDKit Mol and a string-keyed dict of SMARTS substructure query Mols and 
     returns a dict of bools with the same keys indicating whether each match is present'''
     return {
@@ -62,7 +63,7 @@ def matching_dict_from_substruct_dict(target_mol : RDMol, substruct_queries : di
             for match_mol_name, match_mol in substruct_queries.items()
     }
 
-def matching_dict_from_substruct_dict_alt(target_mol : RDMol, substruct_queries : dict[str, RDMol]) -> dict[str, bool]:
+def matching_dict_from_substruct_dict_alt(target_mol : RDMol, substruct_queries : dict[T, RDMol]) -> dict[T, bool]:
     '''Takes a target RDKit Mol and a string-keyed dict of SMARTS substructure query Mols and 
     returns a dict of bools with the same keys indicating whether each match is present
     
