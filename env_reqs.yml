@@ -289,8 +289,8 @@ dependencies:
   - openeye-toolkits=2023.2.3=py311_0
   - openff-amber-ff-ports=0.0.4=pyhca7485f_0
   - openff-forcefields=2024.01.0=pyhca7485f_0
-  - openff-interchange=0.3.22=pyhd8ed1ab_0
-  - openff-interchange-base=0.3.22=pyhd8ed1ab_0
+  - openff-interchange=0.3.23=pyhd8ed1ab_0
+  - openff-interchange-base=0.3.23=pyhd8ed1ab_0
   - openff-models=0.1.2=pyhca7485f_0
   - openff-nagl=0.3.4=pyhd8ed1ab_0
   - openff-nagl-base=0.3.4=pyhd8ed1ab_0
