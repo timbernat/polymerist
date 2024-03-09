@@ -12,6 +12,11 @@ from itertools import count, product as cartesian_product
 T = TypeVar('T') # generic type for sequence element
 U = TypeVar('U') # generic type for a distinct sequence element
 
+
+def is_unique(seq : Sequence) -> bool:
+    '''Whether or not a Sequence contains repeating items'''
+    return len(set(seq)) == len(seq)
+
 def product(seq : Iterable[T]) -> T:
     '''Multiplicative analogue to builtin sum()'''
     return reduce(mul, seq)
@@ -48,13 +53,16 @@ def cycle_items(seq : Sequence[T], places : int=1) -> list[T]:
             for i in range(places, places + n_items)
     ]
 
-def bin_ids_forming_sequence(sequence : Iterable[T], choice_bins : Iterable[Iterable[T]]) -> Generator[tuple[int, ...], None, None]:
+def bin_ids_forming_sequence(sequence : Iterable[T], choice_bins : Iterable[Iterable[T]], unique_bins : bool=False) -> Generator[tuple[int, ...], None, None]:
     '''Takes an ordered sequence of N objects and a collection of any number of bins containing arbitrary objects and generates
-    all possible N-tuples of bin indices which could produce the target sequence when drawing from those bins WITH replacement'''
+    all possible N-tuples of bin indices which could produce the target sequence when drawing from those bins WITH replacement
+    
+    If unique_bins is True, will not return a sequence in which a bin can appear more than once''' 
     occurrences = defaultdict(Counter) # keys are objects, values give indices of bins in which the objects occur, along with multiplicities 
     for i, tags in enumerate(choice_bins):
         for tag in tags:
             occurrences[tag][i] += 1 # NOTE : implementation here requires that T be a hashable type
 
     for idxs in cartesian_product(*(occurrences[item].keys() for item in sequence)): # TODO : enable no-replacement scheme 
-        yield idxs
+        if (not unique_bins) or is_unique(idxs):
+            yield idxs

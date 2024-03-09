@@ -175,7 +175,8 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
             choice_bins = ( # generator (rather than list) comprehension will suffice here, since there is no need to reuse these bins
                 matching_labels_from_substruct_dict(reactant, reactant_templates_by_index)
                     for reactant in reactants
-            )
+            ),
+            unique_bins=True
         )
         try:
             return [reactants[i] for i in next(possible_fragment_orderings)] # get first valid ordering
