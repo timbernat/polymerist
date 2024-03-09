@@ -75,21 +75,21 @@ class Reactor:
         reactants = self.rxn_schema.valid_reactant_ordering(reactants) # check that the reactants are compatible with the reaction
         if reactants is None:
             raise ReactantTemplateMismatch(f'Reactants provided to {self.__class__.__name__} are incompatible with reaction schema defined')
+        reactants = self._label_reactants(reactants, reactant_label=self._ridx_prop_name, in_place=False) # assign reactant indices (not in-place)
         
-        self._label_reactants(reactants, reactant_label=self._ridx_prop_name) # assign reactant indices in-place
-        raw_products = self.rxn_schema.RunReactants(reactants, maxProducts=repetitions) # obtain unfiltered RDKit reaction output. TODO : generalize to work when more than 1 repetition is requested
-        
-        # post-reaction cleanup
         products : list[RDMol] = []
+        raw_products = self.rxn_schema.RunReactants(reactants, maxProducts=repetitions) # obtain unfiltered RDKit reaction output. TODO : generalize to work when more than 1 repetition is requested
         for i, product in enumerate(chain.from_iterable(raw_products)): # clean up products into a usable form
             self._relabel_reacted_atoms(
                 product,
                 reactant_label=self._ridx_prop_name,
-                reactant_map_nums=self.rxn_schema.map_nums_to_reactant_nums
+                reactant_map_nums=self.rxn_schema.map_nums_to_reactant_nums,
+                in_place=True
             )
             self._sanitize_bond_orders(product,
                 product_template=self.rxn_schema.GetProductTemplate(i),
-                product_info=self.rxn_schema.product_info_maps[i]
+                product_info=self.rxn_schema.product_info_maps[i],
+                in_place=True
             )
             if clear_props:
                 rdprops.clear_atom_props(product, in_place=True)
