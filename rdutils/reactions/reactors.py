@@ -74,7 +74,7 @@ class Reactor:
         Does NOT require the reactants to match the order of the reacion template (only that some order fits)'''
         reactants = self.rxn_schema.valid_reactant_ordering(reactants) # check that the reactants are compatible with the reaction
         if reactants is None:
-            raise ReactantTemplateMismatch(f'Reactants provided to {self.__class__.__name__} are incompatible with reaction schema {self.rxn_schema}')
+            raise ReactantTemplateMismatch(f'Reactants provided to {self.__class__.__name__} are incompatible with reaction schema defined')
         
         self._label_reactants(reactants, reactant_label=self._ridx_prop_name) # assign reactant indices in-place
         raw_products = self.rxn_schema.RunReactants(reactants, maxProducts=repetitions) # obtain unfiltered RDKit reaction output. TODO : generalize to work when more than 1 repetition is requested
@@ -84,7 +84,7 @@ class Reactor:
         for i, product in enumerate(chain.from_iterable(raw_products)): # clean up products into a usable form
             self._relabel_reacted_atoms(
                 product,
-                reactnat_label=self._ridx_prop_name,
+                reactant_label=self._ridx_prop_name,
                 reactant_map_nums=self.rxn_schema.map_nums_to_reactant_nums
             )
             self._sanitize_bond_orders(product,
