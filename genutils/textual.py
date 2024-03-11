@@ -9,6 +9,21 @@ from textwrap import indent
 from .fileutils.extensions import FileTypeError
 
 
+# CASE CONVERSION
+def snake_case_to_camel_case(varname : str) -> str:
+    '''Convert a name from Snake Case to Camel Case
+    E.g. name_of_a_thing -> NameOfAThing'''
+    return ''.join(word.capitalize() for word in varname.split('_'))
+
+def camel_case_to_snake_case(varname : str) -> str:
+    '''Convert a name from Camel Case to Snake Case
+    E.g. NameOfAThing -> name_of_a_thing'''
+    cap_idxs = [i for i, char in enumerate(varname) if char.isupper()]
+    return '_'.join(
+        varname[i_start:i_end].lower()
+            for i_start, i_end in zip(cap_idxs, cap_idxs[1:]+[None])
+    ) 
+
 # STRING INTERPOLATION
 def insert_into_text_periodic(text : str, period : int, insertion : str='\n') -> str:
     '''Takes a string of text and another "insertion" string and inserts it throughout the text every <period> characters'''
