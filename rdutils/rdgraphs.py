@@ -6,6 +6,7 @@ from rdkit import Chem
 import networkx as nx
 
 from ..genutils.importutils import compile_simple_getable_attrs
+from ..genutils.textual import camel_case_to_snake_case
 
 
 # CONVERTING Mols TO Graphs
@@ -23,8 +24,6 @@ DEFAULT_ATOM_PROPS = (
     'NumExplicitHs',
     'NumImplicitHs',
     'NumRadicalElectrons',
-    'PropsAsDict',
-    'QueryType',
     'Symbol',
     'TotalDegree',
     'TotalNumHs',
@@ -48,8 +47,8 @@ def rdmol_to_networkx(rdmol : Chem.Mol, atom_attrs : Iterable[str]=DEFAULT_ATOM_
     G = nx.Graph()
     for atom in rdmol.GetAtoms():
         atom_attr_vals = {
-            attr : attr_val
-                for attr, attr_val in compile_simple_getable_attrs(atom, getter_str='Get').items()
+            camel_case_to_snake_case(attr) : attr_val
+                for attr, attr_val in compile_simple_getable_attrs(atom, getter_str='Get', repl_str='').items()
                     if attr in atom_attrs
         }
         atom_attr_vals.update(atom.GetPropsAsDict())
@@ -57,8 +56,8 @@ def rdmol_to_networkx(rdmol : Chem.Mol, atom_attrs : Iterable[str]=DEFAULT_ATOM_
 
     for bond in rdmol.GetBonds():
         bond_attr_vals = {
-            attr : attr_val
-                for attr, attr_val in compile_simple_getable_attrs(bond, getter_str='Get').items()
+            camel_case_to_snake_case(attr) : attr_val
+                for attr, attr_val in compile_simple_getable_attrs(bond, getter_str='Get', repl_str='').items()
                     if attr in bond_attrs
         }
         bond_attr_vals.update(atom.GetPropsAsDict())
