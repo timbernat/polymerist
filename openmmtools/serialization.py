@@ -3,13 +3,17 @@
 import logging
 LOGGER = logging.getLogger(__name__)
 
-from typing import Any, Optional
+from typing import Any, Optional, Union
+from numpy.typing import NDArray
 from dataclasses import dataclass
+
 from pathlib import Path
+from collections import Counter
 
 from openmm import System, Context, State
+from openmm import XmlSerializer, Vec3
 from openmm.app import Simulation, PDBFile
-from openmm import XmlSerializer
+from openmm.app import Topology as OpenMMTopology
 
 from .parameters import SimulationParameters
 from ..genutils.decorators.functional import allow_string_paths
@@ -77,7 +81,7 @@ class SimulationPaths:
         return path_obj
 
 
-# SERIALIZATION AND DESERIALIZATION FUNCTIONS
+# SERIALIZATION AND DESERIALIZATION FUNCTIONS # TODO : add assertions for file extensions
 DEFAULT_STATE_PROPS : dict[str, bool] = {
     'getPositions'  : True,
     'getVelocities' : True,
@@ -88,20 +92,6 @@ DEFAULT_STATE_PROPS : dict[str, bool] = {
     'getIntegratorParameters' : False
 }
 
-@allow_string_paths
-def serialize_system(sys_path : Path, system : System) -> None:
-    '''For saving an existing OpenMM System to file'''
-    with sys_path.open('w') as file:
-        file.write(XmlSerializer.serialize(system))
-
-@allow_string_paths
-def serialize_topology_from_simulation(pdb_path : Path, sim : Simulation, keep_ids : bool=False) -> None:
-    '''Saves a PDB of the current state of a simulation's Topology'''
-    curr_state = sim.context.getState(getPositions=True)
-    with pdb_path.open('w') as output:
-        PDBFile.writeFile(sim.topology, curr_state.getPositions(), output, keepIds=keep_ids) # TODO : generalize file output beyond just PDB
-
-# TODO : add assertions for file extensions
 @allow_string_paths
 def serialize_state_from_context(state_path : Path, context : Context, state_params : dict[str, bool]=DEFAULT_STATE_PROPS) -> None:
     '''For saving State data within an existing OpenMM Context to file'''
@@ -117,3 +107,52 @@ def apply_state_to_context(context : Context, state : State) -> None: # TOSELF :
     context.setTime(state.getTime())
 
     context.reinitialize(preserveState=True)
+
+
+@allow_string_paths
+def serialize_system(sys_path : Path, system : System) -> None:
+    '''For saving an existing OpenMM System to file'''
+    with sys_path.open('w') as file:
+        file.write(XmlSerializer.serialize(system))
+
+@allow_string_paths
+def serialize_openmm_pdb(pdb_path : Path, topology : OpenMMTopology, positions : Union[NDArray, list[Vec3]], keep_chain_and_res_ids : bool=True,
+                         uniquify_atom_ids : bool=True, num_atom_id_digits : int=2, resname_repl : Optional[dict[str, str]]=None) -> None:
+    '''Configure and write an Protein DataBank File from an OpenMM Topology and array of positions
+    Provides options to configure atom ID numbering, residue numbering, and residue naming'''
+    if resname_repl is None:
+        resname_repl = {} # avoids mutable default
+
+    # chain config
+    for chain in topology.chains():
+        chain.id = str(chain.id)
+
+    # residue config
+    for residue in topology.residues():
+        residue.id = str(residue.id) # avoids TypeError when specifying keepIds during PDB write
+        repl_res_name = resname_repl.get(residue.name, None) # lookup current residue name to see if a replacement is called for
+        if repl_res_name is not None:
+            residue.name = repl_res_name
+
+    # individual atom config
+    element_counter = Counter() # for keeping track of the running index of each distinct element - could be used to produce a Hill formula
+    for atom in topology.atoms():
+        symbol = atom.element.symbol
+        atom_id = element_counter[symbol]
+        if uniquify_atom_ids:
+            atom.name = f'{symbol}{atom_id:0{num_atom_id_digits}d}' # extend atom name with ordered integer with specified number of digits (including leading zeros)
+        element_counter[symbol] += 1
+
+    # file write
+    with pdb_path.open('w') as file:
+        PDBFile.writeFile(topology, positions, file, keepIds=keep_chain_and_res_ids)
+
+@allow_string_paths
+def serialize_topology_from_simulation(pdb_path : Path, sim : Simulation, keep_ids : bool=False) -> None:
+    '''Saves a PDB of the current state of a simulation's Topology'''
+    serialize_openmm_pdb(
+        pdb_path,
+        topology=sim.topology,
+        positions=sim.context.getState(getPositions=True).getPositions(),
+        keep_chain_and_res_ids=keep_ids
+    )

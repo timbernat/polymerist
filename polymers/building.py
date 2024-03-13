@@ -25,6 +25,7 @@ from ..genutils.decorators.functional import allow_string_paths
 from ..rdutils.bonding.portlib import get_linker_ids
 from ..rdutils.bonding.substitution import saturate_ports, hydrogenate_rdmol_ports
 from ..rdutils.rdtypes import RDMol
+from ..openmmtools.serialization import serialize_openmm_pdb
 
 
 # CONVERSION
@@ -49,20 +50,14 @@ def mbmol_to_openmm_pdb(pdb_path : Path, mbmol : Compound, num_atom_digits : int
     traj = mbmol.to_trajectory() # first convert to MDTraj representation (much more infor-rich format)
     omm_top, omm_pos = traj.top.to_openmm(), traj.openmm_positions(0) # extract OpenMM representations of trajectory
 
-    # modifiy atom info to make readable
-    counter = Counter() # for keeping track of the running index of each distinct element
-    for atom in omm_top.atoms():
-        symbol = atom.element.symbol
-        idx = counter[symbol]
-        atom.name = f'{symbol}{idx:0{num_atom_digits}d}' # extend atom name with ordered integer with specified number of digits (including leading zeros)
-        counter[symbol] += 1
-
-        repl_res_name = res_repl.get(atom.residue.name, None) # lookup current residue name to see if a replacement is called for
-        if repl_res_name is not None:
-            atom.residue.name = repl_res_name
-
-    with pdb_path.open('w') as file:
-        PDBFile.writeFile(omm_top, omm_pos, file)
+    serialize_openmm_pdb(
+        pdb_path=pdb_path,
+        topology=omm_top,
+        positions=omm_pos,
+        uniquify_atom_ids=True,
+        num_atom_id_digits=num_atom_digits,
+        resname_repl=res_repl
+    )
 
 
 # LINEAR POLYMER BUILDING
