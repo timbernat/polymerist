@@ -51,7 +51,7 @@ def mbmol_to_openmm_pdb(pdb_path : Path, mbmol : Compound, num_atom_digits : int
     omm_top, omm_pos = traj.top.to_openmm(), traj.openmm_positions(0) # extract OpenMM representations of trajectory
 
     serialize_openmm_pdb(
-        pdb_path=pdb_path,
+        pdb_path,
         topology=omm_top,
         positions=omm_pos,
         uniquify_atom_ids=True,
