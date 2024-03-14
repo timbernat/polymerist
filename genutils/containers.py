@@ -1,13 +1,25 @@
 '''Custom data containers with useful properties'''
 
-from collections import defaultdict, Counter
 from typing import Any, Iterable, TypeVar
 T = TypeVar('T') # generic type variable
 
+from collections import defaultdict, Counter
+from pprint import pformat
 
-def RecursiveDict() -> defaultdict:
-    '''Returns a defaultdict which can be recursively nested indefinitely'''
-    return defaultdict(lambda : RecursiveDict())
+
+# def RecursiveDict() -> defaultdict:
+#     '''Returns a defaultdict which can be recursively nested indefinitely'''
+#     return defaultdict(lambda : RecursiveDict())
+
+class RecursiveDict(defaultdict):
+    '''A defaultdict which can be recursively nested indefinitely'''
+    def __init__(self, *args, **kwargs) -> None:
+        super(self.__class__, self).__init__(self.__class__, *args, **kwargs) 
+
+    def __str__(self) -> str: # implementing this as __repr__ causes Recursion error, as pformat seems to call repr
+        '''For pretty-printing contents in a way that still makes class identity clear'''
+        return pformat(self, indent=1)
+
 
 class UnorderedRegistry:
     '''For storing and comparing unordered collections of items'''

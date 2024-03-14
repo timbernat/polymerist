@@ -3,9 +3,11 @@
 import logging
 LOGGER = logging.getLogger(__name__)
 
+from numpy.typing import NDArray
 from pathlib import Path
 from ast import literal_eval
 
+from rdkit import Chem
 from openff.toolkit import ToolkitRegistry
 from openff.toolkit.topology import Atom, Molecule, Topology
 
@@ -14,8 +16,9 @@ from ..genutils.iteration import asiterable
 from ..genutils.fileutils.pathutils import dotless
 from ..genutils.decorators.functional import allow_string_paths, optional_in_place
 
-from ..rdutils.rdprops import RDPROP_GETTERS, RDPROP_SETTERS
+from ..rdutils.rdprops import RDPROP_GETTERS, RDPROP_SETTERS, copy_rd_props
 from ..rdutils.rdtypes import RDAtom, RDMol
+from ..rdutils.rdcoords.tiling import tile_lattice_with_rdmol
 
 
 # TOPOLOGY INFO
@@ -98,3 +101,23 @@ def topology_from_sdf(path : Path, *args, **kwargs) -> Topology:
         unpackage_atom_metadata(mol, in_place=False) # reassign metadata if serialized
             for mol in asiterable(Molecule.from_file(path, *args, **kwargs)) # asiterable() gracefully handles the singleton case
     )
+
+
+# TOPOLOGY BUILD FUNCTIONS
+def topology_from_molecule_onto_lattice(offmol : Molecule, lattice : NDArray, rotate_randomly : bool=True, unique_mol_ids : bool=True):
+    '''Convert a charged OpenFF Molecule into a Topology made up of copies of that Molecule tiled according to a lattice'''
+    tiled_rdmol = tile_lattice_with_rdmol(offmol.to_rdkit(), lattice, rotate_randomly=rotate_randomly)
+    tiled_offmols = [] 
+    for mol_id, tiled_mol_copy in enumerate(Chem.GetMolFrags(tiled_rdmol, asMols=True, sanitizeFrags=False)):
+        copy_rd_props(tiled_rdmol, tiled_mol_copy) # ensure each individual fragment preserves the information of the parent molecule
+        tiled_offmol = Molecule.from_rdkit(
+            rdmol=tiled_mol_copy,
+            allow_undefined_stereo=True,
+            hydrogens_are_explicit=True
+        )
+        if unique_mol_ids:
+            for atom in tiled_offmol.atoms:
+                atom.metadata['residue_number'] = mol_id # for now, this appears to be the mechanism by which Interchange assigns labels to unique molecules
+        tiled_offmols.append(tiled_offmol)
+
+    return Topology.from_molecules(tiled_offmols)

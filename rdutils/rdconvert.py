@@ -6,7 +6,7 @@ from rdkit import Chem
 from .rdtypes import RDMol
 from ..genutils.decorators.classmod import register_subclasses
 
-from .mapping.bijection import bijective_atom_id_iter
+from .labeling.bijection import bijective_atom_id_iter
 from .rdprops import copy_rd_props
 
 

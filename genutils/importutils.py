@@ -1,12 +1,47 @@
 '''Utilities for automating submodule import and logger creation'''
 
-from types import ModuleType
-from typing import Generator, Iterable, Optional
+import logging
+LOGGER = logging.getLogger(__name__)
 
+from types import ModuleType
+from typing import Any, Generator, Iterable, Optional
+
+import re
 import pkgutil
 import importlib
 
-import logging
+from enum import StrEnum
+from itertools import chain
+
+
+# ATTRIBUTE GETTING AND SETTING
+def compile_simple_getable_attrs(obj : Any, getter_str : str='get', repl_str : Optional[str]=None) -> dict[str, Any]:
+    '''Takes an object and returns a dict of the return values of all argument-free methods of the objects
+    Looks for methods of the object whose names contain with "getter_str", and can replace this with the value of "repl_str" in the final dict output if provided'''
+    getable_dict = {}
+    for attr_name in dir(obj):
+        if re.search(getter_str, attr_name): 
+            try:
+                attr_key = attr_name if (repl_str is None) else re.sub(getter_str, repl_str, attr_name)
+                getable_dict[attr_key] = getattr(obj, attr_name)()
+            except (TypeError, Exception): # TODO : find way to selectively intercept the Boost C++ wrapper ArgumentError
+                pass
+    return getable_dict
+
+
+# FILETREE CHARACTERS
+_TREE_WIDTH : int = 4
+assert(_TREE_WIDTH > 0)
+
+class TreeChars(StrEnum):
+    '''Box characters for representing connections between components of a hierarchcal structure'''
+    SPACE   = ' '*_TREE_WIDTH
+    DASH    = '\u2500'*_TREE_WIDTH
+    PIPE    = '\u2502' + ' '*(_TREE_WIDTH - 1)
+    BRANCH  = '\u251C' + '\u2500'*(_TREE_WIDTH - 1)
+    ELBOW   = '\u2514' + '\u2500'*(_TREE_WIDTH - 1)
+    ELBOW_R = '\u2514' + '\u2500'*(_TREE_WIDTH - 1) # direction-agnostic alias
+    ELBOW_L = '\u2500'*(_TREE_WIDTH - 1) + '\u2518'
 
 
 # BASE SUBMODULE GENERATORS
@@ -39,7 +74,7 @@ def iter_submodules(module : ModuleType, recursive : bool=True, blacklist : Opti
         yield submodule # only yield submodule; for more compact iteration
 
 
-# TOOLS FOR REGISTERING AND PUUL INFO FROM SUBMODULES
+# TOOLS FOR REGISTERING AND PULLING INFO FROM SUBMODULES
 def register_submodules(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None) -> None:
     '''Registers submodules of a given module into it's own namespace (i.e. autoimports submodules)'''
     for (submodule, submodule_name, submodule_ispkg) in iter_submodule_info(module, recursive=False, blacklist=blacklist): # initially only iterate on one level to keep track of parent module
@@ -47,18 +82,28 @@ def register_submodules(module : ModuleType, recursive : bool=True, blacklist : 
         if submodule_ispkg and recursive:
             register_submodules(submodule, recursive=recursive, blacklist=blacklist)
 
-def module_hierarchy(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None, _indent_level : int=0, _string_agg : Optional[list[str]]=None) -> str:
-    '''Returns a string representing a module hierarchy, with each level of indentation representing one more level of nesting'''
-    if _string_agg is None:
-        _string_agg = []
-    tabs = _indent_level*'\t'
+def _module_hierarchy(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None, _prefix : str='') -> Generator[str, None, None]:
+    '''Returns an iterable of level strings representing a module hierarchy, with each level of nesting indicated by a series of pipes and dashes'''
+    end_sentinel = (object(), object(), object()) # used to unambiguously check whether the initial generator is in fact empty
+    module_iter = chain(iter_submodule_info(module, recursive=False, blacklist=blacklist), [end_sentinel])
 
-    for (submodule, submodule_name, submodule_ispkg) in iter_submodule_info(module, recursive=False, blacklist=blacklist): # initially only iterate on one level to keep track of parent module
-        _string_agg.append(f'{tabs}{submodule_name}')
+    module_info = next(module_iter) # primer for hierarchy iteration, need to first check 
+    reached_end = bool(module_info == end_sentinel) # if module hierarchy is empty, don't bother trying to iterate
+    while not reached_end:
+        (submodule, submodule_name, submodule_ispkg) = module_info # unpacking to keep current module_info values in namespace (and for convenience)
+        module_info = next(module_iter) # peek ahead to check if the current module is in fact the last at this layer
+        if module_info == end_sentinel:
+            splitter, extension = TreeChars.ELBOW, TreeChars.SPACE
+            reached_end = True
+        else:
+            splitter, extension = TreeChars.BRANCH, TreeChars.PIPE
+        
+        yield _prefix + splitter + submodule_name
         if submodule_ispkg and recursive:
-            _partial = module_hierarchy(submodule, recursive=recursive, blacklist=blacklist, _indent_level=_indent_level + 1, _string_agg=_string_agg) # retrieve partial output
+            yield from _module_hierarchy(submodule, recursive=recursive, blacklist=blacklist, _prefix=_prefix + extension) # retrieve partial output
 
-    return '\n'.join(_string_agg)
+def module_hierarchy(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None) -> str:
+    return '\n'.join(_module_hierarchy(module, recursive=recursive, blacklist=blacklist))
 
 def submodule_loggers(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None) -> dict[str, Optional[logging.Logger]]:
     '''Produce a dict of any Logger objects present in each submodule. Can optionally generate recursively and blacklist certain modules'''

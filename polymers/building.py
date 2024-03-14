@@ -19,12 +19,13 @@ with warnings.catch_warnings(record=True): # suppress numerous and irritating mb
 from .exceptions import MorphologyError
 from .estimation import estimate_chain_len_linear
 from ..monomers.repr import MonomerGroup
-from ..monomers.substruct.specification import SANITIZE_AS_KEKULE
+from ..monomers.specification import SANITIZE_AS_KEKULE
 
 from ..genutils.decorators.functional import allow_string_paths
-from ..rdutils.amalgamation.portlib import get_linker_ids
-from ..rdutils.amalgamation.bonding import saturate_ports, hydrogenate_rdmol_ports
+from ..rdutils.bonding.portlib import get_linker_ids
+from ..rdutils.bonding.substitution import saturate_ports, hydrogenate_rdmol_ports
 from ..rdutils.rdtypes import RDMol
+from ..openmmtools.serialization import serialize_openmm_pdb
 
 
 # CONVERSION
@@ -32,7 +33,7 @@ def mbmol_from_mono_rdmol(rdmol : RDMol) -> tuple[Compound, list[int]]:
     '''Accepts a monomer-spec-compliant SMARTS string and returns an mbuild Compound and a list of the indices of atom ports'''
     linker_ids = [i for i in get_linker_ids(rdmol)] # record indices of ports - MUST unpack generator for mbuild compatibility
     
-    # create chemically-complete 
+    # create port-free version of molecule which RDKit can embed without errors
     prot_mol = hydrogenate_rdmol_ports(rdmol, in_place=False)
     # prot_mol = saturate_ports(rdmol) # TOSELF : custom, port-based saturation methods are not yet ready for deployment - yield issues in RDKit representation under-the-hood 
     Chem.SanitizeMol(prot_mol, sanitizeOps=SANITIZE_AS_KEKULE) # ensure Mol is valid (avoids implicitValence issues)
@@ -49,20 +50,14 @@ def mbmol_to_openmm_pdb(pdb_path : Path, mbmol : Compound, num_atom_digits : int
     traj = mbmol.to_trajectory() # first convert to MDTraj representation (much more infor-rich format)
     omm_top, omm_pos = traj.top.to_openmm(), traj.openmm_positions(0) # extract OpenMM representations of trajectory
 
-    # modifiy atom info to make readable
-    counter = Counter() # for keeping track of the running index of each distinct element
-    for atom in omm_top.atoms():
-        symbol = atom.element.symbol
-        idx = counter[symbol]
-        atom.name = f'{symbol}{idx:0{num_atom_digits}d}' # extend atom name with ordered integer with specified number of digits (including leading zeros)
-        counter[symbol] += 1
-
-        repl_res_name = res_repl.get(atom.residue.name, None) # lookup current residue name to see if a replacement is called for
-        if repl_res_name is not None:
-            atom.residue.name = repl_res_name
-
-    with pdb_path.open('w') as file:
-        PDBFile.writeFile(omm_top, omm_pos, file)
+    serialize_openmm_pdb(
+        pdb_path=pdb_path,
+        topology=omm_top,
+        positions=omm_pos,
+        uniquify_atom_ids=True,
+        num_atom_id_digits=num_atom_digits,
+        resname_repl=res_repl
+    )
 
 
 # LINEAR POLYMER BUILDING

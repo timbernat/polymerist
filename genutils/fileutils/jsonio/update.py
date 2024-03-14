@@ -16,7 +16,7 @@ def append_to_json(json_path : Path, **kwargs) -> None:
     jdat.update(**kwargs)
 
     with json_path.open('w') as json_file:
-        jdat = json.checkpoint(jdat, json_file, indent=4)
+        jdat = json.dump(jdat, json_file, indent=4)
 
 class JSONDict(dict): # TODO : add allow_str_path decorators
     '''Dict subclass which also updates an underlying JSON file - effectively and on-disc dict

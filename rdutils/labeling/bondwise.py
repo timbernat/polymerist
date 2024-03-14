@@ -13,6 +13,10 @@ from ...genutils.iteration import sliding_window
 
 
 # BOND ID QUERY FUNCTIONS
+def are_bonded_atoms(rdmol : RDMol, atom_id_1 : int, atom_id_2 : int) -> bool:
+    '''Check if pair of atoms in an RDMol have a bond between them'''
+    return (rdmol.GetBondBetweenAtoms(atom_id_1, atom_id_2) is not None)
+
 def get_bonded_pairs(rdmol : RDMol, *atom_ids : Iterable[int]) -> dict[int, tuple[int, int]]:
     '''Get bond and terminal atom indices of all bonds which exist between any pair of atoms in an indexed list'''
     res = {}

@@ -33,6 +33,7 @@ def atom_ids_by_map_nums(rdmol : RDMol, *query_map_nums : list[int]) -> Generato
         except ValueError: # if the provided map number is not found, return NoneType
             yield None
 
+
 # CHECKING FUNCTIONS
 def has_fully_mapped_atoms(rdmol : RDMol) -> bool:
     '''Check whether an RDMol has a map number explicitly assigned to each member RDAtom'''

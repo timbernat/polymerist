@@ -14,8 +14,8 @@ from openmm.app import Topology as OMMTopology
 from openmm.unit import Quantity
 
 from . import FFDIR
-from .solvation.boxvectors import box_vectors_flexible, VectorQuantity, BoxVectorsQuantity
-from ..genutils.unitutils import openff_to_openmm
+from .boxvectors import box_vectors_flexible, VectorQuantity, BoxVectorsQuantity
+from ..unitutils.interop import openff_to_openmm
 
 
 def forcefield_flexible(forcefield : Union[ForceField, str, Path]) -> ForceField:
