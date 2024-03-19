@@ -485,4 +485,3 @@ dependencies:
       - sander==22.0
       - torch==2.2.1
       - triton==2.2.0
-prefix: /home/timber/miniconda3/envs/polymerist-env
