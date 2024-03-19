@@ -1,8 +1,7 @@
-'''Polymer-Oriented Library Yielding Structure Assignment, Calculation of CHARges, Interchange, and Data Elucidation (second revision)'''
+"""A unified set of tools for setting up general organic polymer systems for MD within the OpenFF framework"""
 
-__author__ = 'Timotej Bernat'
-__version__ = '2.0'
-
+# Add imports here
+from ._version import __version__
 from .genutils.importutils import register_submodules, module_by_pkg_str
 
 _MODULE_SELF = module_by_pkg_str(__package__) # keep reference to own module
