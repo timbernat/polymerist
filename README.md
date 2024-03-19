@@ -6,12 +6,16 @@ Polymer-Oriented LibrarY of Monomer Expression Rules and In-silico Synthesis Too
 
 A unified set of tools for monomer template generation, topology building, force-field parameterization, and MD simulations of general organic polymer systems within the OpenFF framework
 
+Source code for [Davel, Connor M., Bernat, Timotej, Wagner, Jeffrey R., and Shirts, Michael R., "Parameterization of General Organic Polymers within the Open Force Field Framework"](https://pubs.acs.org/doi/10.1021/acs.jcim.3c01691)
+
+![abstract](docs/_static/polymer_param_graphic_TOC.png)
+
 
 ## Installation
 
-Currently, this package only supports a "dirty" developer install using conda/mamba and `pip`.
-First, install the `conda` environment manager (either the lightweight [Miniconda Distribution](https://docs.anaconda.com/free/miniconda/miniconda-install/) (recommended) or the bulkier [Anaconda Distribution](https://www.anaconda.com/download)).
-Further, it is highly recommended (but optional) that you install the mamba package manager (either thru [Miniforge or Conda](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html)); this will greatly accelerate download times.
+Currently, this package only supports a "dirty" developer install using conda/mamba and `pip`.  
+First, install the `conda` environment manager (either the lightweight [Miniconda Distribution](https://docs.anaconda.com/free/miniconda/miniconda-install/) (recommended) or the bulkier [Anaconda Distribution](https://www.anaconda.com/download)).  
+Further, it is highly recommended (but optional) that you install the mamba package manager (either through [Miniforge or Conda](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html)); this will greatly accelerate download times.  
 
 Once mamba is installed, you can proceed with the dirty `polymerist` install into a safe virtual environment (named "polymerist-env" here).
 To install, execute the following set of commands in the CLI in whichever directory you'd like the dev installation to live:
@@ -22,6 +26,8 @@ mamba env create -n polymerist-env -f devtools/conda-envs/polymerist-env.yml
 mamba activate polymerist-env
 pip install -e .
 ```
+The third command will take **_at least_** a few minutes, and will make the terminal quite bust; remain calm, that's normal!
+
 Equivalent commands using just conda (in case mamba installation fails) are below. These will perform the same install, just much more slowly:
 ```sh
 git clone https://github.com/timbernat/polymerist
