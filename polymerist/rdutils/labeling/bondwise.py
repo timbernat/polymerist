@@ -1,6 +1,6 @@
 '''For obtaining info from and for labelling individual RDKit Bonds'''
 
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterable, Optional
 from itertools import combinations
 
 from rdkit import Chem
@@ -8,11 +8,13 @@ from rdkit.Chem.rdchem import BondType
 
 from ..rdtypes import RDMol, RDBond
 from .molwise import atom_ids_by_map_nums
+
 from ...genutils.typetools import Args, KWArgs
 from ...genutils.iteration import sliding_window
+from ...genutils.decorators.functional import optional_in_place
 
 
-# BOND ID QUERY FUNCTIONS
+# BOND ID QUERYING
 def are_bonded_atoms(rdmol : RDMol, atom_id_1 : int, atom_id_2 : int) -> bool:
     '''Check if pair of atoms in an RDMol have a bond between them'''
     return (rdmol.GetBondBetweenAtoms(atom_id_1, atom_id_2) is not None)
@@ -56,3 +58,19 @@ def get_shortest_path_bonds(rdmol : RDMol, start_idx : int, end_idx : int) -> li
     ]
 
 
+# BOND ID LABELING
+@optional_in_place
+def assign_bond_id_labels(rdmol : RDMol, bond_id_remap : Optional[dict[int, int]]=None) -> None:
+    '''Draws bond indices over their positions when displaying a Mol. 
+    Can optionally provide a dict mapping bond indices to some other integers'''
+    if bond_id_remap is None:
+        bond_id_remap = {} # avoid mutable default
+
+    for bond in rdmol.GetBonds():
+        bond.SetIntProp('bondNote', bond_id_remap.get(bond.GetIdx(), bond.GetIdx())) # check if map value exists, if not default to index
+
+@optional_in_place
+def clear_bond_id_labels(rdmol : RDMol) -> None:
+    '''Removes bond indices over their positions when displaying a Mol'''
+    for bond in rdmol.GetBonds():
+        bond.ClearProp('bondNote')
