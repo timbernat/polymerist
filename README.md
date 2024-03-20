@@ -17,7 +17,7 @@ Currently, this package only supports a "dirty" developer install using conda/ma
 First, you will need to install the `conda` environment manager (either the lightweight [Miniconda Distribution](https://docs.anaconda.com/free/miniconda/miniconda-install/) (recommended) or the bulkier [Anaconda Distribution](https://www.anaconda.com/download)) if you don't already have it.
 Further, it is highly recommended (but optional) that you also have the `mamba` package manager installed (either through [Miniforge or Conda](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html)); this will greatly accelerate download times.  
 
-Once `mamba` is installed, you can proceed with the dirty `polymerist` install into a safe virtual environment (named "polymerist-env" here).  
+Once `mamba` is installed, you can proceed with the dirty `polymerist` install into a safe virtual environment (named "polymerist-env" here).
 To install, execute the following set of commands in a command line interface (CLI) in whichever directory you'd like the dev installation to live:
 ```sh
 git clone https://github.com/timbernat/polymerist
@@ -28,7 +28,7 @@ pip install -e .
 ```
 The third command will take **_at least_** a few minutes, and will make the CLI terminal quite busy; remain calm, that's normal!
 
-Equivalent commands using just `conda` (in case `mamba` has ot been installed) are below. These will perform the same installation, just much more slowly:
+Equivalent commands using just `conda` (in case `mamba` has not been installed) are below. These will perform the same installation, just much more slowly:
 ```sh
 git clone https://github.com/timbernat/polymerist
 cd polymerist
