@@ -124,12 +124,10 @@ class CondensationReactor(Reactor):
 @dataclass
 class PolymerizationReactor(Reactor):
     '''Reactor which exhaustively generates monomers fragments according to a given a polymerization mechanism'''
-    def propagate(self, monomers : Iterable[RDMol], fragment_strategy_type : Type[IBIS]=ReseparateRGroups, clear_map_nums : bool=True) -> Generator[tuple[list[RDMol], list[RDMol]], None, None]:
+    def propagate(self, monomers : Iterable[RDMol], fragment_strategy : IBIS=ReseparateRGroups(), clear_map_nums : bool=True) -> Generator[tuple[list[RDMol], list[RDMol]], None, None]:
         '''Keep reacting and fragmenting a pair of monomers until all reactive sites have been reacted
         Returns fragment pairs at each step of the chain propagation process'''
-        ibis = fragment_strategy_type() # initialize fragmenter class
         reactants = monomers # initialize reactive pair with monomers
-
         while True: # check if the reactants can be applied under the reaction template
             try:
                 intermediates = self.react(reactants, repetitions=1, clear_props=False) # can't clear properties yet, otherwise intermonomer bond finder would have nothing to go off of
@@ -144,7 +142,7 @@ class PolymerizationReactor(Reactor):
                 
                 fragments.extend( # list extension preserves insertion order at each step
                     rdprops.clear_atom_props(fragment, in_place=False) # essential to avoid reaction mapping info from prior steps from contaminating future ones
-                        for fragment in ibis.produce_fragments(
+                        for fragment in fragment_strategy.produce_fragments(
                             product,
                             product_info=self.rxn_schema.product_info_maps[i],
                             separate=True
