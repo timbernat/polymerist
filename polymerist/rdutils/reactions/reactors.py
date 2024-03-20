@@ -8,7 +8,7 @@ from rdkit import Chem
 
 from .reactexc import ReactantTemplateMismatch
 from .reactions import AnnotatedReaction, RxnProductInfo
-from .fragment import IBIS, IntermonomerBondIdentificationStrategy, ReseparateRGroups
+from .fragment import IBIS, IntermonomerBondIdentificationStrategy, ReseparateRGroups, ReseparateRGroupsUnique
 
 from .. import rdprops
 from ..labeling import bondwise, molwise
@@ -124,7 +124,7 @@ class CondensationReactor(Reactor):
 @dataclass
 class PolymerizationReactor(Reactor):
     '''Reactor which exhaustively generates monomers fragments according to a given a polymerization mechanism'''
-    def propagate(self, monomers : Iterable[RDMol], fragment_strategy : IBIS=ReseparateRGroups(), clear_map_nums : bool=True) -> Generator[tuple[list[RDMol], list[RDMol]], None, None]:
+    def propagate(self, monomers : Iterable[RDMol], fragment_strategy : IBIS=ReseparateRGroupsUnique(), clear_map_nums : bool=True) -> Generator[tuple[list[RDMol], list[RDMol]], None, None]:
         '''Keep reacting and fragmenting a pair of monomers until all reactive sites have been reacted
         Returns fragment pairs at each step of the chain propagation process'''
         reactants = monomers # initialize reactive pair with monomers
