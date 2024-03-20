@@ -95,6 +95,7 @@ class ReactionAssembler:
 
         rxn = AnnotatedReaction.from_rdmols(reactant_templates=[reactants], product_templates=[products])
         rxn.Initialize()
+        rxn.rxnname = self.rxn_name
         
         num_warnings, num_errors = rxn.Validate()
         if num_errors != 0:
