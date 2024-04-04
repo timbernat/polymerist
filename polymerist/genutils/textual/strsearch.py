@@ -6,6 +6,12 @@ from pathlib import Path
 from ..fileutils.extensions import FileTypeError
 
 
+def shortest_repeating_substring(string : str) -> str:
+    '''Return the shortest substring such that the passed string can be written as some number of repeats (including 1) of the substring
+    Will return the original string if no simpler decomposition exists'''
+    i = (2*string).find(string, 1, -1) # check if string matches itself in a cycle in non-trivial way (i.e more than just the two repeats)
+    return string if (i == -1) else string[:i]
+
 def filter_text_by_condition(in_text_path : Path, condition : Callable[[str], bool], out_text_path : Optional[Path]=None, postfix : str='filtered', inclusive : bool=True, return_filtered_path : bool=False) -> Optional[Path]:
     '''Create a copy of a text-based file containing only the lines which match to a given boolean condition
     
