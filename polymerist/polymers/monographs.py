@@ -73,7 +73,7 @@ class MonomerGraph(nx.Graph):
         while stack:
             curr_idx = stack.pop()
             if not visited[curr_idx]:                                   # 1) collect appropriate tokens for the current node, depending on whether it has already been visited
-                mononame = self.nodes[curr_idx]["monomer_name"]    # get the name associated with the current monomer node (enclosed in square brackets)
+                mononame = self.nodes[curr_idx]["monomer_name"]         # get the name associated with the current monomer node (enclosed in square brackets)
                 tokens.append(f'[{mononame}]')                          #   push the current node's monomer label onto the result stack
                 visited[curr_idx] = True                                #   and mark as having been visited
             else:                                                       # otherwise, if returning to an already-visited node...
