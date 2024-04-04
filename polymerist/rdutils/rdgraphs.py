@@ -6,7 +6,7 @@ from rdkit import Chem
 import networkx as nx
 
 from ..genutils.importutils import compile_simple_getable_attrs
-from ..genutils.textual import camel_case_to_snake_case
+from ..genutils.textual.casing import camel_case_to_snake_case
 
 
 # CONVERTING Mols TO Graphs
