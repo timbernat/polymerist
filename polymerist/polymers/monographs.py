@@ -51,6 +51,13 @@ class MonomerGraph(nx.Graph):
         return set(nx.get_node_attributes(self, self.MONOMER_NAME_ATTR).values())
 
 
+    # visualization
+    def draw(self, show_names : bool=True) -> None: # TODO: expand arg passing (positions, matplotlib axes, etc)
+        '''Visualize graph structure with NetworkX'''
+        labels = nx.get_node_attributes(self, self.MONOMER_NAME_ATTR) if show_names else None
+        nx.draw(self, with_labels=True, labels=labels)
+
+
     # chemical information checks
     def insert_chemical_info(self, chemical_info : dict[str, dict]) -> None:
         '''Insert SMILES, SMARTS, and atom/linker count info into nodes from minimal set of monomer info templates'''
@@ -164,3 +171,4 @@ class MonomerGraph(nx.Graph):
                 return False, start_idxs
         else:
             return True, None
+MonoGraph = MonomerGraph # alias for convenience
