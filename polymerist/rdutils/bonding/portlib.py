@@ -21,6 +21,13 @@ def is_linker(rdatom : RDAtom) -> bool:
     '''Indicate whether an atom is a linker (intermonomer "*" type atom)'''
     return rdatom.GetAtomicNum() == 0
 
+def get_num_linkers(rdmol : RDMol) -> int:
+    '''Count how many wild-type inter-molecule linker atoms are in a Mol'''
+    return sum(
+        is_linker(atom)
+            for atom in rdmol.GetAtoms()
+    )
+
 @dataclass(frozen=True)
 class Port:
     '''Class for encapsulating the components of a "port" bonding site (linker-bond-bridgehead)'''
