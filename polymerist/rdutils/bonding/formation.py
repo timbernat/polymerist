@@ -11,7 +11,7 @@ from .identification import get_first_bondable_port_pair
 
 from ..rdtypes import RWMol
 from ..rdkdraw import clear_highlights
-from ..smileslib.primitives import BOND_SMILES_BY_ORDER
+from ..smileslib.primitives import RDKIT_BONDS_BY_BONDTYPE
 from ...genutils.decorators.functional import optional_in_place
 
 
@@ -39,7 +39,7 @@ def _increase_bond_order_alt(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int) ->
         rwmol.AddBond(atom_id_1, atom_id_2, order=BondType.SINGLE) # create new bond or specified order
     else: 
         new_bond_type = BondType.values[curr_bond.GetBondTypeAsDouble() + 1] # with pre-existing bond, need to get the next order up by numeric lookup
-        rwmol.ReplaceBond(curr_bond.GetIdx(), BOND_SMILES_BY_ORDER[new_bond_type], preserveProps=True)
+        rwmol.ReplaceBond(curr_bond.GetIdx(), RDKIT_BONDS_BY_BONDTYPE[new_bond_type], preserveProps=True)
 
 @optional_in_place
 def increase_bond_order(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, flavor_pair : tuple[Optional[int], Optional[int]]=(None, None)) -> None: # TODO : add specificity to flavor selection

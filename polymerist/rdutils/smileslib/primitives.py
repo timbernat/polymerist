@@ -4,22 +4,33 @@ from rdkit import Chem
 from rdkit.Chem.rdchem import BondType
 
 
-BOND_SMILES_BY_ORDER = { # concrete bond objects (since these can't be directly instantiated from bond order in Python)
-    BondType.SINGLE    : Chem.BondFromSmiles('-'),
-    BondType.DOUBLE    : Chem.BondFromSmiles('='),
-    BondType.TRIPLE    : Chem.BondFromSmiles('#'),
-    BondType.QUADRUPLE : Chem.BondFromSmiles('$'),
-    BondType.AROMATIC  : Chem.BondFromSmiles(':'),
+# BOND PRIMITIVES AND RELATED OBJECTS
+BOND_PRIMITIVES = '~-=#$:'
+BOND_INITIALIZERS = {
+    'SMILES' : (Chem.Bond     , Chem.BondFromSmiles),
+    'SMARTS' : (Chem.QueryBond, Chem.BondFromSmarts),
 }
+    
+for in_line_fmt, (rd_type, rd_initializer) in BOND_INITIALIZERS.items():
+    in_line_fmt = in_line_fmt.upper()
+    rd_prefix   = rd_type.__name__.upper()
 
-BOND_SMARTS_BY_ORDER = { # concrete bond objects (since these can't be directly instantiated from bond order in Python)
-    BondType.SINGLE    : Chem.BondFromSmarts('-'),
-    BondType.DOUBLE    : Chem.BondFromSmarts('='),
-    BondType.TRIPLE    : Chem.BondFromSmarts('#'),
-    BondType.QUADRUPLE : Chem.BondFromSmarts('$'),
-    BondType.AROMATIC  : Chem.BondFromSmarts(':'),
-}
+    globals()[f'BOND_{in_line_fmt}_BY_BONDTYPE'] = bonds_by_type  = {}
+    globals()[f'BOND_{in_line_fmt}_BY_ORDER'   ] = bonds_by_order = {}
+    globals()[f'RDKIT_{rd_prefix}S_BY_BONDTYPE'] = rdbonds_by_type  = {}
+    globals()[f'RDKIT_{rd_prefix}S_BY_ORDER'   ] = rdbonds_by_order = {}
+    
+    for prim_str in BOND_PRIMITIVES:
+        rd_bond = rd_initializer(prim_str)
+        if (rd_bond is not None) and (type(rd_bond) == rd_type):
+            bondtype, order = rd_bond.GetBondType(), rd_bond.GetBondTypeAsDouble()
+            bonds_by_type[bondtype]   = prim_str
+            bonds_by_order[order]     = prim_str
+            rdbonds_by_type[bondtype] = rd_bond
+            rdbonds_by_order[order]   = rd_bond
 
+
+# VALIDATION
 def is_valid_SMARTS(smarts : str) -> bool:
     '''Check if SMARTS string is valid (according to RDKit)'''
     return (Chem.MolFromSmarts(smarts) is not None)

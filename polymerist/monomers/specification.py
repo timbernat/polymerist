@@ -11,6 +11,7 @@ from rdkit.Chem import QueryAtom
 
 from ..rdutils.rdtypes import RDAtom, RDMol
 from ..rdutils import smileslib 
+from ..rdutils.smileslib.primitives import RDKIT_QUERYBONDS_BY_BONDTYPE
 from ..rdutils.labeling import molwise
 
 
@@ -111,7 +112,7 @@ def compliant_mol_SMARTS(smarts : str) -> str:
         atom.SetQuery(atom_query)
 
     for bond in rdmol.GetBonds():
-        bond_query = smileslib.primitives.BOND_SMARTS_BY_ORDER[bond.GetBondType()]
+        bond_query = RDKIT_QUERYBONDS_BY_BONDTYPE[bond.GetBondType()]
         bond.SetQuery(bond_query)
 
     # sanitize away RDKit artifacts
