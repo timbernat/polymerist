@@ -7,7 +7,8 @@ from itertools import product as cartesian_product
 
 from ..genutils.iteration import asiterable
 from ..genutils.sequences import bin_ids_forming_sequence
-from ..genutils.textual.delimiters import validate_braces 
+from ..genutils.textual.delimiters import validate_braces
+from ..genutils.fileutils.jsonio.serialize import TypeSerializer
 
 
 class MonomerGraph(nx.Graph):
@@ -47,7 +48,7 @@ class MonomerGraph(nx.Graph):
 
     @property
     def unique_monomer_names(self) -> set[str]:
-        '''The collection of unique monomer '''
+        '''The collection of unique monomer names embedded in the graph nodes'''
         return set(nx.get_node_attributes(self, self.MONOMER_NAME_ATTR).values())
 
 
@@ -56,6 +57,7 @@ class MonomerGraph(nx.Graph):
         '''Visualize graph structure with NetworkX'''
         labels = nx.get_node_attributes(self, self.MONOMER_NAME_ATTR) if show_names else None
         nx.draw(self, with_labels=True, labels=labels)
+    visualize = draw
 
 
     # chemical information checks
@@ -71,8 +73,8 @@ class MonomerGraph(nx.Graph):
     # SMILES-like in-line encodings
     ## Reading string
     @classmethod
-    def from_monograph_string(cls, monostring : str, start_node_idx : int=0) -> 'MonomerGraph':
-        '''Parse a SMILES-like monomer graph string and read it into a networkX Graph'''
+    def from_smidge_string(cls, monostring : str, start_node_idx : int=0) -> 'MonomerGraph':
+        '''Parse a SMIDGE ("SMILES-like Monomer Interconnectivity & Degree Graph Encoding") string and read it into a networkX Graph'''
         validate_braces(monostring) # check that all braces are in order before proceeding
         visited : list[int] = []
         curr_idx = start_node_idx - 1
@@ -98,6 +100,7 @@ class MonomerGraph(nx.Graph):
                 mononame += char                            #   must be inside a monomer block; in that case, just extend the current name
             
         return monograph
+    from_SMIDGE = from_smidge = from_smidge_string
 
     ## Writing string
     def _validate_start_node_idxs(self : nx.Graph, start_node_idxs : Optional[Union[int, Sequence[int]]]=None) -> dict[int, int]:
@@ -128,8 +131,8 @@ class MonomerGraph(nx.Graph):
         except StopIteration:
             raise ValueError('Starting node indices provided do not uniquely correspond to distinct chains')
 
-    def _chain_to_monograph_string(self : nx.Graph, start_node_idx : Optional[int]=None) -> str:
-        '''Convert an individual chain in monomer graph into a SMILES-like monomer string'''
+    def _chain_to_smidge_string(self : nx.Graph, start_node_idx : Optional[int]=None) -> str:
+        '''Convert an individual chain in monomer graph into a SMIDGE ("SMILES-like Monomer Interconnectivity & Degree Graph Encoding") string'''
         neighbors = nx.dfs_successors(self, source=start_node_idx) # determine DFS ordering of nodes and their neighbors
         visited = {i : False for i in self.nodes} 
         stack = [start_node_idx]
@@ -152,23 +155,36 @@ class MonomerGraph(nx.Graph):
 
         return ''.join(tokens)
     
-    def to_monograph_string(self : nx.Graph, start_node_idxs :  Optional[Union[int, Sequence[int]]]=None) -> str:
-        '''Convert a monomer graph into a SMILES-like monomer string'''
+    def to_smidge_string(self : nx.Graph, start_node_idxs :  Optional[Union[int, Sequence[int]]]=None) -> str:
+        '''Convert a monomer graph into a SMIDGE ("SMILES-like Monomer Interconnectivity & Degree Graph Encoding") string'''
         chain_starts = self._validate_start_node_idxs(start_node_idxs)
         return '.'.join(
-            self._chain_to_monograph_string(start_node_idx=chain_starts[i])
+            self._chain_to_smidge_string(start_node_idx=chain_starts[i])
                 for i in range(self.num_chains)
         )
+    to_smidge = to_SMIDGE = to_smidge_string
 
     ## Testing string translation
     def _passes_string_conversion_tests(self) -> tuple[bool, Optional[tuple[int]]]:
         '''Developer function, tests if conversion to and from graph strings preserves the graph topology invariant to the starting node
         Returns a bool of whether test passes for all possible traversal starting positions, and tuple of positions of first failure (or None if passing)'''
         for start_idxs in cartesian_product(*[chain.nodes for chain in self.chains]):
-            isostr = self.to_monograph_string(start_node_idxs=start_idxs)
-            isograph = self.from_monograph_string(isostr)
+            isostr = self.to_smidge_string(start_node_idxs=start_idxs)
+            isograph = self.from_smidge_string(isostr)
             if not nx.is_isomorphic(self, isograph):
                 return False, start_idxs
         else:
             return True, None
 MonoGraph = MonomerGraph # alias for convenience
+
+class MonomerGraphSerializer(TypeSerializer):
+    '''JSON serializer for storing MonomerGraphs as SMIDGE strings '''
+    python_type = MonomerGraph
+
+    @staticmethod
+    def encode(python_obj : MonomerGraph) -> str:
+        return python_obj.to_smidge_string()
+
+    @staticmethod
+    def decode(json_obj : str) -> MonomerGraph:
+        return MonomerGraph.from_smidge(json_obj)
