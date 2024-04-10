@@ -15,6 +15,8 @@ for in_line_fmt, (rd_type, rd_initializer) in BOND_INITIALIZERS.items():
     in_line_fmt = in_line_fmt.upper()
     rd_prefix   = rd_type.__name__.upper()
 
+    globals()[f'BONDTYPE_BY_BOND_{in_line_fmt}'] = type_by_bonds  = {}
+    globals()[f'ORDER_BY_BOND_{in_line_fmt}'   ] = order_by_bonds = {}
     globals()[f'BOND_{in_line_fmt}_BY_BONDTYPE'] = bonds_by_type  = {}
     globals()[f'BOND_{in_line_fmt}_BY_ORDER'   ] = bonds_by_order = {}
     globals()[f'RDKIT_{rd_prefix}S_BY_BONDTYPE'] = rdbonds_by_type  = {}
@@ -24,6 +26,8 @@ for in_line_fmt, (rd_type, rd_initializer) in BOND_INITIALIZERS.items():
         rd_bond = rd_initializer(prim_str)
         if (rd_bond is not None) and (type(rd_bond) == rd_type):
             bondtype, order = rd_bond.GetBondType(), rd_bond.GetBondTypeAsDouble()
+            type_by_bonds[prim_str]   = bondtype
+            order_by_bonds[prim_str]  = order
             bonds_by_type[bondtype]   = prim_str
             bonds_by_order[order]     = prim_str
             rdbonds_by_type[bondtype] = rd_bond
