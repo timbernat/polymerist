@@ -13,7 +13,9 @@ from ..genutils.fileutils.jsonio.serialize import TypeSerializer
 
 class MonomerGraph(nx.Graph):
     '''A graph representation of the connectivity of monomer fragments in a polymer topology'''
-    MONOMER_NAME_ATTR : ClassVar[str] = 'monomer_name' # node attribute name to assign the name of each monomer to
+    MONOMER_NAME_ATTR : ClassVar[str] = 'monomer_name'     # node attribute name assigned to monomer names
+    FLAVOR_DICT_ATTR  : ClassVar[str] = 'neighbor_flavors' # node attribute name assigne dto outgoing flavors for bonds to neighbor ports
+    BONDTYPE_ATTR     : ClassVar[str] = 'bondtype'         # edge attribute name assigned to bond type annotations
 
     # connectivity properties
     @property
@@ -53,10 +55,16 @@ class MonomerGraph(nx.Graph):
 
 
     # visualization
-    def draw(self, show_names : bool=True) -> None: # TODO: expand arg passing (positions, matplotlib axes, etc)
+    def draw(self, label_monomers : bool=True, label_bonds : bool=True, **kwargs) -> None: # TODO: expand arg passing (positions, matplotlib axes, etc)
         '''Visualize graph structure with NetworkX'''
-        labels = nx.get_node_attributes(self, self.MONOMER_NAME_ATTR) if show_names else None
-        nx.draw(self, with_labels=True, labels=labels)
+        if 'pos' not in kwargs:
+            kwargs['pos'] = nx.spring_layout(self)
+
+        monomer_labels = nx.get_node_attributes(self, self.MONOMER_NAME_ATTR) if label_monomers else None
+        nx.draw(self, with_labels=True, labels=monomer_labels, **kwargs)
+        
+        bond_labels    = nx.get_edge_attributes(self, self.BONDTYPE_ATTR) if label_bonds else None
+        nx.draw_networkx_edge_labels(self, edge_labels=bond_labels, **kwargs)
     visualize = draw
 
 
@@ -73,37 +81,16 @@ class MonomerGraph(nx.Graph):
     # SMILES-like in-line encodings
     ## Reading string
     @classmethod
-    def from_smidge_string(cls, monostring : str, start_node_idx : int=0) -> 'MonomerGraph':
+    def from_smidge_string(cls, smidge_string : str, start_node_idx : int=0) -> 'MonomerGraph':
         '''Parse a SMIDGE ("SMILES-like Monomer Interconnectivity & Degree Graph Encoding") string and read it into a networkX Graph'''
-        validate_braces(monostring) # check that all braces are in order before proceeding
-        visited : list[int] = []
-        curr_idx = start_node_idx - 1
-        mononame = ''
-        
-        monograph = cls() # create empty instance with class initializer
-        for char in monostring:
-            if char == '[':                                 # 1) if reached a new monomer block...
-                mononame = ''                               #   clear the current monomer name
-                curr_idx += 1                               #   and advance the current position index
-            elif char == ']':                               # 2) if reached the end of a monomer block...
-                monograph.add_node(curr_idx, **{cls.MONOMER_NAME_ATTR : mononame}) #   add a new node with the current index and name
-                if visited:                                 #   if previously-visited nodes exist...
-                    monograph.add_edge(curr_idx, visited.pop())     #   remove the last visited node from the traversal stack and link the current node to it
-                visited.append(curr_idx)                    #   add the current node to the stack of visited nodes
-            elif char == '(':                               # 3) if beginning a traversal branch...
-                visited.append(visited[-1])                 #   duplicate the last visited node
-            elif char == ')':                               # 4) if exiting a branch...
-                visited.pop()                               #   remove the last visited position and return to the previous most recent visited node
-            elif char == '.':                               # 5) if reaching the end of a connected component... | TOSELF: opted for this over str.split('.') as this already tracks node sequence
-                visited.clear()                             #   clear the visited stack to restart the traversal for the new component (ensures it is not connected to the previous one)
-            else:                                           # 6) otherwise... 
-                mononame += char                            #   must be inside a monomer block; in that case, just extend the current name
-            
-        return monograph
+        from .smidgelib.smidgeread import SMIDGEReader
+
+        reader = SMIDGEReader()
+        return reader.read_smidge(smidge_string, start_node_idx=start_node_idx)
     from_SMIDGE = from_smidge = from_smidge_string
 
     ## Writing string
-    def _validate_start_node_idxs(self : nx.Graph, start_node_idxs : Optional[Union[int, Sequence[int]]]=None) -> dict[int, int]:
+    def _validate_start_node_idxs(self, start_node_idxs : Optional[Union[int, Sequence[int]]]=None) -> dict[int, int]:
         '''Check if a collection of DFS traversal start indices are valid for the current graph topology'''
         # 0) if explicitly NO ids are passed, no validation is needed
         n_chains = self.num_chains
@@ -130,38 +117,13 @@ class MonomerGraph(nx.Graph):
         }
         except StopIteration:
             raise ValueError('Starting node indices provided do not uniquely correspond to distinct chains')
-
-    def _chain_to_smidge_string(self : nx.Graph, start_node_idx : Optional[int]=None) -> str:
-        '''Convert an individual chain in monomer graph into a SMIDGE ("SMILES-like Monomer Interconnectivity & Degree Graph Encoding") string'''
-        neighbors = nx.dfs_successors(self, source=start_node_idx) # determine DFS ordering of nodes and their neighbors
-        visited = {i : False for i in self.nodes} 
-        stack = [start_node_idx]
-        
-        tokens = []
-        while stack:
-            curr_idx = stack.pop()
-            if not visited[curr_idx]:                                   # 1) collect appropriate tokens for the current node, depending on whether it has already been visited
-                mononame = self.nodes[curr_idx][self.MONOMER_NAME_ATTR] # get the name associated with the current monomer node (enclosed in square brackets)
-                tokens.append(f'[{mononame}]')                          #   push the current node's monomer label onto the result stack
-                visited[curr_idx] = True                                #   and mark as having been visited
-            else:                                                       # otherwise, if returning to an already-visited node...
-                tokens.append(')')                                      #   close the branch that must have led to this node
-                
-            if (successors := neighbors.get(curr_idx, [])):             # 2) get the remaining DFS successors of the current node, proceeding with checks if nonempty...
-                if (len(successors) > 1):                               # if multiple unvisited successors are present...
-                    tokens.append('(')                                  #   initialize a new branch point indicator 
-                    stack.append(curr_idx)                              #   and mark the current node 
-                stack.append(successors.pop(0))                         # push the first available successor node to be visited next
-
-        return ''.join(tokens)
     
-    def to_smidge_string(self : nx.Graph, start_node_idxs :  Optional[Union[int, Sequence[int]]]=None) -> str:
+    def to_smidge_string(self, start_node_idxs :  Optional[Union[int, Sequence[int]]]=None) -> str:
         '''Convert a monomer graph into a SMIDGE ("SMILES-like Monomer Interconnectivity & Degree Graph Encoding") string'''
-        chain_starts = self._validate_start_node_idxs(start_node_idxs)
-        return '.'.join(
-            self._chain_to_smidge_string(start_node_idx=chain_starts[i])
-                for i in range(self.num_chains)
-        )
+        from .smidgelib.smidgewrite import SMIDGEWriter
+
+        writer = SMIDGEWriter()
+        return writer.write_smidge(self, start_node_idxs=start_node_idxs)
     to_smidge = to_SMIDGE = to_smidge_string
 
     ## Testing string translation
