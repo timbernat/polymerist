@@ -6,6 +6,7 @@ from rdkit.Chem.rdchem import BondType
 
 # BOND PRIMITIVES AND RELATED OBJECTS
 BOND_PRIMITIVES = '~-=#$:'
+BOND_PRIMITIVES_FOR_REGEX = r'[~\-=#$:]' # any of the SMARTS bond primitive chars, with a space to differentiate single-bond hyphen for the regex range char
 BOND_INITIALIZERS = {
     'SMILES' : (Chem.Bond     , Chem.BondFromSmiles),
     'SMARTS' : (Chem.QueryBond, Chem.BondFromSmarts),
