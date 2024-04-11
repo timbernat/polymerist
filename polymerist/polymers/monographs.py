@@ -1,6 +1,6 @@
 '''Tools for generating and manipulating monomer connectivity graphs'''
 
-from typing import ClassVar, Generator, Optional, Sequence, Union
+from typing import Any, ClassVar, Generator, Optional, Sequence, Union
 
 import networkx as nx
 from itertools import product as cartesian_product
@@ -13,9 +13,22 @@ from ..genutils.fileutils.jsonio.serialize import TypeSerializer
 
 class MonomerGraph(nx.Graph):
     '''A graph representation of the connectivity of monomer fragments in a polymer topology'''
-    MONOMER_NAME_ATTR : ClassVar[str] = 'monomer_name'     # node attribute name assigned to monomer names
-    FLAVOR_DICT_ATTR  : ClassVar[str] = 'neighbor_flavors' # node attribute name assigne dto outgoing flavors for bonds to neighbor ports
-    BONDTYPE_ATTR     : ClassVar[str] = 'bondtype'         # edge attribute name assigned to bond type annotations
+    MONOMER_NAME_ATTR : ClassVar[str]            = 'monomer_name'     # node attribute name assigned to monomer names
+    FLAVOR_DICT_ATTR  : ClassVar[dict[int, int]] = 'neighbor_flavors' # node attribute name assigned to outgoing flavors for bonds to neighbor ports
+    BONDTYPE_ATTR     : ClassVar[str]            = 'bondtype'         # edge attribute name assigned to bond type annotations
+
+
+    # node and edge attributes
+    def get_monomer_name_at_node_index(self, node_idx : int) -> Optional[str]:
+        '''Recover the assigned monomer name for the node at the given index'''
+        return self.nodes[node_idx].get(self.MONOMER_NAME_ATTR)
+    monomer_name = get_monomer_name = get_monomer_name_at_node_idx = get_monomer_name_at_node_index
+
+    def get_flavor_dict_at_node_index(self, node_idx : int) -> Optional[dict[int, int]]:
+        '''Recover the assigned dictionary of neighbor flavors for the node at the given index'''
+        return self.nodes[node_idx].get(self.FLAVOR_DICT_ATTR)
+    flavor_dict = get_flavor_dict = get_flavor_dict_at_node_idx = get_flavor_dict_at_node_index
+
 
     # connectivity properties
     @property
