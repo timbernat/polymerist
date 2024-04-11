@@ -35,8 +35,16 @@ class MonomerGraph(nx.Graph):
         '''Whether the monomer graph represents straight chain(s) without branching'''
         return not self.is_unbranched
     
+    @property
+    def terminal_monomers(self) -> Generator[int, None, None]:
+        '''Generates the indices of all nodes corresponding to terminal monomers (i.e. those wiht only one outgoing bond)'''
+        for node_idx, degree in self.degree:
+            if degree == 1:
+                yield node_idx
+    termini = leaves = terminal_monomers
+    
 
-    # topological and multi-chain settings
+    # topological and multi-chain properties
     @property
     def num_chains(self) -> int:
         '''The number of disconnected chains represented by the MonoGraph'''
@@ -58,13 +66,13 @@ class MonomerGraph(nx.Graph):
     def draw(self, label_monomers : bool=True, label_bonds : bool=True, **kwargs) -> None: # TODO: expand arg passing (positions, matplotlib axes, etc)
         '''Visualize graph structure with NetworkX'''
         if 'pos' not in kwargs:
-            kwargs['pos'] = nx.spring_layout(self)
+            kwargs['pos'] = nx.spring_layout(self) # TODO: try other layouts to see which looks best
 
         monomer_labels = nx.get_node_attributes(self, self.MONOMER_NAME_ATTR) if label_monomers else None
         nx.draw(self, with_labels=True, labels=monomer_labels, **kwargs)
         
         bond_labels    = nx.get_edge_attributes(self, self.BONDTYPE_ATTR) if label_bonds else None
-        nx.draw_networkx_edge_labels(self, edge_labels=bond_labels, **kwargs)
+        nx.draw_networkx_edge_labels(self, edge_labels=bond_labels, **kwargs) # TODO: add flavor labels to drawing
     visualize = draw
 
 
