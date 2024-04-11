@@ -59,6 +59,7 @@ COMMON_DELIMITERS = {
     'parentheses'     : '()',
     'square_brackets' : '[]',
     'curly_brackets'  : '{}',
+    'chevrons'        : '<>', 
 }
 
 for delimiter_name, (start_char, end_char) in COMMON_DELIMITERS.items(): # register specific cases as globally-accessible functions
