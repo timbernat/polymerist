@@ -2,6 +2,7 @@
 
 from typing import Any, ClassVar, Optional, Type, TypeVar, Union
 from abc import ABC, abstractstaticmethod
+from inspect import isclass
 T = TypeVar('T') # generic type
 
 from pathlib import Path
@@ -29,7 +30,7 @@ class TypeSerializer(ABC):
         pass
 
     @classmethod
-    def encoder_default(cls, python_obj : Any) -> JSONSerializable: # NOTE : this is only called on objects which cannot be JSON serialized by default (i.e. don;t need base case)
+    def encoder_default(cls, python_obj : Any) -> JSONSerializable: # NOTE : this is only called on objects which cannot be JSON serialized by default (i.e. don't need base case)
         '''Augmented Encoder for encoding registered objects along with type info for decoding'''
         if isinstance(python_obj, cls.python_type):
             return {
@@ -54,8 +55,27 @@ class TypeSerializer(ABC):
 
 class MultiTypeSerializer:
     '''For dynamically merging multiple TypeSerializer encoders and decoders'''
-    def __init__(self, *type_sers) -> None:
-        self.type_sers = type_sers
+    def __init__(self, *type_sers : tuple[Type[TypeSerializer]]) -> None:
+        self._type_sers = []
+        for ts in type_sers:
+            self.add_type_serializer(ts)
+
+    @property
+    def type_sers(self) -> list[Type[TypeSerializer]]:
+        '''Read-only wrapper for the internal registry of TypeSerializers'''
+        return self._type_sers
+    
+    def add_type_serializer(self, obj : Union[TypeSerializer, 'MultiTypeSerializer']) -> None: # TODO: add uniqueness check
+        '''For type, instance, and uniqueness checking of Type '''
+        if isinstance(obj, TypeSerializer):
+            self._type_sers.append(obj)
+        elif isclass(obj) and issubclass(obj, TypeSerializer):
+            self._type_sers.append(obj()) # instantiate, then add to registered serializers
+        elif isinstance(obj, MultiTypeSerializer):
+            for ts in obj.type_sers:
+                self.add_type_serializer(ts)
+        else:
+            raise TypeError(f'Object of type "{obj.__name__ if isclass(obj) else type(obj).__name__}" is not a valid TypeSerializer')
 
     def encoder_default(self, python_obj : Any) -> JSONSerializable:
         for type_ser in self.type_sers:
