@@ -13,14 +13,16 @@ from .serialize import TypeSerializer, MultiTypeSerializer
 
 
 # TYPEHINTING AND SERIALIZATION FOR JSONIFIABLE CLASSES 
-class JSONifiable: # documentation class, makes type-checking for jsonifiabl-modified classes easier
+class JSONifiable: # documentation class, makes type-checking for jsonifiable-modified classes easier
     '''For type-hinting classes which are jsonifiable'''
     pass
 
 def jsonifiable_serializer_factory(cls : Type[C]) -> TypeSerializer:
-    '''For generating a custom TypeSerializer for a JSONifiable class'''
+    '''For generating a custom TypeSerializer for a JSONifiable dataclass'''
+    assert(is_dataclass(cls)) # can enforce modification only to dataclasses (makes behavior a little more natural)
+
     class JSONifiableSerializer(TypeSerializer):
-        '''For deserializing nested JSONifiable classes (i.e. JSONifiable classes containing JSONifiable attributes)'''
+        f'''JSON encoder and decoder for the {cls.__name__} dataclass'''
         python_type = cls
 
         @staticmethod
@@ -31,7 +33,18 @@ def jsonifiable_serializer_factory(cls : Type[C]) -> TypeSerializer:
         @staticmethod
         def decode(json_obj : dict[str, Any]) -> C:
             '''Load registered JSONifiable class from a (presumed to be a dictionary during __values__ parse)'''
+            json_obj = {
+                attr : value
+                    for attr, value in json_obj.items()
+                        if cls.__dataclass_fields__[attr].init # only pass fields which are allowed to be initialized with values
+            }
             return cls(**json_obj)
+        
+    # dynamically update signatures for readability
+    nongeneric_name = f'{cls.__name__}Serializer' # dynamically set the name of the serializer to match with the wrapped class
+    setattr(JSONifiableSerializer, '__name__', nongeneric_name)
+    setattr(JSONifiableSerializer, '__qualname__', nongeneric_name)
+    setattr(JSONifiableSerializer, '__module__', cls.__module__)
         
     return JSONifiableSerializer
 
@@ -57,7 +70,7 @@ def make_jsonifiable(cls : Optional[C]=None, type_serializer : Optional[Union[Ty
                     return type_serializer.encoder_default(python_obj)
             object_hook = type_serializer.decoder_hook
 
-        # generate serializable child class
+        # generate serializable child classmake_jsonifiable @t attempt __dict__updates (classes don't have these)
         @wraps(cls, updated=()) # copy over docstring, module, etc; set updated to empty so as to not attempt __dict__updates (classes don;t have these)
         @dataclass
         class WrappedClass(cls, JSONifiable):
@@ -79,18 +92,12 @@ def make_jsonifiable(cls : Optional[C]=None, type_serializer : Optional[Union[Ty
                 assert(load_path.suffix == '.json')
                 with load_path.open('r') as loadfile:
                     params = json.load(loadfile, object_hook=object_hook)
-
+                    params = {
+                        attr : value
+                            for attr, value in params.items()
+                                if cls.__dataclass_fields__[attr].init # only pass fields which are allowed to be initialized with values
+                    }
                 return cls(**params)
-
-            # @staticmethod
-            # def update_checkpoint(funct : Callable[[Any], T]) -> Callable[[Any, Args, KWArgs], T]: # NOTE : this deliberately doesn't have a "self" arg!
-            #     '''Decorator for updating the on-disc checkpoint file after a function updates a Polymer attribute'''
-            #     def update_fn(self, *args, **kwargs) -> Optional[Any]:
-            #         ret_val = funct(self, *args, **kwargs) # need temporary value so update call can be made before returning
-            #         self.to_file()
-            #         return ret_val
-            #     return update_fn
-
         return WrappedClass
 
     if cls is None:
