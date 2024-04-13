@@ -8,7 +8,7 @@ from openmm.unit import Quantity
 
 from .thermo import ThermoParameters
 from .reporters import ReporterParameters
-from ..genutils.fileutils.jsonio.jsonify import make_jsonifiable, jsonifiable_serializer_factory
+from ..genutils.fileutils.jsonio.jsonify import make_jsonifiable, dataclass_serializer_factory
 from ..genutils.fileutils.jsonio.serialize import PathSerializer, QuantitySerializer, MultiTypeSerializer
 
 
@@ -42,19 +42,7 @@ class IntegratorParameters:
         return (np.arange(0, self.num_steps, step=self.report_interval) + self.report_interval)* self.time_step # extra offset by recording frequency need to align indices (not 0-indexed)
 
 # UNIFIED SIMULATION PARAMETER SETS
-ThermoParametersSerializer     = jsonifiable_serializer_factory(ThermoParameters)
-ReporterParametersSerializer   = jsonifiable_serializer_factory(ReporterParameters)
-IntegratorParametersSerializer = jsonifiable_serializer_factory(IntegratorParameters)
-
-SimulationParametersSerializer = MultiTypeSerializer( # create unified serializer for Simulation parameter sets
-    PathSerializer,
-    QuantitySerializer,
-    ThermoParametersSerializer,
-    ReporterParametersSerializer,
-    IntegratorParametersSerializer,
-)
-
-@make_jsonifiable(type_serializer=SimulationParametersSerializer)
+@make_jsonifiable
 @dataclass
 class SimulationParameters:
     '''Unified class for storing simulation parameters'''
