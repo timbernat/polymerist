@@ -1,9 +1,11 @@
 '''Tools for making existing classes easily readable/writable to JSON'''
 
-from typing import Any, Optional, Type, TypeVar, Union
+from typing import Any, Callable, ClassVar, Optional, Type, TypeVar, Union
 C = TypeVar('C') # generic type for classes
+
 from dataclasses import dataclass, is_dataclass
 from functools import update_wrapper, wraps
+from inspect import signature, isclass
 
 import json
 from pathlib import Path
@@ -17,11 +19,11 @@ class JSONifiable: # documentation class, makes type-checking for jsonifiable-mo
     '''For type-hinting classes which are jsonifiable'''
     pass
 
-def jsonifiable_serializer_factory(cls : Type[C]) -> TypeSerializer:
+def dataclass_serializer_factory(cls : Type[C]) -> TypeSerializer:
     '''For generating a custom TypeSerializer for a JSONifiable dataclass'''
     assert(is_dataclass(cls)) # can enforce modification only to dataclasses (makes behavior a little more natural)
 
-    class JSONifiableSerializer(TypeSerializer):
+    class DataclassSerializer(TypeSerializer):
         f'''JSON encoder and decoder for the {cls.__name__} dataclass'''
         python_type = cls
 
@@ -41,12 +43,12 @@ def jsonifiable_serializer_factory(cls : Type[C]) -> TypeSerializer:
             return cls(**json_obj)
         
     # dynamically update signatures for readability
-    nongeneric_name = f'{cls.__name__}Serializer' # dynamically set the name of the serializer to match with the wrapped class
-    setattr(JSONifiableSerializer, '__name__', nongeneric_name)
-    setattr(JSONifiableSerializer, '__qualname__', nongeneric_name)
-    setattr(JSONifiableSerializer, '__module__', cls.__module__)
+    non_generic_name = f'{cls.__name__}Serializer' # dynamically set the name of the serializer to match with the wrapped class
+    setattr(DataclassSerializer, '__name__', non_generic_name)
+    setattr(DataclassSerializer, '__qualname__', non_generic_name)
+    setattr(DataclassSerializer, '__module__', cls.__module__)
         
-    return JSONifiableSerializer
+    return DataclassSerializer
 
 
 # DECORATOR METHOD FOR MAKING CLASSES JSON-SERIALIZABLE
@@ -59,45 +61,41 @@ def make_jsonifiable(cls : Optional[C]=None, type_serializer : Optional[Union[Ty
         '''Factory method, defines new class which inherits from original class and adds serialization methods'''
         assert(is_dataclass(cls)) # can enforce modification only to dataclasses (makes behavior a little more natural)
 
-        # assign encoder(s) and decoder(s)
-        if type_serializer is None:
-            Encoder     = None
-            object_hook = None
-        else:
-            class Encoder(json.JSONEncoder): # define new class with custom encoder
-                '''Encoder with overriden default'''
-                def default(self, python_obj : Any) -> Any:
-                    return type_serializer.encoder_default(python_obj)
-            object_hook = type_serializer.decoder_hook
+        multi_serializer = MultiTypeSerializer()
+        if type_serializer is not None:
+            multi_serializer.add_type_serializer(type_serializer)
 
-        # generate serializable child classmake_jsonifiable @t attempt __dict__updates (classes don't have these)
+        # check if any of the init fields of the dataclass are also JSONifiable, register respective serializers if they are
+        for init_param in signature(cls).parameters.values(): # TODO: find a way to have this recognize serializable classes in default containers (e.g. list[JSONifiable])
+            if isclass(init_param.annotation) and issubclass(init_param.annotation, JSONifiable): # check if the init field is itself a JSONifiable class
+                multi_serializer.add_type_serializer(init_param.annotation.serializer)
+
+        # generate serializable wrapper class
         @wraps(cls, updated=()) # copy over docstring, module, etc; set updated to empty so as to not attempt __dict__updates (classes don;t have these)
         @dataclass
         class WrappedClass(cls, JSONifiable):
             '''Class which inherits from modified class and adds JSON serialization capability'''
-            _Encoder = Encoder
-            _object_hook = object_hook
+            serializer : ClassVar[MultiTypeSerializer] = multi_serializer
 
             @allow_string_paths
             def to_file(self, save_path : Path) -> None:
                 '''Store parameters in a JSON file on disc'''
                 assert(save_path.suffix == '.json')
                 with save_path.open('w') as dumpfile:
-                    json.dump(self.__dict__, dumpfile, cls=Encoder, indent=4)
-            setattr(cls, 'to_file', to_file) # bind new attribute to class
+                    json.dump(self, dumpfile, default=self.serializer.encoder_default, indent=4)
 
             @classmethod
             @allow_string_paths
             def from_file(cls, load_path : Path) -> cls.__class__:
                 assert(load_path.suffix == '.json')
                 with load_path.open('r') as loadfile:
-                    params = json.load(loadfile, object_hook=object_hook)
-                    params = {
-                        attr : value
-                            for attr, value in params.items()
-                                if cls.__dataclass_fields__[attr].init # only pass fields which are allowed to be initialized with values
-                    }
-                return cls(**params)
+                    return json.load(loadfile, object_hook=cls.serializer.decoder_hook)
+
+        # !CRITICAL! that the custom serializer be registered for WrappedClass and NOT cls; otherwise, decoded instances will have different type to the parent class
+        print(signature(WrappedClass) == signature(cls))
+        CustomSerializer = dataclass_serializer_factory(WrappedClass)
+        multi_serializer.add_type_serializer(CustomSerializer)
+        
         return WrappedClass
 
     if cls is None:
