@@ -68,9 +68,9 @@ class VisitNode(SMIDGEWriterState):
     def state_action(self, register: SMIDGEWriterRegister) -> SMIDGEWriterState:
         if register.prev_idx is not None:
             register.bond_info = MonomerGraphBondInfo(
-                incoming_flavor=register.monograph.nodes[register.prev_idx].get('neighbor_flavors', {}).get(register.curr_idx),
-                bondtype=register.monograph.edges[register.prev_idx, register.curr_idx].get('bondtype'),
-                outgoing_flavor=register.monograph.nodes[register.curr_idx].get('neighbor_flavors', {}).get(register.prev_idx),
+                incoming_flavor=register.monograph.nodes[register.prev_idx].get(MonomerGraph.FLAVOR_DICT_ATTR, {}).get(register.curr_idx),
+                bondtype=register.monograph.edges[register.prev_idx, register.curr_idx].get(MonomerGraph.BONDTYPE_ATTR),
+                outgoing_flavor=register.monograph.nodes[register.curr_idx].get(MonomerGraph.FLAVOR_DICT_ATTR, {}).get(register.prev_idx), # NOTE : the same as incoming_flavor, but with the order of nodes reversed
             )
         else:
             register.bond_info = MonomerGraphBondInfo()
@@ -97,7 +97,7 @@ class WriteNode(SMIDGEWriterState):
 class WriteEdge(SMIDGEWriterState):
     '''Add an entry for the current edge to the output tokens'''
     def state_action(self, register: SMIDGEWriterRegister) -> SMIDGEWriterState:
-        register.tokens.append(f'{{{register.bond_info!s}}}')
+        register.tokens.append(f'<{register.bond_info!s}>')
 
     def transition(self, register: SMIDGEWriterRegister) -> SMIDGEWriterState:
         return WriteNode()

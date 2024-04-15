@@ -42,8 +42,8 @@ class SMIDGEReadState(ABC):
             ']' : MonomerEnd(),
             '(' : BranchStart(),
             ')' : BranchEnd(),
-            '{' : BondStart(),
-            '}' : BondEnd(),
+            '<' : BondStart(),
+            '>' : BondEnd(),
         }
         return READ_STATE_MAP.get(register.curr_token, Accumulate()) # treat Accumulate as default (and thereby starting) state
 
