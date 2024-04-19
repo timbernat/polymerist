@@ -9,6 +9,7 @@ from itertools import product as cartesian_product
 from ..genutils.typetools.numpytypes import Shape, N
 
 
+# INTEGER LATTICES (UNIT BASIS SUPERCELLS)
 def generate_int_lattice(*dims : Iterable[int]) -> np.ndarray[Shape[N, 3], int]:
     '''Generate all N-D coordinates of points on a integer lattice with the sizes of all D dimensions given'''
     return np.fromiter(
@@ -19,8 +20,38 @@ def generate_int_lattice(*dims : Iterable[int]) -> np.ndarray[Shape[N, 3], int]:
         dtype=np.dtype((int, len(dims)))
     )
 
+
+# LATTICE VECTORS AND PARAMETERS
+COMMON_LATTICE_VECTORS : dict[str, np.ndarray[Shape[3, 3], float]] = {
+    'UNIT_CUBE' : np.asarray([
+        [1.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0],
+        [0.0, 0.0, 1.0],
+    ]),
+    'RHOMBIC_DODECAHEDRON_XY_SQR' : np.array([
+        [1.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0],
+        [1/2, 1/2, np.sqrt(2.0) / 2.0],
+    ]),
+    'RHOMBIC_DODECAHEDRON_XY_HEX' : np.array([
+        [1.0, 0.0, 0.0],
+        [1/2, np.sqrt(3.0) / 2.0, 0.0],
+        [1/2, np.sqrt(3.0) / 6.0, np.sqrt(6.0) / 3.0],
+    ]),
+    'TRUNCATED_OCTAHEDRON' : np.array([
+        [ 1.0, 0.0, 0.0],
+        [ 1/3, 2.0 * np.sqrt(2.0) / 3.0, 0.0],
+        [-1/3, np.sqrt(2.0) / 3.0, np.sqrt(6.0) / 3.0],
+    ]),
+} # adapted from https://manual.gromacs.org/current/reference-manual/algorithms/periodic-boundary-conditions.html
+
+for lattice_name, lattice_vectors in COMMON_LATTICE_VECTORS.items():
+    globals()[lattice_name] = lattice_vectors # dynamically register common lattice vectors at module level
+
+
+## REPRESENTATION / CONVERSION CLASS
 @dataclass
-class LatticeParameters: # TODO : add support for OpenMM units
+class LatticeParameters: # TODO : add support for OpenMM units, add compat w/ lammpstools.lammpseval
     '''For storing the lengths of and the angles between the 3 lattice vectors of a crystallographic unit cell'''
     a : float
     b : float
@@ -72,6 +103,11 @@ class LatticeParameters: # TODO : add support for OpenMM units
         if in_degrees:
             return np.rad2deg(self.angles)
         return self.angles
+    
+    @property
+    def volume(self) -> float:
+        '''The volume of the unit cell (in arbitrary units)'''
+        return np.linalg.det(self.lattice_vectors)
 
     # LATTICE VECTOR METHODS
     @classmethod
@@ -112,7 +148,3 @@ class LatticeParameters: # TODO : add support for OpenMM units
     def lattice_vectors(self) ->np.ndarray[Shape[3,3], float]:
         '''Property alias of to_lattice_vectors() method for convenience'''
         return self.to_lattice_vectors()
-
-    def volume(self) -> float:
-        '''The volume of the unit cell (in arbitrary units)'''
-        return np.linalg.det(self.lattice_vectors)
