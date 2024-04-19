@@ -15,7 +15,7 @@ from openmm.unit import Unit
 from openmm.unit import nanometer, nanosecond, dimensionless
 
 from ..unitutils.dimensions import hasunits
-from ..genutils.typetools import T, Args, KWArgs
+from ..genutils.typetools.parametric import T, Args, KWArgs
 from ..genutils.decorators.signatures import modify_param_annotation_by_index
 
 

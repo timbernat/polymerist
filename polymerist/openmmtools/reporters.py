@@ -10,7 +10,7 @@ from pathlib import Path
 from openmm.app import PDBReporter, PDBxReporter, DCDReporter
 from openmm.app import StateDataReporter, CheckpointReporter
 
-from ..genutils.typetools import Args, KWArgs
+from ..genutils.typetools.parametric import Args, KWArgs
 from ..genutils.fileutils.pathutils import assemble_path
 from ..genutils.fileutils.jsonio.jsonify import make_jsonifiable
 from ..genutils.fileutils.jsonio.serialize import PathSerializer

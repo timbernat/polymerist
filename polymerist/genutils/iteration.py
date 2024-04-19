@@ -5,7 +5,7 @@ from typing import Any, Callable, Generator, Iterable, TypeVar, Union
 from itertools import islice, combinations, product as cartesian_product
 from collections import deque
 
-from .typetools import Args, KWArgs
+from .typetools.parametric import Args, KWArgs
 from .decorators.functional import optional_in_place
 
 

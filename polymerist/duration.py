@@ -8,7 +8,7 @@ from string import Template
 from datetime import timedelta
 from openmm.unit import Quantity, microsecond, millisecond, second, minute, hour, day, year # TODO : remove dependence on OpenMM for Unit support
 
-from polymerist.genutils.typetools import _union_member_factory
+from .genutils.typetools.categorical import _union_member_factory
 
 
 # TIME CONVERSION CONSTANTS

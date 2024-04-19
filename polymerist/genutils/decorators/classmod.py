@@ -1,7 +1,7 @@
 '''Decorators for modifying classes'''
 
 from typing import Callable, Iterable, Optional, TypeVar
-from ..typetools import C
+C = TypeVar('C')
 
 
 def generate_repr(cls : Optional[C]=None, disp_attrs : Optional[Iterable[str]]=None, lookup_attr : Optional[str]=None):

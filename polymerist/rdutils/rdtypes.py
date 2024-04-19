@@ -3,7 +3,7 @@
 from typing import Any, TypeAlias, Union
 from rdkit import Chem
 
-from ..genutils.typetools import _union_member_factory
+from ..genutils.typetools.categorical import _union_member_factory
 
 # DEFINING RDKit TYPES
 RDMol  = Chem.rdchem.Mol

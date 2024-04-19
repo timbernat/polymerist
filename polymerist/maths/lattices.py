@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 import numpy as np
 from itertools import product as cartesian_product
 
-from ..genutils.typetools import Shape, N
+from ..genutils.typetools.numpytypes import Shape, N
 
 
 def generate_int_lattice(*dims : Iterable[int]) -> np.ndarray[Shape[N, 3], int]:

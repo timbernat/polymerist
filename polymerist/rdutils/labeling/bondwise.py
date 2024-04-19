@@ -9,7 +9,7 @@ from rdkit.Chem.rdchem import BondType
 from ..rdtypes import RDMol, RDBond
 from .molwise import atom_ids_by_map_nums
 
-from ...genutils.typetools import Args, KWArgs
+from ...genutils.typetools.parametric import Args, KWArgs
 from ...genutils.iteration import sliding_window
 from ...genutils.decorators.functional import optional_in_place
 

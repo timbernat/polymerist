@@ -1,7 +1,7 @@
 '''Tools for matrix decomposition'''
 
 import numpy as np
-from ...genutils.typetools import Shape, DType, N, M
+from ...genutils.typetools.numpytypes import Shape, DType, N, M
 
 
 def diagonalize(matrix : np.ndarray) -> tuple[np.ndarray]:

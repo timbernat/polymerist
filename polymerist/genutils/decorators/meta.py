@@ -3,7 +3,7 @@
 from typing import Concatenate, Callable, ParamSpec, TypeAlias, TypeVar
 from functools import update_wrapper
 
-from ..typetools import C, O, P, R, Args, KWArgs
+from ..typetools.parametric import C, O, P, R, Args, KWArgs
 Decorator : TypeAlias = Callable[[Callable[P, R]], Callable[P, R]]
 
 

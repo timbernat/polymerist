@@ -10,19 +10,19 @@ from pathlib import Path
 
 from .meta import extend_to_methods
 from . import signatures
-from ..typetools import O, T, Args, KWArgs
+from ..typetools.parametric import T, Args, KWArgs
 from ..fileutils.pathutils import aspath, asstrpath
 
 
 @extend_to_methods
-def optional_in_place(funct : Callable[[O, Args, KWArgs], None]) -> Callable[[O, Args, bool, KWArgs], Optional[O]]:
+def optional_in_place(funct : Callable[[object, Args, KWArgs], None]) -> Callable[[object, Args, bool, KWArgs], Optional[object]]:
     '''Decorator function for allowing in-place (writeable) functions which modify object attributes
     to be not performed in-place (i.e. read-only), specified by a boolean flag'''
     # TODO : add assertion that the wrapped function has at least one arg AND that the first arg is of the desired (limited) type
     old_sig = inspect.signature(funct)
     
     @wraps(funct) # for preserving docstring and type annotations / signatures
-    def in_place_wrapper(obj : O, *args : Args, in_place : bool=False, **kwargs : KWArgs) -> Optional[O]: # read-only by default
+    def in_place_wrapper(obj : object, *args : Args, in_place : bool=False, **kwargs : KWArgs) -> Optional[object]: # read-only by default
         '''If not in-place, create a clone on which the method is executed''' # NOTE : old_sig.bind screws up arg passing
         if in_place:
             funct(obj, *args, **kwargs) # default call to writeable method - implicitly returns None
