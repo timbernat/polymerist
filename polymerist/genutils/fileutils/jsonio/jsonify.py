@@ -92,7 +92,6 @@ def make_jsonifiable(cls : Optional[C]=None, type_serializer : Optional[Union[Ty
                     return json.load(loadfile, object_hook=cls.serializer.decoder_hook)
 
         # !CRITICAL! that the custom serializer be registered for WrappedClass and NOT cls; otherwise, decoded instances will have different type to the parent class
-        print(signature(WrappedClass) == signature(cls))
         CustomSerializer = dataclass_serializer_factory(WrappedClass)
         multi_serializer.add_type_serializer(CustomSerializer)
         
