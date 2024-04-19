@@ -1,6 +1,6 @@
 '''Additional type-hinting and typechecking not provided by builtins'''
 
-from typing import Any, Callable, ParamSpec, TypeVar, Union
+from typing import Any, Callable, ParamSpec, TypeAlias, TypeVar, Union
 import numpy.typing # NOTE : this import is necessary to use np.typing calls
 import numpy as np
 
@@ -34,3 +34,17 @@ JSONSerializable = Union[str, bool, int, float, tuple, list, dict]
 isnumeric = _union_member_factory(Numeric)
 isarraylike = _union_member_factory(ArrayLike)
 isjsonserializable = _union_member_factory(JSONSerializable)
+
+# NUMPY-SPECIFIC TYPEHINTS
+N = TypeVar('N', bound=int) # for typing arbitrary array dimension
+M = TypeVar('M', bound=int) # for typing arbitrary array dimension
+DType = TypeVar('DType', bound=np.generic)
+Shape : TypeAlias = tuple
+
+Coords2D : TypeAlias = np.ndarray[Shape[M, 2], DType] # an Mx2 array of M 3D coordinates
+Coords3D : TypeAlias = np.ndarray[Shape[M, 3], DType] # an Mx3 array of M 3D coordinates
+CoordsND : TypeAlias = np.ndarray[Shape[M, N], DType] # an MxN array of M ND coordinates
+
+Vector2D : TypeAlias = np.ndarray[Shape[2], DType] # a 1x2 array of M 3D coordinates
+Vector3D : TypeAlias = np.ndarray[Shape[3], DType] # a 1x3 array of M 3D coordinates
+VectorND : TypeAlias = np.ndarray[Shape[N], DType] # a 1xN array of M ND coordinates
