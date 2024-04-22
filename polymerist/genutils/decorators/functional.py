@@ -1,6 +1,6 @@
 '''Decorators for modifying functions'''
 
-from typing import Callable, Optional, Union
+from typing import Callable, Iterable, Optional, Type, Union
 
 import inspect
 from functools import wraps
@@ -48,6 +48,24 @@ def optional_in_place(funct : Callable[[object, Args, KWArgs], None]) -> Callabl
     in_place_wrapper.__signature__ = new_sig.replace(return_annotation=Optional[mod_type]) # replace signature with appropriate modifications
 
     return in_place_wrapper
+
+@extend_to_methods
+def flexible_tuple_input(func : Callable[[tuple], T], valid_types : Union[Type, tuple[Type]]=object) -> Callable[[Iterable], T]:
+    '''Wrapper which allows a function which expects a single tuple to accept Iterable or even star-unpacked arguments'''
+    @wraps(func)
+    def wrapper(*args) -> T: # wrapper which accepts an arbitrary number of non-keyword argument
+        if (len(args) == 1) and isinstance(args[0], Iterable):
+            args = args[0]
+
+        inputs = []
+        for value in args:
+            if isinstance(value, valid_types): # works because isinstance() accepts either a single type or a tuple of types
+                inputs.append(value)
+            else:
+                raise TypeError
+        return func(inputs) # TODO: modify input type signature of wrapper function
+
+    return wrapper
 
 @extend_to_methods
 def allow_string_paths(funct : Callable[[Path, Args, KWArgs], T]) -> Callable[[Union[Path, str], Args, KWArgs], T]:
