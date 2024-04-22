@@ -10,31 +10,38 @@ from .parametric import U
 
 
 # TYPECHECKING FOR CUSTOM UNION TYPE ALIASES
-def _union_member_factory(union : U) -> Callable[[Any], bool]:
-    '''Factory for making Uion-membership-checking functions'''
+def _union_member_factory(union : U, regname : str='Union') -> Callable[[Any], bool]:
+    '''Factory for making Union-membership-checking functions'''
     def isinunion(var : Any) -> bool:
-        '''Check if an object is a member of a Union class'''
         return isinstance(var, union.__args__)
+    
+    isunion_function_name = f'is{regname.lower()}'
+    isinunion.__name__ = isunion_function_name
+    isinunion.__qualname__ = isunion_function_name
+    isinunion.__doc__ = f'''Check if an object is an instance of the {regname} class'''
+
     return isinunion
 
-Numeric : TypeAlias = Union[int, float, complex, np_number]
-StringLike : TypeAlias = Union[str, bytes, bytearray]
-JSONSerializable : TypeAlias = Union[str, bool, int, float, tuple, list, dict]
-
-_TYPE_UNIONS : tuple[Type] = (Numeric, StringLike, JSONSerializable)
-for klass in _TYPE_UNIONS:
-    globals[f'is{klass.__name__.lower()}'] = _union_member_factory(klass) # register to module-level scope
+_UNION_TYPES : dict[str, U] = { # registry of aliases type Unions (will be dynamically registered with isinstance-like checkers at module level)
+    'Numeric'           : Union[int, float, complex, np_number],
+    'StringLike'        : Union[str, bytes, bytearray],
+    'JSONSerializable'  : Union[str, bool, int, float, tuple, list, dict],
+}
+for union_name, union_type in _UNION_TYPES.items():
+    globals()[union_name] = union_type
+    _union_checker_func = _union_member_factory(union_type, union_name) # register to module-level scope
+    globals()[_union_checker_func.__name__] = _union_checker_func # register to module-level scope
 
 
 # REGISTRIES OF ALL BUILTIN TYPES WITH GIVEN BASE CLASS BEHAVIOR
 BUILTIN_TYPES : dict[str, Type] = {}
 _BUILTIN_BASES_TO_CHECK : tuple[Type] = (Exception, Callable, Container, Iterable, Sequence)
-for klass in _BUILTIN_BASES_TO_CHECK:
+for _klass in _BUILTIN_BASES_TO_CHECK:
     class_reg : dict[str, Type] = {}
     for builtin_name in dir(builtins):
         builtin_obj = getattr(builtins, builtin_name)
         if isclass(builtin_obj):
             BUILTIN_TYPES[builtin_obj.__name__] = builtin_obj
-            if issubclass(builtin_obj, klass):
+            if issubclass(builtin_obj, _klass):
                 class_reg[builtin_obj.__name__] = builtin_obj
-    globals()[f'BUILTIN_{klass.__name__.upper()}S']  = class_reg # register to module-level scope
+    globals()[f'BUILTIN_{_klass.__name__.upper()}S']  = class_reg # register to module-level scope

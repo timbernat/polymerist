@@ -12,4 +12,4 @@ RDAtom = Chem.rdchem.Atom
 RDBond = Chem.rdchem.Bond
 
 RDObj : TypeAlias = Union[RDMol, RWMol, RDAtom, RDBond]
-isrdobj = _union_member_factory(RDObj)
+isrdobj = _union_member_factory(RDObj, 'RDObj')

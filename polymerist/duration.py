@@ -36,7 +36,7 @@ SECONDS_PER_INTERVAL_ORDERED = { # arrange in descending order by magnitude of c
 
 # TYPING AND CONVERSION
 Timeable : TypeAlias = Union[int, float, timedelta, Quantity]
-istimeable = _union_member_factory(Timeable)
+istimeable = _union_member_factory(Timeable, 'Timeable')
 
 def _convert_interval_to_seconds(interval : Timeable) -> float:
     '''Takes an object interpretable as a duration in seconds and returns a float or int corresponding to that interval (in seconds)'''
