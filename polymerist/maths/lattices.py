@@ -1,6 +1,6 @@
 '''Utilities for generating periodic unit lattices'''
 
-from typing import Iterable, Optional, ClassVar
+from typing import Callable, ClassVar, Iterable, Optional, Type
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -22,34 +22,6 @@ def generate_int_lattice(*dims : Iterable[int]) -> np.ndarray[Shape[N, 3], int]:
 
 
 # LATTICE VECTORS AND PARAMETERS
-COMMON_LATTICE_VECTORS : dict[str, np.ndarray[Shape[3, 3], float]] = {
-    'UNIT_CUBE' : np.asarray([
-        [1.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0],
-        [0.0, 0.0, 1.0],
-    ]),
-    'RHOMBIC_DODECAHEDRON_XY_SQR' : np.array([
-        [1.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0],
-        [1/2, 1/2, np.sqrt(2.0) / 2.0],
-    ]),
-    'RHOMBIC_DODECAHEDRON_XY_HEX' : np.array([
-        [1.0, 0.0, 0.0],
-        [1/2, np.sqrt(3.0) / 2.0, 0.0],
-        [1/2, np.sqrt(3.0) / 6.0, np.sqrt(6.0) / 3.0],
-    ]),
-    'TRUNCATED_OCTAHEDRON' : np.array([
-        [ 1.0, 0.0, 0.0],
-        [ 1/3, 2.0 * np.sqrt(2.0) / 3.0, 0.0],
-        [-1/3, np.sqrt(2.0) / 3.0, np.sqrt(6.0) / 3.0],
-    ]),
-} # adapted from https://manual.gromacs.org/current/reference-manual/algorithms/periodic-boundary-conditions.html
-
-for lattice_name, lattice_vectors in COMMON_LATTICE_VECTORS.items():
-    globals()[lattice_name] = lattice_vectors # dynamically register common lattice vectors at module level
-
-
-## REPRESENTATION / CONVERSION CLASS
 @dataclass
 class LatticeParameters: # TODO : add support for OpenMM units, add compat w/ lammpstools.lammpseval
     '''For storing the lengths of and the angles between the 3 lattice vectors of a crystallographic unit cell'''
@@ -122,6 +94,20 @@ class LatticeParameters: # TODO : add support for OpenMM units, add compat w/ la
         angles = np.arccos(cycled_dots) # invert cosine from dot product expression to recover angles
 
         return cls(*axial_lengths, *angles)
+    
+    @staticmethod
+    def _lattice_vector_classmethod_factory(lattice_vectors : np.ndarray[Shape[3,3]], lattice_name : str, prefix : str='create') -> Callable[[Type['LatticeParameters'], float], 'LatticeParameters']:
+        '''Factory function for generating LatticeParameter initializers based on pre-defined lattice vectors'''
+        def generic_lattice_generator(cls, dim : float=1.0) -> LatticeParameters:
+            return cls.from_lattice_vectors(dim * lattice_vectors)
+        
+        # modify signature of generic to mask its dynamic creation
+        fn_name = f'{prefix}{"_" if prefix else ""}{lattice_name.lower()}'
+        generic_lattice_generator.__name__ = fn_name
+        generic_lattice_generator.__doc__  = f'Generate lattice parameters for a {lattice_name.lower()} box (with optional uniform scaling)'
+        generic_lattice_generator.__qualname__ = f'{LatticeParameters.__qualname__}.{fn_name}'
+
+        return generic_lattice_generator
 
     def to_lattice_vectors(self) -> np.ndarray[Shape[3,3], float]:
         '''
@@ -148,3 +134,33 @@ class LatticeParameters: # TODO : add support for OpenMM units, add compat w/ la
     def lattice_vectors(self) ->np.ndarray[Shape[3,3], float]:
         '''Property alias of to_lattice_vectors() method for convenience'''
         return self.to_lattice_vectors()
+    
+## COMMON UNIT LATTICE VECTORS FOR REFERENCE (WITH DYNAMIC REGISTRATION)
+COMMON_LATTICE_VECTORS : dict[str, np.ndarray[Shape[3, 3], float]] = {
+    'UNIT_CUBE' : np.asarray([
+        [1.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0],
+        [0.0, 0.0, 1.0],
+    ]),
+    'RHOMBIC_DODECAHEDRON_XY_SQR' : np.array([
+        [1.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0],
+        [1/2, 1/2, np.sqrt(2.0) / 2.0],
+    ]),
+    'RHOMBIC_DODECAHEDRON_XY_HEX' : np.array([
+        [1.0, 0.0, 0.0],
+        [1/2, np.sqrt(3.0) / 2.0, 0.0],
+        [1/2, np.sqrt(3.0) / 6.0, np.sqrt(6.0) / 3.0],
+    ]),
+    'TRUNCATED_OCTAHEDRON' : np.array([
+        [ 1.0, 0.0, 0.0],
+        [ 1/3, 2.0 * np.sqrt(2.0) / 3.0, 0.0],
+        [-1/3, np.sqrt(2.0) / 3.0, np.sqrt(6.0) / 3.0],
+    ]),
+} # adapted from https://manual.gromacs.org/current/reference-manual/algorithms/periodic-boundary-conditions.html
+
+for lattice_name, lattice_vectors in COMMON_LATTICE_VECTORS.items():
+    globals()[lattice_name] = lattice_vectors # dynamically register common lattice vectors at module level
+    
+    lattice_generator = LatticeParameters._lattice_vector_classmethod_factory(lattice_vectors, lattice_name=lattice_name)
+    setattr(LatticeParameters, lattice_generator.__name__, classmethod(lattice_generator))
