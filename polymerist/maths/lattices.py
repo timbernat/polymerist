@@ -6,7 +6,30 @@ from dataclasses import dataclass, field
 import numpy as np
 from itertools import product as cartesian_product
 
-from ..genutils.typetools.numpytypes import Shape, N
+from ..genutils.typetools.numpytypes import Shape, N, M, DType
+
+
+# COORDINATE ARRAY OPERATIONS
+def mean_coord(coords : np.ndarray[Shape[M, N], DType]) -> np.ndarray[Shape[N], DType]:
+    '''The average (center-of-mass) coordinate of a vector of coordinates'''
+    return coords.mean(axis=0)
+center_of_mass = COM = mean_coord
+
+def dists_to_point(coords : np.ndarray[Shape[M, N], DType], point : np.ndarray[Shape[N], DType], norm_order : Optional[int]=None) -> np.ndarray[Shape[M], DType]:
+    '''The distance between each point in a coordinate array and a single arbitrary point'''
+    return np.linalg.norm(coords - point, ord=norm_order, axis=1)
+
+def dists_to_centroid(coords : np.ndarray[Shape[M, N], DType], norm_order : Optional[int]=None) -> np.ndarray[Shape[M], DType]:
+    '''The distance of each coordinate in an array of coordinates to the coordinates' centroid'''
+    return dists_to_point(coords, point=mean_coord(coords), norm_order=norm_order)
+
+def bounding_box_extrema(coords : np.ndarray[Shape[M, N], DType]) -> np.ndarray[Shape[2, N], DType]:
+    '''The minimal and maximal coordinates of the tight bounding box around an array of coordinate'''
+    return coords.min(axis=0), coords.max(axis=0)
+
+def bounding_box_dims(coords : np.ndarray[Shape[M, N], DType]) -> np.ndarray[Shape[N], DType]:
+    '''The tight bounding box side lengths around an array of coordinates'''
+    return coords.ptp(axis=0)
 
 
 # INTEGER LATTICES (UNIT BASIS SUPERCELLS)
