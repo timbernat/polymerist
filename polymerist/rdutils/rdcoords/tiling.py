@@ -6,7 +6,6 @@ from rdkit import Chem
 from rdkit.Chem import rdGeometry, rdMolTransforms
 
 from ..rdtypes import RDMol
-from ...maths import lattices
 from ...maths.linearalg import affine
 
 
