@@ -121,31 +121,41 @@ class LatticeParameters: # TODO : add support for OpenMM units, add compat w/ la
         '''Property alias of to_lattice_vectors() method for convenience'''
         return self.to_lattice_vectors()
     
-## COMMON UNIT LATTICE VECTORS FOR REFERENCE (WITH DYNAMIC REGISTRATION)
-COMMON_LATTICE_VECTORS : dict[str, np.ndarray[Shape[3, 3], float]] = {
-    'UNIT_CUBE' : np.asarray([
+## REFERENCE TABLE OF COMMON LATTICE VECTORS WITH UNIT-LENGTH AXIAL VECTORS FOR REFERENCE (WITH DYNAMIC REGISTRATION)
+COMMON_UNIT_LATTICE_VECTORS : dict[str, np.ndarray[Shape[3, 3], float]] = {
+    'CUBIC' : np.asarray([
         [1.0, 0.0, 0.0],
         [0.0, 1.0, 0.0],
         [0.0, 0.0, 1.0],
     ]),
+    'HEXAGONAL' : np.array([
+        [ 1.0, 0.0, 0.0],
+        [-1/2, np.sqrt(3.0)/2, 0.0],
+        [ 0.0, 0.0, 1.0],
+    ]),
+    'RHOMBOHEDRAL' : np.array([
+        [1.0, 0.0, 0.0],
+        [1/2, np.sqrt(3.0)/2, 0.0],
+        [1/2, 1/(2*np.sqrt(3.0)), np.sqrt(2.0/3.0)],
+    ]),
     'RHOMBIC_DODECAHEDRON_XY_SQR' : np.array([
         [1.0, 0.0, 0.0],
         [0.0, 1.0, 0.0],
-        [1/2, 1/2, np.sqrt(2.0) / 2.0],
+        [1/2, 1/2, np.sqrt(2.0)/2.0],
     ]),
     'RHOMBIC_DODECAHEDRON_XY_HEX' : np.array([
         [1.0, 0.0, 0.0],
-        [1/2, np.sqrt(3.0) / 2.0, 0.0],
-        [1/2, np.sqrt(3.0) / 6.0, np.sqrt(6.0) / 3.0],
+        [1/2, np.sqrt(3.0)/2.0, 0.0],
+        [1/2, np.sqrt(3.0)/6.0, np.sqrt(6.0)/3.0],
     ]),
     'TRUNCATED_OCTAHEDRON' : np.array([
         [ 1.0, 0.0, 0.0],
-        [ 1/3, 2.0 * np.sqrt(2.0) / 3.0, 0.0],
-        [-1/3, np.sqrt(2.0) / 3.0, np.sqrt(6.0) / 3.0],
+        [ 1/3, 2.0 * np.sqrt(2.0)/3.0, 0.0],
+        [-1/3, np.sqrt(2.0)/3.0, np.sqrt(6.0)/3.0],
     ]),
 } # adapted from https://manual.gromacs.org/current/reference-manual/algorithms/periodic-boundary-conditions.html
 
-for lattice_name, lattice_vectors in COMMON_LATTICE_VECTORS.items():
+for lattice_name, lattice_vectors in COMMON_UNIT_LATTICE_VECTORS.items():
     globals()[lattice_name] = lattice_vectors # dynamically register common lattice vectors at module level
     
     lattice_generator = LatticeParameters._lattice_vector_classmethod_factory(lattice_vectors, lattice_name=lattice_name)
