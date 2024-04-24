@@ -6,12 +6,17 @@ from typing import Optional
 import numpy as np
 from itertools import product as cartesian_product
 
-from ...genutils.typetools.numpytypes import Shape, N, M, L, DType
+from ...genutils.typetools.numpytypes import Shape, N, M, DType
 
 
-def mean_coord(coords : np.ndarray[Shape[M, N], DType]) -> np.ndarray[Shape[N], DType]:
-    '''The average (center-of-mass) coordinate of a vector of coordinates'''
-    return coords.mean(axis=0)
+def mean_coord(coords : np.ndarray[Shape[M, N], DType], weights : Optional[np.ndarray[Shape[M, 1], DType]]=None) -> np.ndarray[Shape[N], DType]:
+    '''The average (center-of-mass) coordinate of a vector of coordinates, with optional array of weightsfor each coordinates'''
+    if weights is None:
+        weights = np.ones((coords.shape[0], 1), dtype=coords.dtype)
+    assert(weights.size == coords.shape[0])
+    weights = weights.reshape((coords.shape[0], 1))
+    
+    return (coords * weights).mean(axis=0)
 center_of_mass = COM = mean_coord
 
 def dists_to_point(coords : np.ndarray[Shape[M, N], DType], point : np.ndarray[Shape[N], DType], norm_order : Optional[int]=None) -> np.ndarray[Shape[M], DType]:
