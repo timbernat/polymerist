@@ -23,17 +23,24 @@ def dists_to_centroid(coords : np.ndarray[Shape[M, N], DType], norm_order : Opti
     '''The distance of each coordinate in an array of coordinates to the coordinates' centroid'''
     return dists_to_point(coords, point=mean_coord(coords), norm_order=norm_order)
 
-def bounding_box_extrema(coords : np.ndarray[Shape[M, N], DType]) -> np.ndarray[Shape[2, N], DType]:
-    '''The minimal and maximal coordinates of the tight bounding box around an array of coordinate'''
+def bounding_box_dims(coords : np.ndarray[Shape[M, N], DType]) -> np.ndarray[Shape[N], DType]:
+    '''The N-dimensional tight bounding box side lengths around an array of coordinates'''
+    return coords.ptp(axis=0)
+
+def bounding_box_extrema(coords : np.ndarray[Shape[M, N], DType]) -> tuple[np.ndarray[Shape[N], DType], np.ndarray[Shape[N], DType]]:
+    '''The minimal and maximal coordinates of the N-dimensional tight bounding box around an array of coordinate'''
     return coords.min(axis=0), coords.max(axis=0)
 
-def bounding_box_dims(coords : np.ndarray[Shape[M, N], DType]) -> np.ndarray[Shape[N], DType]:
-    '''The tight bounding box side lengths around an array of coordinates'''
-    return coords.ptp(axis=0)
+def bounding_box_points(coords : np.ndarray[Shape[M, N], DType]) -> np.ndarray[Shape[M, N], DType]: # TOSELF : first axis of returned array is actually of size 2**N (haven't implemented typing yet)
+    '''The corner points the N-dimensional tight bounding box around an array of coordinate'''
+    return np.array([
+        corner_point
+            for corner_point in cartesian_product(*np.vstack(bounding_box_extrema(coords)).T)
+    ])
 
 
 # INTEGER LATTICES (UNIT BASIS SUPERCELLS)
-def generate_int_lattice(*dims : Iterable[int]) -> np.ndarray[Shape[N, 3], int]:
+def generate_int_lattice(*dims : Iterable[int]) -> np.ndarray[Shape[M, N], int]:
     '''Generate all N-D coordinates of points on a integer lattice with the sizes of all D dimensions given'''
     return np.fromiter(
         iter=cartesian_product(*[
