@@ -133,20 +133,15 @@ COMMON_UNIT_LATTICE_VECTORS : dict[str, np.ndarray[Shape[3, 3], float]] = {
         [-1/2, np.sqrt(3.0)/2, 0.0],
         [ 0.0, 0.0, 1.0],
     ]),
-    'RHOMBOHEDRAL' : np.array([
+    'RHOMBOHEDRAL' : np.array([ # equivalent to rhombic dodecahedron xy-hexagon in GROMACS docs
         [1.0, 0.0, 0.0],
-        [1/2, np.sqrt(3.0)/2, 0.0],
-        [1/2, 1/(2*np.sqrt(3.0)), np.sqrt(2.0/3.0)],
+        [1/2, np.sqrt(3.0)/2.0, 0.0],
+        [1/2, np.sqrt(3.0)/6.0, np.sqrt(6.0)/3.0],
     ]),
     'RHOMBIC_DODECAHEDRON_XY_SQR' : np.array([
         [1.0, 0.0, 0.0],
         [0.0, 1.0, 0.0],
         [1/2, 1/2, np.sqrt(2.0)/2.0],
-    ]),
-    'RHOMBIC_DODECAHEDRON_XY_HEX' : np.array([
-        [1.0, 0.0, 0.0],
-        [1/2, np.sqrt(3.0)/2.0, 0.0],
-        [1/2, np.sqrt(3.0)/6.0, np.sqrt(6.0)/3.0],
     ]),
     'TRUNCATED_OCTAHEDRON' : np.array([
         [ 1.0, 0.0, 0.0],
