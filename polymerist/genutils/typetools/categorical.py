@@ -1,7 +1,10 @@
 '''Type-hinting for Union-bound categories of types'''
 
 from typing import Any, Callable, Container, Iterable, Sequence, Type, TypeAlias, Union
-from numpy import number as np_number
+from numpy import (
+    ndarray,
+    number as np_number
+)
 from numpy.typing import ArrayLike
 
 import builtins
@@ -23,9 +26,10 @@ def _union_member_factory(union : U, regname : str='Union') -> Callable[[Any], b
     return isinunion
 
 _UNION_TYPES : dict[str, U] = { # registry of aliases type Unions (will be dynamically registered with isinstance-like checkers at module level)
-    'Numeric'           : Union[int, float, complex, np_number],
-    'StringLike'        : Union[str, bytes, bytearray],
-    'JSONSerializable'  : Union[str, bool, int, float, tuple, list, dict],
+    'Numeric'           : Union[int, float, complex, np_number],                # classes which behave like numbers
+    'StringLike'        : Union[str, bytes, bytearray],                         # classes which 
+    'ListLike'          : Union[list, tuple, set, frozenset, bytes, bytearray], # classes which are Container-like and can be initialized from a list of values
+    'JSONSerializable'  : Union[str, bool, int, float, tuple, list, dict],      # classes which can be written to a JSON file by the default JSONEncoder/Decoder
 }
 for union_name, union_type in _UNION_TYPES.items():
     globals()[union_name] = union_type
