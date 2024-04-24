@@ -109,17 +109,17 @@ class CubicIntegerLattice:
     even_points = even_sublattice # alias for convenience
 
     # LATTICE TRANSFORMATIONS
-    def linear_tranformation(self, matrix : np.ndarray[Shape[N,N], float], periodic : bool=False) -> np.ndarray[Shape[M, N], float]:
+    def linear_transformation(self, matrix : np.ndarray[Shape[N,N], float], periodic : bool=False) -> np.ndarray[Shape[M, N], float]:
         '''Accepts an NxN matrix (where N is the dimension of the lattice)
         Returns a linearly-transformed copy of the points currently in the lattice'''
         assert(matrix.shape == (self.n_dims, self.n_dims))
         return self.points @ matrix.T # NOTE: need to right-multiply and transpose, since ROWS of self.points need to be tranformed 
 
-    def affine_tranformation(self, matrix : np.ndarray[Shape[N,N], float], periodic : bool=False) -> np.ndarray[Shape[M, N], float]: # TOSELF: typehint on input matrix should be of shape N+1, N+1
+    def affine_transformation(self, matrix : np.ndarray[Shape[N,N], float], periodic : bool=False) -> np.ndarray[Shape[M, N], float]: # TOSELF: typehint on input matrix should be of shape N+1, N+1
         '''Accepts an (N+1)x(N+1) matrix (where N is the dimension of the lattice)
         Returns an affine-transformed copy of the points currently in the lattice'''
         assert(matrix.shape == (self.n_dims + 1, self.n_dims + 1))
         aug_points = np.concatenate([self.points, np.ones((self.n_points, 1), dtype=int)], axis=1) # augment points vectors with extra columns of ones
-        aug_transform = aug_points @ matrix.T
+        aug_transformed = aug_points @ matrix.T
 
-        return aug_transform[: , :self.n_dims] / aug_transform[:, self.n_dims, None] # downcast augmented transformed points from homogeneous coordinates, normalizing by projective part
+        return aug_transformed[: , :self.n_dims] / aug_transformed[:, self.n_dims, None] # downcast augmented transformed points from homogeneous coordinates, normalizing by projective part
