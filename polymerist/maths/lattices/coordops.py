@@ -6,7 +6,7 @@ from typing import Optional
 import numpy as np
 from itertools import product as cartesian_product
 
-from ...genutils.typetools.numpytypes import Shape, N, M, DType
+from ...genutils.typetools.numpytypes import Shape, N, M, L, DType
 
 
 def mean_coord(coords : np.ndarray[Shape[M, N], DType]) -> np.ndarray[Shape[N], DType]:
@@ -37,3 +37,9 @@ def bounding_box_points(coords : np.ndarray[Shape[M, N], DType]) -> np.ndarray[S
         corner_point
             for corner_point in cartesian_product(*np.vstack(bounding_box_extrema(coords)).T)
     ])
+
+def coords_inside_bbox(coords : np.ndarray[Shape[M, N], DType], lower : np.ndarray[Shape[1, N], DType], upper : np.ndarray[Shape[1, N], DType], strict : bool=False) -> np.ndarray[Shape[M, N], bool]:
+    '''Boolean mask of whether coordinates are within the boundaries of some bounding box
+    With strict=True, points on the boundary are not considered inside; with strict=False, points on the boundary are considered insde as well'''
+    less_funct = np.less if strict else np.less_equal # set "<" vs "<=" check by strict flag
+    return less_funct(lower, coords) & less_funct(coords, upper)
