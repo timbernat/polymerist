@@ -40,7 +40,7 @@ class CubicIntegerLattice:
     @property
     def capacity(self) -> int: # referred to as "M" in typehints
         '''The maximum number of points that the lattice could contains'''
-        return np.product(self.sidelens)
+        return np.prod(self.sidelens)
 
     @property
     def n_points(self) -> int: 
