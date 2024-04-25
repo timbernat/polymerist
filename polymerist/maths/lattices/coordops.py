@@ -38,6 +38,10 @@ class BoundingBox:
         self.points = points
         self.n_points, self.n_dims = points.shape
         
+    def clone(self) -> 'BoundingBox':
+        '''Create a copy of the current bounding box'''
+        return self.__class__(self.points)
+
     @property
     def dimensions(self) -> np.ndarray[Shape[N], int]:
         '''The side lengths of the bounding box along each dimension'''
