@@ -2,12 +2,13 @@
 
 '''Utilities for generating periodic unit lattices'''
 
-from typing import Optional
+from typing import Optional, TypeVar
 import numpy as np
 from itertools import product as cartesian_product
 
 from ...genutils.typetools.numpytypes import Shape, N, M, DType
 from ...genutils.typetools.categorical import Numeric
+T = TypeVar('T', bound=Numeric)
 
 
 # COORDINATE-TO-POINT DISTANCES
@@ -30,26 +31,51 @@ def dists_to_centroid(coords : np.ndarray[Shape[M, N], DType], norm_order : Opti
     return dists_to_point(coords, point=mean_coord(coords), norm_order=norm_order)
 
 # BOUNDING BOXES
-def bounding_box_dims(coords : np.ndarray[Shape[M, N], DType]) -> np.ndarray[Shape[N], DType]:
-    '''The N-dimensional tight bounding box side lengths around an array of coordinates'''
-    return coords.ptp(axis=0)
+class BoundingBox:
+    '''For representing a minimum bounding box around an M-coordinate vector of N-dimensional points'''
+    def __init__(self, points : np.ndarray[Shape[M, N], T]) -> None:
+        assert(points.ndim == 2) # only accepts vector of coordinate
+        self.points = points
+        self.n_points, self.n_dims = points.shape
+        
+    @property
+    def dimensions(self) -> np.ndarray[Shape[N], int]:
+        '''The side lengths of the bounding box along each dimension'''
+        return self.points.ptp(axis=0)
+    dims = sidelens = sidelengths = dimensions
 
-def bounding_box_extrema(coords : np.ndarray[Shape[M, N], DType]) -> tuple[np.ndarray[Shape[N], DType], np.ndarray[Shape[N], DType]]:
-    '''The minimal and maximal coordinates of the N-dimensional tight bounding box around an array of coordinate'''
-    return coords.min(axis=0), coords.max(axis=0)
+    @property
+    def minimum(self) -> np.ndarray[Shape[N], T]:
+        '''The bounding box vertex with the smallest coordinates in each dimension'''
+        return self.points.min(axis=0)
+    min = lower = smallest = minimum
 
-def bounding_box_points(coords : np.ndarray[Shape[M, N], DType]) -> np.ndarray[Shape[M, N], DType]: # TOSELF : first axis of returned array is actually of size 2**N (haven't implemented typing yet)
-    '''The corner points the N-dimensional tight bounding box around an array of coordinate'''
-    return np.array([
-        corner_point
-            for corner_point in cartesian_product(*np.vstack(bounding_box_extrema(coords)).T)
-    ])
+    @property
+    def maximum(self) -> np.ndarray[Shape[N], T]:
+        '''The bounding box vertex with the largest coordinates in each dimension'''
+        return self.points.max(axis=0)
+    max = upper = largest = maximum
 
-def coords_inside_bbox(coords : np.ndarray[Shape[M, N], DType], lower : np.ndarray[Shape[1, N], DType], upper : np.ndarray[Shape[1, N], DType], strict : bool=False) -> np.ndarray[Shape[M, N], bool]:
-    '''Boolean mask of whether coordinates are within the boundaries of some bounding box
-    With strict=True, points on the boundary are not considered inside; with strict=False, points on the boundary are considered insde as well'''
-    less_funct = np.less if strict else np.less_equal # set "<" vs "<=" check by strict flag
-    return less_funct(lower, coords) & less_funct(coords, upper)
+    @property
+    def extrema(self) -> np.ndarray[Shape[2, N], T]:
+        '''A 2xN array of the minimal and maximal bounding box vertices'''
+        return np.vstack([self.minimum, self.maximum])
+
+    @property
+    def vertices(self) -> np.ndarray[Shape[M, N], T]: # TOSELF : first axis of returned array is actually of size 2**N (haven't implemented typing yet)
+        '''A full vector of the vertices of the bounding box'''
+        return np.array([
+            vertex
+                for vertex in cartesian_product(*self.extrema.T)
+        ])
+    
+    def surrounds(self, coords : np.ndarray[Shape[M, N], T], strict : bool=False) -> np.ndarray[Shape[M, N], bool]:
+        '''Boolean mask of whether the coordinates in a point vector lies within the bounding box'''
+        assert(coords.ndim == 2)
+        assert(coords.shape[1] == self.n_dims)
+
+        less_funct = np.less if strict else np.less_equal # set "<" vs "<=" check by strict flag
+        return less_funct(self.lower, coords) & less_funct(coords, self.upper)
 
 # NORMAL VECTORS
 def nearest_int_coord_along_normal(point : np.ndarray[Shape[N], Numeric], normal : np.ndarray[Shape[N], Numeric]) -> np.ndarray[Shape[N], int]:
@@ -68,15 +94,14 @@ def nearest_int_coord_along_normal(point : np.ndarray[Shape[N], Numeric], normal
     if np.isclose(min_int_bound_point, max_int_bound_point).all(): # edge case: if already on an integer-valued point, the fllor and ceiling will be identical
         int_point = point 
     else:
-        int_bound_extrema = np.vstack([min_int_bound_point, max_int_bound_point]) # package extremal pointsinto single array
-        int_bound_points = bounding_box_points(int_bound_extrema) # expand extremal points into complete N-dimensional integer box around the control point
-        dots = np.inner((int_bound_points - point), normal) # take dot product between the normal and the direction vectors from the control point to the integer bounding points
+        int_bbox = BoundingBox(np.vstack([min_int_bound_point, max_int_bound_point]))  # generate bounding box from extremal positions
+        dots = np.inner((int_bbox.extrema - point), normal) # take dot product between the normal and the direction vectors from the control point to the integer bounding points
         i = dots.argmax() # position of integer point in most similar direction to normal
+        furthest_point, similarity = int_bbox.extrema[i], dots[i]
 
-        if dots[i] > 0:
-            int_point = int_bound_points[i]
+        if similarity <= 0:
+            raise ValueError(f'Could not locate valid integral point in normal direction (closest found was {furthest_point} with dot product {similarity})')
         else:
-            raise ValueError(f'Could not locate valid integral point in normal direction (closest found was {int_bound_points[i]} with dot product {dots[i]})')
-        pass
+            int_point = furthest_point 
 
     return int_point.astype(int)
