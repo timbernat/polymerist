@@ -48,7 +48,7 @@ dependencies:
   - bson=0.5.9=py_0
   - bzip2=1.0.8=hd590300_5
   - c-ares=1.27.0=hd590300_0
-  - c-blosc2=2.13.2=hb4ffafa_0
+  - c-blosc2=2.12.0=hb4ffafa_0
   - ca-certificates=2024.2.2=hbcca054_0
   - cached-property=1.5.2=hd8ed1ab_1
   - cached_property=1.5.2=pyha770c72_1
@@ -303,7 +303,7 @@ dependencies:
   - openjpeg=2.5.2=h488ebb8_0
   - openmm=8.1.1=py311h6d2dbb8_1
   - openmpi=4.1.6=hc5af2df_101
-  - openssl=3.2.1=hd590300_0
+  - openssl=3.2.1=hd590300_1
   - opt_einsum=3.3.0=pyhc1e730c_2
   - orc=1.9.2=h4b38347_0
   - overrides=7.7.0=pyhd8ed1ab_0
