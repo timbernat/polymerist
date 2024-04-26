@@ -51,28 +51,29 @@ def nearest_int_coord_along_normal(point : np.ndarray[Shape[N], Numeric], normal
 
 class CubicIntegerLattice(Coordinates):
     '''For representing an n-dimensional integer lattice, consisting of all n-tuples of integers with values constrained by side lengths in each dimension'''
-    def __init__(self, sidelens : np.ndarray[Shape[N], int]) -> None: # TODO: implement more flexible input support (i.e. star-unpacking, listlikes, etc.)
-        assert(sidelens.ndim == 1)
-        super().__init__(generate_int_lattice(*self.sidelens))
+    def __init__(self, counts_along_dims : np.ndarray[Shape[N], int]) -> None: # TODO: implement more flexible input support (i.e. star-unpacking, listlikes, etc.)
+        assert(counts_along_dims.ndim == 1)
+        super().__init__(generate_int_lattice(*counts_along_dims))
+        self.counts_along_dims = counts_along_dims
 
-    def sidelens_as_str(self, multip_char : str='x') -> str:
+    def counts_along_dims_as_str(self, multip_char : str='x') -> str:
         '''Stringify the lattice sidelengths'''
-        return multip_char.join(str(i) for i in self.sidelens)
+        return multip_char.join(str(i) for i in self.counts_along_dims)
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}({self.n_dims}-dimensional, {self.sidelens_as_str()})'
+        return f'{self.__class__.__name__}({self.n_dims}-dimensional, {self.counts_along_dims_as_str()})'
 
     # LATTICE DIMENSIONS
     @property
     def capacity(self) -> int: # referred to as "M" in typehints
         '''The maximum number of points that the lattice could contains'''
-        return np.prod(self.sidelens)
+        return np.prod(self.counts_along_dims)
 
     @property
     def lex_ordered_weights(self) -> np.ndarray[Shape[N], int]:
         '''Vector of the number of points corresponding
         Can be viewed as a linear transformation between indices and point coordinates when coords are placed in lexicographic order'''
-        return np.concatenate(([1], np.cumprod(self.sidelens)[:-1]))
+        return np.concatenate(([1], np.cumprod(self.counts_along_dims)[:-1]))
 
     # SUBLATTICE DECOMPOSITION
     @property
