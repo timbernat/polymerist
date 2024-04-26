@@ -162,6 +162,24 @@ class BoundingBox(Coordinates):
         '''Alias of the "points" attribute to distinguish use via syntax'''
         return self.points
     
+    @property
+    def face_indices(self) -> np.ndarray[Shape[M, N], int]:
+        '''Returns a [2**(n_dim-1) x 2*n_dim] whose points are the indices of (2*n_dims)-tuplets
+        which form a "face" of the bounding box (i.e. shared values of exactly one coordinate)'''
+        point_idxs = np.arange(self.n_points)
+        step_mask = (self.points == self.minimum) # masking by max would work equally well (since all coordinates are shared...
+        # step_mask = (bbox.points == bbox.maximum) #  ...with either the min or the max) and just yield a different order
+        face_indices = []
+        for i in range(self.n_dims):
+            face_indices.append(point_idxs[ step_mask[:, i]])
+            face_indices.append(point_idxs[~step_mask[:, i]])
+        return np.array(face_indices) # TODO: account for correct order of rows and orientation of face within rows to give contiguous hypercube mesh
+    
+    @property
+    def face_coords(self) -> np.ndarray[Shape[M, N, 3], int]:
+        '''Return a [2**(n_dim-1) x 2*n_dim x 3] array in which each row is the set'''
+        return self.points[self.face_indices]
+
     def surrounds(self, coords : Union[Coordinates, np.ndarray[Shape[M, N], Num]], strict : bool=False) -> np.ndarray[Shape[M, N], bool]:
         '''Boolean mask of whether the coordinates in a point vector lies within the bounding box'''
         if isinstance(coords, np.ndarray):
