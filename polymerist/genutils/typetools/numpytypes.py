@@ -3,10 +3,13 @@
 from typing import TypeAlias, TypeVar
 import numpy as np
 import numpy.typing as npt
+from .categorical import Numeric
 
 
-N = TypeVar('N', bound=int) # for typing arbitrary array dimension
-M = TypeVar('M', bound=int) # for typing arbitrary array dimension
+D = TypeVar('D', bound=int) # for typing arbitrary array dimensionality
+N = TypeVar('N', bound=int) # for typing arbitrary array dimension size
+M = TypeVar('M', bound=int) # for typing arbitrary array dimension size
+Num = TypeVar('Num', bound=Numeric) # for typing numerically-valued generics
 DType = TypeVar('DType', bound=np.generic)
 Shape : TypeAlias = tuple
 
