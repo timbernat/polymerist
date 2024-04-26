@@ -102,6 +102,25 @@ class Coordinates:
         return self.dists_to_point(point=self.weighted_centroid(weights=weights), norm_order=norm_order)
     effective_radii = eff_rad = dists_to_centroid
 
+    # POINT ORDERINGS
+    @property
+    def lex_ordered_idxs(self) -> np.ndarray[Shape[M, N], int]: # TOSELF: "int" is the correct type annotation here (NOT TT)
+        '''Returns a vector of the position that each point in self.points occupies when ordered lexicographically'''
+        return np.lexsort(self.points.T)
+
+    @property
+    def lex_ordered_points(self) -> np.ndarray[Shape[M, N], TT]:
+        '''Return copy of the points in the lattice in lexicographic order'''
+        return self.points[self.lex_ordered_idxs]
+
+    def lex_order_points(self) -> None:
+        '''Sort points in the lattice in lexicographic order'''
+        self.points = self.lex_ordered_points
+
+    def randomize_points(self) -> None:
+        '''Place the points in the lattice in a random order'''
+        np.random.shuffle(self.points)
+
     # LATTICE TRANSFORMATIONS
     def translate(self, displacement : np.ndarray[Shape[N], TT]) -> None:
         '''Apply affine shift (translation only) to all points'''
