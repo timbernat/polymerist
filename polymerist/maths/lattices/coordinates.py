@@ -1,9 +1,7 @@
 '''Representation of vectors of coordinates and elementary distance geometry operations'''
 
 from typing import Optional, TypeVar, Union
-from ...genutils.typetools.numpytypes import Shape, N, M, DType
-from ...genutils.typetools.categorical import Numeric
-TT = TypeVar('TT', bound=Numeric) # typevar to signify returns which are all of the same numeric type 
+from ...genutils.typetools.numpytypes import Shape, N, M, Num
 
 import numpy as np
 from itertools import product as cartesian_product
@@ -12,7 +10,7 @@ from itertools import product as cartesian_product
 # CLASSES
 class Coordinates:
     '''Represention class for encapsulating M-vectors of N-dimensional coordinates, with basic coordinate operations'''
-    def __init__(self, points : Optional[np.ndarray[Shape[M, N], TT]]=None) -> None:
+    def __init__(self, points : Optional[np.ndarray[Shape[M, N], Num]]=None) -> None:
         if points is None:
             points = np.array([[]])
 
@@ -36,28 +34,28 @@ class Coordinates:
     dims = sidelens = sidelengths = dimensions
 
     @property
-    def minimum(self) -> np.ndarray[Shape[N], TT]:
+    def minimum(self) -> np.ndarray[Shape[N], Num]:
         '''The bounding box vertex with the smallest coordinates in each dimension'''
         return self.points.min(axis=0)
     min = lower = smallest = minimum
 
     @property
-    def maximum(self) -> np.ndarray[Shape[N], TT]:
+    def maximum(self) -> np.ndarray[Shape[N], Num]:
         '''The bounding box vertex with the largest coordinates in each dimension'''
         return self.points.max(axis=0)
     max = upper = largest = maximum
 
     @property
-    def extrema(self) -> np.ndarray[Shape[2, N], TT]:
+    def extrema(self) -> np.ndarray[Shape[2, N], Num]:
         '''A 2xN array of the minimal and maximal bounding box vertices'''
         return np.vstack([self.minimum, self.maximum])
 
     # POINT OPERATIONS
-    def __call__(self, index : int) -> np.ndarray[Shape[N], TT]:
+    def __call__(self, index : int) -> np.ndarray[Shape[N], Num]:
         '''Retrieve the point at the given index'''
         return self.points[index]
 
-    def _point_is_compat(self, point : np.ndarray[Shape[N], TT]) -> bool:
+    def _point_is_compat(self, point : np.ndarray[Shape[N], Num]) -> bool:
         '''Internal method to check whether an incoming point is compatible with the dimensions of the current array'''
         return (
             isinstance(point, np.ndarray)
@@ -66,19 +64,19 @@ class Coordinates:
             # TODO: check compatible types? (may be too inflexible, categorical.Numeric currently doesn't recognize numpy-specific types)
         )
     
-    def validate_point(self, point : np.ndarray[Shape[N], TT]) -> None:
+    def validate_point(self, point : np.ndarray[Shape[N], Num]) -> None:
         '''Check if a point is compatible with the coordinates, or else raise Exception with reason why not'''
         if not self._point_is_valid(point):
             raise ValueError(f'Incompatible point {point}')
 
     @property
-    def dists_to_point(self, point : np.ndarray[Shape[N], TT], norm_order : Optional[int]=None) -> np.ndarray[Shape[M], TT]:
+    def dists_to_point(self, point : np.ndarray[Shape[N], Num], norm_order : Optional[int]=None) -> np.ndarray[Shape[M], Num]:
         '''The distance between each point in a coordinate array and a single arbitrary point'''
         assert(self._point_is_compat(point))
         return np.linalg.norm(self.points - point, ord=norm_order, axis=1)
 
     # MEASURES OF CENTRALITY
-    def weighted_centroid(self, weights : Optional[np.ndarray[Shape[M], DType]]=None) -> np.ndarray[Shape[N], TT]:
+    def weighted_centroid(self, weights : Optional[np.ndarray[Shape[M], Num]]=None) -> np.ndarray[Shape[N], Num]:
         '''The average (center-of-mass) coordinate of a vector of coordinates, with optional array of weights for each coordinates'''
         if weights is None:
             weights = np.ones(self.n_points, dtype=self.points.dtype)
@@ -91,25 +89,25 @@ class Coordinates:
         return (self.points * weights).mean(axis=0)
 
     @property
-    def centroid(self) -> np.ndarray[Shape[N], TT]:
+    def centroid(self) -> np.ndarray[Shape[N], Num]:
         '''The unweighted average coordinate of the vector'''
         return self.weighted_centroid() # weighed centroid with default unit weights
     center_of_mass = COM = centroid
 
     @property
-    def dists_to_centroid(self, norm_order : Optional[int]=None, weights : Optional[np.ndarray[Shape[M], DType]]=None) -> np.ndarray[Shape[M], DType]:
+    def dists_to_centroid(self, norm_order : Optional[int]=None, weights : Optional[np.ndarray[Shape[M], Num]]=None) -> np.ndarray[Shape[M], Num]:
         '''The distance of each coordinate in an array of coordinates to the coordinates' centroid'''
         return self.dists_to_point(point=self.weighted_centroid(weights=weights), norm_order=norm_order)
     effective_radii = eff_rad = dists_to_centroid
 
     # POINT ORDERINGS
     @property
-    def lex_ordered_idxs(self) -> np.ndarray[Shape[M, N], int]: # TOSELF: "int" is the correct type annotation here (NOT TT)
+    def lex_ordered_idxs(self) -> np.ndarray[Shape[M, N], int]: # TOSELF: "int" is the correct type annotation here (NOT Num)
         '''Returns a vector of the position that each point in self.points occupies when ordered lexicographically'''
         return np.lexsort(self.points.T)
 
     @property
-    def lex_ordered_points(self) -> np.ndarray[Shape[M, N], TT]:
+    def lex_ordered_points(self) -> np.ndarray[Shape[M, N], Num]:
         '''Return copy of the points in the lattice in lexicographic order'''
         return self.points[self.lex_ordered_idxs]
 
@@ -122,7 +120,7 @@ class Coordinates:
         np.random.shuffle(self.points)
 
     # LATTICE TRANSFORMATIONS
-    def translate(self, displacement : np.ndarray[Shape[N], TT]) -> None:
+    def translate(self, displacement : np.ndarray[Shape[N], Num]) -> None:
         '''Apply affine shift (translation only) to all points'''
         self.validate_point(displacement)
         self.points += displacement # TODO: use explicit broadcast here to reduce ambiguity?
@@ -147,9 +145,10 @@ class Coordinates:
             return self.__class__(transformed_points)
         return transformed_points
 
+
 class BoundingBox(Coordinates):
     '''For representing a minimum bounding box around an M-coordinate vector of N-dimensional points'''
-    def __init__(self, coords : Union[Coordinates, np.ndarray[Shape[M, N], TT]]) -> None:
+    def __init__(self, coords : Union[Coordinates, np.ndarray[Shape[M, N], Num]]) -> None:
         if isinstance(coords, np.ndarray):
             coords = Coordinates(coords) # allow passing of Coordinates-like classes
         points = np.array([vertex for vertex in cartesian_product(*self.extrema.T)])
@@ -157,11 +156,11 @@ class BoundingBox(Coordinates):
         super().__init__(points)
 
     @property
-    def vertices(self) -> np.ndarray[Shape[M, N], TT]: # TOSELF : first axis of returned array is actually of size 2**N (haven't implemented typing yet)
+    def vertices(self) -> np.ndarray[Shape[M, N], Num]: # TOSELF : first axis of returned array is actually of size 2**N (haven't implemented typing yet)
         '''Alias of the "points" attribute to distinguish use via syntax'''
         return self.points
     
-    def surrounds(self, coords : Union[Coordinates, np.ndarray[Shape[M, N], TT]], strict : bool=False) -> np.ndarray[Shape[M, N], bool]:
+    def surrounds(self, coords : Union[Coordinates, np.ndarray[Shape[M, N], Num]], strict : bool=False) -> np.ndarray[Shape[M, N], bool]:
         '''Boolean mask of whether the coordinates in a point vector lies within the bounding box'''
         if isinstance(coords, np.ndarray):
             coords = Coordinates(coords)
