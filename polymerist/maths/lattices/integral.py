@@ -2,11 +2,11 @@
 
 from typing import Iterable
 from ...genutils.typetools.numpytypes import Shape, N, M
-from ...genutils.typetools.categorical import ListLike
+from ...genutils.typetools.categorical import ListLike, Numeric
 
 import numpy as np
 from itertools import product as cartesian_product
-from .coordinates import Coordinates
+from .coordinates import Coordinates, BoundingBox
 
 
 def generate_int_lattice(*dims : Iterable[int]) -> np.ndarray[Shape[M, N], int]:
@@ -18,6 +18,34 @@ def generate_int_lattice(*dims : Iterable[int]) -> np.ndarray[Shape[M, N], int]:
         ]),
         dtype=np.dtype((int, len(dims)))
     )
+
+def nearest_int_coord_along_normal(point : np.ndarray[Shape[N], Numeric], normal : np.ndarray[Shape[N], Numeric]) -> np.ndarray[Shape[N], int]:
+    '''
+    Takes an N-dimensional control point and an N-dimensional normal vector
+    Returns the integer-valued point nearest to the control point which lies in
+    the normal direction relative to the control point
+    '''
+    # Check that inputs have vector-like shapes and compatible dimensions
+    assert(point.ndim == 1)
+    assert(normal.ndim == 1)
+    assert(point.size == normal.size)
+
+    min_int_bound_point = np.floor(point)
+    max_int_bound_point = np.ceil( point)
+    if np.isclose(min_int_bound_point, max_int_bound_point).all(): # edge case: if already on an integer-valued point, the fllor and ceiling will be identical
+        int_point = point 
+    else:
+        int_bbox = BoundingBox(np.vstack([min_int_bound_point, max_int_bound_point]))  # generate bounding box from extremal positions
+        dots = np.inner((int_bbox.vertices - point), normal) # take dot product between the normal and the direction vectors from the control point to the integer bounding points
+        i = dots.argmax() # position of integer point in most similar direction to normal
+        furthest_point, similarity = int_bbox.vertices[i], dots[i]
+
+        if similarity <= 0:
+            raise ValueError(f'Could not locate valid integral point in normal direction (closest found was {furthest_point} with dot product {similarity})')
+        else:
+            int_point = furthest_point 
+
+    return int_point.astype(int)
 
 # TODO : implement enumeration of integral points within an N-simplex
 
