@@ -66,7 +66,7 @@ class Coordinates:
     
     def validate_point(self, point : np.ndarray[Shape[N], Num]) -> None:
         '''Check if a point is compatible with the coordinates, or else raise Exception with reason why not'''
-        if not self._point_is_valid(point):
+        if not self._point_is_compat(point):
             raise ValueError(f'Incompatible point {point}')
 
     @property
