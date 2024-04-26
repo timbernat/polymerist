@@ -9,6 +9,7 @@ from openff.toolkit import GLOBAL_TOOLKIT_REGISTRY as GTR
 from openff.toolkit.utils.base_wrapper import ToolkitWrapper
 from openff.toolkit.utils.utils import all_subclasses
 from openff.toolkit.utils.exceptions import LicenseError, ToolkitUnavailableException
+from openff.toolkit.typing.engines.smirnoff.forcefield import _get_installed_offxml_dir_paths
 
 from openff.toolkit.utils.openeye_wrapper import OpenEyeToolkitWrapper
 from espaloma_charge.openff_wrapper import EspalomaChargeToolkitWrapper
@@ -17,9 +18,17 @@ from openff.nagl.toolkits import NAGLRDKitToolkitWrapper, NAGLOpenEyeToolkitWrap
 
 # FORCE FIELD AND ToolkitWrapper REFERENCE
 FFDIR = Path(openforcefields.get_forcefield_dirs_paths()[0]) # Locate path where OpenFF forcefields are installed
-ALL_IMPORTABLE_TKWRAPPERS = all_subclasses(ToolkitWrapper) # References to every registered ToolkitWrapper and ToolkitRegistry 
+FF_DIR_REGISTRY  : dict[Path, Path] = {}
+FF_PATH_REGISTRY : dict[Path, Path] = {}
+for ffdir_str in _get_installed_offxml_dir_paths():
+    ffdir = Path(ffdir_str)
+    ffdir_name = ffdir.parent.stem
+
+    FF_DIR_REGISTRY[ ffdir_name]  = ffdir
+    FF_PATH_REGISTRY[ffdir_name] = [path for path in ffdir.glob('*.offxml')]
 
 # CHECKING FOR OpenEye
+ALL_IMPORTABLE_TKWRAPPERS = all_subclasses(ToolkitWrapper) # References to every registered ToolkitWrapper and ToolkitRegistry 
 try:
     _ = OpenEyeToolkitWrapper()
     _OE_TKWRAPPER_IS_AVAILABLE = True
