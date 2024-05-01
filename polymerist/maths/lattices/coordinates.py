@@ -69,7 +69,6 @@ class Coordinates:
         if not self._point_is_compat(point):
             raise ValueError(f'Incompatible point {point}')
 
-    @property
     def dists_to_point(self, point : np.ndarray[Shape[N], Num], norm_order : Optional[int]=None) -> np.ndarray[Shape[M], Num]:
         '''The distance between each point in a coordinate array and a single arbitrary point'''
         assert(self._point_is_compat(point))
@@ -94,11 +93,10 @@ class Coordinates:
         return self.weighted_centroid() # weighed centroid with default unit weights
     center_of_mass = COM = centroid
 
-    @property
     def dists_to_centroid(self, norm_order : Optional[int]=None, weights : Optional[np.ndarray[Shape[M], Num]]=None) -> np.ndarray[Shape[M], Num]:
         '''The distance of each coordinate in an array of coordinates to the coordinates' centroid'''
         return self.dists_to_point(point=self.weighted_centroid(weights=weights), norm_order=norm_order)
-    effective_radii = eff_rad = dists_to_centroid
+    radii = rad = dists_to_centroid
 
     # POINT ORDERINGS
     @property
