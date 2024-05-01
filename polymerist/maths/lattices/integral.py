@@ -82,7 +82,7 @@ class CubicIntegerLattice(Coordinates):
         parity_vector = np.mod(self.points.sum(axis=1), 2) # remainder of sum of coordinates of each point; corresponds to the condition that a single step along any dimension should invert parity
         is_odd = parity_vector.astype(bool) # typecast as booleans to permit indexing (and make intent a bit clearer)
 
-        return np.where(is_odd), np.where(~is_odd)
+        return np.flatnonzero(is_odd), np.flatnonzero(~is_odd) # need to faltten to avoid inconvenient tuple wrapping
 
     @property
     def odd_idxs(self) -> np.ndarray[Shape[M], int]:
