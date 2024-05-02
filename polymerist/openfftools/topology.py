@@ -3,9 +3,9 @@
 import logging
 LOGGER = logging.getLogger(__name__)
 
-from numpy.typing import NDArray
 from pathlib import Path
 from ast import literal_eval
+import numpy as np
 
 from rdkit import Chem
 from openff.toolkit import ToolkitRegistry
@@ -104,9 +104,9 @@ def topology_from_sdf(path : Path, *args, **kwargs) -> Topology:
 
 
 # TOPOLOGY BUILD FUNCTIONS
-def topology_from_molecule_onto_lattice(offmol : Molecule, lattice : NDArray, rotate_randomly : bool=True, unique_mol_ids : bool=True):
+def topology_from_molecule_onto_lattice(offmol : Molecule, lattice_points : np.ndarray, rotate_randomly : bool=True, unique_mol_ids : bool=True):
     '''Convert a charged OpenFF Molecule into a Topology made up of copies of that Molecule tiled according to a lattice'''
-    tiled_rdmol = tile_lattice_with_rdmol(offmol.to_rdkit(), lattice, rotate_randomly=rotate_randomly)
+    tiled_rdmol = tile_lattice_with_rdmol(offmol.to_rdkit(), lattice_points, rotate_randomly=rotate_randomly)
     tiled_offmols = [] 
     for mol_id, tiled_mol_copy in enumerate(Chem.GetMolFrags(tiled_rdmol, asMols=True, sanitizeFrags=False)):
         copy_rd_props(tiled_rdmol, tiled_mol_copy) # ensure each individual fragment preserves the information of the parent molecule
