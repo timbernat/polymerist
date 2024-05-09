@@ -13,7 +13,7 @@ from openff import nagl_models
 from openff.nagl import GNNModel
 from espaloma_charge.openff_wrapper import EspalomaChargeToolkitWrapper
 
-from polymerist.openfftools import REGISTERED_TKWRAPPER_TYPES
+from .. import REGISTERED_TKWRAPPER_TYPES
 
 
 # REFERENCE MAPPING BETWEEN PARTIAL CHARGE METHODS AND SUPPORTING TOOLKIT WRAPPERS
