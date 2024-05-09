@@ -4,8 +4,10 @@ from typing import Generator, TypeVar
 T = TypeVar('T')
 
 from rdkit import Chem
-from rdkit.Chem import rdqueries
-from rdkit.Chem.rdchem import Mol as RDMol
+from rdkit.Chem import (
+    rdqueries,
+    Mol as RDMol
+)
 
 
 # REFERENCE TABLES FOR SPECIAL ATOM TYPES
