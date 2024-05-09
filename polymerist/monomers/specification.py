@@ -10,8 +10,7 @@ from rdkit import Chem
 from rdkit.Chem import QueryAtom
 
 from ..rdutils.rdtypes import RDAtom, RDMol
-from ..rdutils import smileslib 
-from ..rdutils.smileslib.primitives import RDKIT_QUERYBONDS_BY_BONDTYPE
+from ..smileslib.primitives import is_valid_SMILES, is_valid_SMARTS, RDKIT_QUERYBONDS_BY_BONDTYPE
 from ..rdutils.labeling import molwise
 
 
@@ -20,7 +19,7 @@ SANITIZE_AS_KEKULE = (Chem.SANITIZE_ALL & ~Chem.SANITIZE_SETAROMATICITY) # sanit
 
 def expanded_SMILES(smiles : str, assign_map_nums : bool=True, start_from : int=1) -> str:
     '''Takes a SMILES string and clarifies chemical information, namely explicit hydrogens, kekulized aromatic bonds, and atom map numbers'''
-    assert(smileslib.is_valid_SMILES(smiles))
+    assert(is_valid_SMILES(smiles))
     
     rdmol = Chem.MolFromSmiles(smiles, sanitize=True) # TOSELF : determine values of pros/cons of sanitizations (freedom of specificity vs random RDKit errors)
     rdmol = Chem.AddHs(rdmol, addCoords=True)
@@ -100,7 +99,7 @@ def compliant_atom_query_from_re_match(match : re.Match) -> str:
 def compliant_mol_SMARTS(smarts : str) -> str:
     '''Convert generic SMARTS string into a spec-compliant one'''
     # initial checks
-    assert(smileslib.is_valid_SMARTS(smarts))
+    assert(is_valid_SMARTS(smarts))
     rdmol = Chem.MolFromSmarts(smarts)
     assert(molwise.has_fully_mapped_atoms(rdmol))
     assert(molwise.has_uniquely_mapped_atoms(rdmol))

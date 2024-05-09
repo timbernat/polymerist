@@ -11,8 +11,8 @@ from .identification import get_first_bondable_port_pair
 
 from ..rdtypes import RWMol
 from ..rdkdraw import clear_highlights
-from ..smileslib.primitives import RDKIT_BONDS_BY_BONDTYPE
 from ...genutils.decorators.functional import optional_in_place
+from ...smileslib.primitives import RDKIT_BONDS_BY_BONDTYPE
 
 
 @optional_in_place

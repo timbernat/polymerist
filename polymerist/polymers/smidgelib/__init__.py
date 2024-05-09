@@ -5,7 +5,8 @@ from rdkit import Chem
 
 from typing import ClassVar, Union, Optional
 from dataclasses import dataclass, field
-from ...rdutils.smileslib.primitives import BONDTYPE_BY_BOND_SMARTS, BOND_SMARTS_BY_BONDTYPE, BOND_PRIMITIVES_FOR_REGEX
+
+from ...smileslib.primitives import BONDTYPE_BY_BOND_SMARTS, BOND_SMARTS_BY_BONDTYPE, BOND_PRIMITIVES_FOR_REGEX
 
 
 # PROCESSING BOND TOKENS IN SMIDGE STRINGS
