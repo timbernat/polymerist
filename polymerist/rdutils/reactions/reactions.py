@@ -15,7 +15,7 @@ from ..rdtypes import RDMol
 from ..bonding._bonding import combined_rdmol
 from ..labeling.molwise import ordered_map_nums
 from ..labeling.bondwise import get_bonded_pairs_by_map_nums
-from ..smileslib.queries import matching_labels_from_substruct_dict
+from ..smileslib.substructures import matching_labels_from_substruct_dict
 
 from ...genutils.decorators.functional import allow_string_paths, allow_pathlib_paths
 from ...genutils.sequences import bin_ids_forming_sequence
