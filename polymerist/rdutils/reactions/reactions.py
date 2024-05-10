@@ -40,11 +40,31 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     # line number in .rxn file where (optional) name of reaction should be located (per the CTFile spec https://discover.3ds.com/sites/default/files/2020-08/biovia_ctfileformats_2020.pdf) 
     _RXNNAME_LINE_NO : ClassVar[int] = 1
     
-    # LOADING METHODS
+    # LOADING/EXPORT METHODS
     @classmethod
     def from_smarts(cls, rxn_smarts : str) -> 'AnnotatedReaction':
-        '''For instantiating reactions from SMARTS strings'''
-        return cls(rdChemReactions.ReactionFromSmarts(rxn_smarts)) # pass to init method
+        '''Iinstantiate reaction from mapped SMARTS string'''
+        return cls(rdChemReactions.ReactionFromSmarts(rxn_smarts))
+    
+    # NOTE : cannot analogous implement "from_smiles" classmethod, as rdChemreactions does not support initialization from SMILES (only SMARTS)
+
+    def to_smarts(self) -> str:
+        '''Export reaction as mapped SMARTS string'''
+        return rdChemReactions.ReactionToSmarts(self) # TODO : implement * -> R replacement here (rather than in rxn file I/O)
+
+    @property
+    def smarts(self) -> str:
+        '''Mapped SMARTS string representation of reaction'''
+        return self.to_smarts
+
+    def to_smiles(self) -> str:
+        '''Export reaction as mapped SMILES string'''
+        return rdChemReactions.ReactionToSmiles(self) # TODO : implement * -> R replacement here (rather than in rxn file I/O)
+
+    @property
+    def smiles(self) -> str:
+        '''Mapped SMILES string representation of reaction'''
+        return self.to_smiles
 
     @classmethod
     def from_rdmols(cls, reactant_templates : Iterable[RDMol], product_templates : Iterable[RDMol], agent_templates : Optional[Iterable[RDMol]]=None) -> 'AnnotatedReaction':
