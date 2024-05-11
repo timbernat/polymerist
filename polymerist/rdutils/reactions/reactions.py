@@ -55,7 +55,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     @property
     def smarts(self) -> str:
         '''Mapped SMARTS string representation of reaction'''
-        return self.to_smarts
+        return self.to_smarts()
 
     def to_smiles(self) -> str:
         '''Export reaction as mapped SMILES string'''
@@ -64,7 +64,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     @property
     def smiles(self) -> str:
         '''Mapped SMILES string representation of reaction'''
-        return self.to_smiles
+        return self.to_smiles()
 
     @classmethod
     def from_rdmols(cls, reactant_templates : Iterable[RDMol], product_templates : Iterable[RDMol], agent_templates : Optional[Iterable[RDMol]]=None) -> 'AnnotatedReaction':
