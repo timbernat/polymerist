@@ -16,7 +16,7 @@ def get_property_from_smiles(smiles : str, prop_name : str='iupac_name') -> Opti
     iupac_name = cirpy.resolve(smiles, prop_name)
     if iupac_name is not None:
         if isinstance(iupac_name, list):
-            return iupac_name.pop()
+            return iupac_name.pop(0)
         return iupac_name 
     
     # ...otherwise, search through PubChem Compound queries for a matching results
