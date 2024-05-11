@@ -3,7 +3,7 @@
 import hashlib, base64
 
 
-def hash_to_alphanumeric(string : str, hash_algorithm : str='md5', str_encoding : str='utf-8', strip_b64_padding : bool=True) -> str:
+def hash_as_alphanumeric(string : str, hash_algorithm : str='md5', str_encoding : str='utf-8', strip_b64_padding : bool=True) -> str:
     '''Map string to hash text which contains only alphanumeric + dash characters'''
     if (hash_algorithm not in hashlib.algorithms_guaranteed):
         raise KeyError(f'Invalid hash algorithm "{hash_algorithm}". Supported algorithms are: {", ".join(hashlib.algorithms_guaranteed)}')
@@ -15,3 +15,4 @@ def hash_to_alphanumeric(string : str, hash_algorithm : str='md5', str_encoding 
         hashtext = hashtext.rstrip('=') # remove padding to avoid possibly invalid characters (and ugliness)
 
     return hashtext
+hash_as_alphanum = hash_as_alphanumeric # alias for convenience
