@@ -1,6 +1,6 @@
 '''For gathering information and running calculations from LAMMPS input files'''
 
-from typing import Union
+from typing import Optional, Union
 
 import re
 from pathlib import Path
@@ -70,15 +70,17 @@ def parse_lammps_input(lmp_in_path : Path) -> dict[str, Union[str, LAMMPSUnitSty
     return info_dict
 
 @allow_pathlib_paths
-def get_lammps_energies(lmp_in_path : str, preferred_unit : Unit=kilocalorie_per_mole) -> dict[str, Quantity]:
+def get_lammps_energies(lmp_in_path : str, preferred_unit : Unit=kilocalorie_per_mole, cmdargs : Optional[list]=None) -> dict[str, Quantity]:
     '''Perform an energy evaluation using a LAMMPS input file
     Alternative to interchange.drivers.get_lammps_energies which is dynamically aware of energy units and assumes nothing about which energies are specified by thermo_style'''
+    cmdargs = [] if cmdargs is None else [arg for arg in cmdargs] # need to copy list to keep read-only (lammps.lammps() modifies the argument list passed in-place)
+    
     assert(preferred_unit.is_compatible(kilocalorie_per_mole)) # whatever unit is desired, it must be one of energy
     lammps_info = parse_lammps_input(lmp_in_path)
     energy_unit     = lammps_info['unit_style'].energy
     energy_contribs = lammps_info['energy_evals']
 
-    with lammps.lammps() as lmp: # need to create new lammps() object instance for each run
+    with lammps.lammps(cmdargs=cmdargs) as lmp: # need to create new lammps() object instance for each run
         # lmp.commands_string( ENERGY_EVAL_STR.replace('$INP_FILE', str(lammps_file)) )
         lmp.file(lmp_in_path) # read input file and calculate energies; NOTE that this NEEDS to be a string (not Path!)
         return {
@@ -87,12 +89,14 @@ def get_lammps_energies(lmp_in_path : str, preferred_unit : Unit=kilocalorie_per
         }
 
 @allow_pathlib_paths
-def get_lammps_unit_cell(lmp_in_path : str) -> dict[str, Quantity]:
+def get_lammps_unit_cell(lmp_in_path : str, cmdargs : Optional[list]=None) -> dict[str, Quantity]: # TODO: reimplement this with maths.lattices.bravais.LatticeParameters
     '''Extract the 6 unit cell parameters specified by a LAMMPS input file'''
+    cmdargs = [] if cmdargs is None else [arg for arg in cmdargs] # need to copy list to keep read-only (lammps.lammps() modifies the argument list passed in-place)
+    
     lammps_info = parse_lammps_input(lmp_in_path)
     length_unit = lammps_info['unit_style'].distance
 
-    with lammps.lammps() as lmp: # need to create new lammps() object instance for each run
+    with lammps.lammps(cmdargs=cmdargs) as lmp: # need to create new lammps() object instance for each run
         lmp.file(lmp_in_path) # read input file and calculate energies; NOTE that this NEEDS to be a string (not Path!)
         cell_params = {}
         for cell_param_kw in LAMMPS_CELL_KW:
