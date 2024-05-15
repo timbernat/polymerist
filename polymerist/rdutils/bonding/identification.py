@@ -45,7 +45,7 @@ def enumerate_bondable_port_pairs_internal(ports : Iterable[Port]) -> Generator[
 #     return get_bondable_ports(rdmol, rdmol) # currently, this overcounts by exactly double, as a pair (p1, p2) and its copair (p2, p1) are considered distinct
 
 def get_bondable_port_pairs(rdmol : RDMol, atom_id_1 : Optional[int]=None, atom_id_2 : Optional[int]=None, flavor_pair : tuple[Optional[int], Optional[int]]=(None, None)) -> Generator[tuple[Port, Port], None, None]:
-    '''Get every pair of ports within an RDMol which could be bonded and match a specified flavor pair (could be partially or fully None for less specificity)
+    '''Get every pair of ports within an RDKit Mol which could be bonded and match a specified flavor pair (could be partially or fully None for less specificity)
     Can optionally localize search to only have port bridegehead coinciding with atoms at particular indices
     Pairs are returned n descending order of linker atom index to simplify atom removal if modifying later'''
     # possible_port_pairs = enumerate_bondable_port_pairs_internal( # unpack values after iterating; TODO : make this internal to avoid double counting

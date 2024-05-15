@@ -26,13 +26,13 @@ def disable_substruct_highlights() -> None:
     IPythonConsole.highlightSubstructs = False
 
 def set_rdkdraw_size(dim : int=300, aspect : float=3/2):
-    '''Change image size and shape of RDMol images'''
+    '''Change image size and shape of RDKit Mol images'''
     IPythonConsole.molSize = (int(aspect*dim), dim) # Change IPython image display size
 
 
 # SINGLE-MOLECULE DISPLAY OPTIONS
 def clear_highlights(rdmol : RDMol) -> None:
-    '''Removes the highlighted atoms flags from an RDMol if present'''
+    '''Removes the highlighted atoms flags from an RDKit Mol if present'''
     if hasattr(rdmol, '__sssAtoms'):
         del rdmol.__sssAtoms
 

@@ -14,7 +14,7 @@ from rdkit import Chem
 
 
 # CUSTOM EXCEPTIONS
-class InvalidRDMol(Exception):
+class InvalidRDKitMol(Exception):
     # raised during validation and error checking to catch invalid inputted/generated monomers
     def __init__(self, message, smarts=""):
         self.message = message
@@ -27,10 +27,10 @@ class InvalidRDMol(Exception):
         else:
             return f"rdmol with smarts \"{self.smarts}\" found to be invalid: {self.message}"
 
-class InvalidMonomer(InvalidRDMol):
+class InvalidMonomer(InvalidRDKitMol):
     pass
 
-class InvalidCap(InvalidRDMol):
+class InvalidCap(InvalidRDKitMol):
     pass 
  
  # CONVERTERS

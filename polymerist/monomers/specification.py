@@ -80,7 +80,7 @@ def compliant_atom_query_from_info(atomic_num : int, degree : int, atom_map_num 
     return atom_query
 
 def compliant_atom_query_from_rdatom(rdatom : RDAtom, as_atom : bool=False) -> Union[str, QueryAtom]:
-    '''Construct a monomer-spec compliant atom SMARTS string from an RDKit RDAtom'''
+    '''Construct a monomer-spec compliant atom SMARTS string from an RDKit Atom'''
     return compliant_atom_query_from_info(
         atomic_num   = rdatom.GetAtomicNum(),
         degree       = rdatom.GetDegree(), # counts number of active bonds

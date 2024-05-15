@@ -8,7 +8,7 @@ from ...genutils.decorators.functional import optional_in_place
 
 # READING FUNCTIONS
 def get_isotopes(rdmol : RDMol, unique : bool=True) -> Union[set[int], list[int]]:
-    '''Return all isotope IDs present in an RDMol. Can optionally return only the unique IDs'''
+    '''Return all isotope IDs present in an RDKit Mol. Can optionally return only the unique IDs'''
     isotope_ids = [atom.GetIsotope() for atom in rdmol.GetAtoms()]
 
     if unique:
@@ -16,11 +16,11 @@ def get_isotopes(rdmol : RDMol, unique : bool=True) -> Union[set[int], list[int]
     return isotope_ids
 
 def ordered_map_nums(rdmol : RDMol) -> list[int]:
-    '''Get assigned atom map numbers, in the same order as the internal RDMol atom IDs'''
+    '''Get assigned atom map numbers, in the same order as the internal RDKit Mol atom IDs'''
     return [atom.GetAtomMapNum() for atom in rdmol.GetAtoms()]
 
 def map_nums_by_atom_ids(rdmol : RDMol, *query_atom_ids : list[int]) -> Generator[Optional[int], None, None]: # TODO : generalize this to handle case where multiple atoms have the same map num
-    '''Get assigned atom map numbers for a collection of atom ids, in the same order as the internal RDMol atom IDs'''
+    '''Get assigned atom map numbers for a collection of atom ids, in the same order as the internal RDKit Mol atom IDs'''
     for atom_id in query_atom_ids:
         yield(rdmol.GetAtomWithIdx(atom_id).GetAtomMapNum())
 
@@ -36,7 +36,7 @@ def atom_ids_by_map_nums(rdmol : RDMol, *query_map_nums : list[int]) -> Generato
 
 # CHECKING FUNCTIONS
 def has_fully_mapped_atoms(rdmol : RDMol) -> bool:
-    '''Check whether an RDMol has a map number explicitly assigned to each member RDAtom'''
+    '''Check whether an RDKit Mol has a map number explicitly assigned to each member Atom'''
     for atom in rdmol.GetAtoms():
         if atom.GetAtomMapNum() == 0:
             return False
@@ -44,7 +44,7 @@ def has_fully_mapped_atoms(rdmol : RDMol) -> bool:
         return True
     
 def has_uniquely_mapped_atoms(rdmol : RDMol) -> bool:
-    '''Check whether an RDMol has distinct atom map numbers for each member RDAtom'''
+    '''Check whether an RDKit Mol has distinct atom map numbers for each member Atom'''
     map_nums = ordered_map_nums(rdmol)
     return (len(map_nums) == len(set(map_nums))) # NOTE : not using rdmol.GetNumAtoms() as reference to avoid ambiguity with SMILES without explicit Hs
 
@@ -93,12 +93,12 @@ def assign_contiguous_atom_map_nums(*rdmols : Iterable[RDMol], start_from : int=
 # CLEARING FUNCTIONS
 @optional_in_place
 def clear_atom_map_nums(rdmol : RDMol) -> None:
-    '''Removes atom map numbers from all atoms in an RDMol'''
+    '''Removes atom map numbers from all atoms in an RDKit Mol'''
     for atom in rdmol.GetAtoms():
         atom.SetAtomMapNum(0)
 
 @optional_in_place
 def clear_atom_isotopes(rdmol : RDMol) -> None:
-    '''Removes isotope numbers from all atoms in an RDMol'''
+    '''Removes isotope numbers from all atoms in an RDKit Mol'''
     for atom in rdmol.GetAtoms():
         atom.SetIsotope(0)

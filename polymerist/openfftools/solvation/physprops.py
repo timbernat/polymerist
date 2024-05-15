@@ -12,7 +12,7 @@ from ...unitutils.interop import allow_openff_units
 
 
 def molecular_weight(rdmol : RDMol, exact_isotopes : bool=False) -> Quantity:
-    '''Compute the molecular weight of an RDMol'''
+    '''Compute the molecular weight of an RDKit Mol'''
     MW = Descriptors.ExactMolWt(rdmol) if exact_isotopes else Descriptors.MolWt(rdmol)
     return MW * (gram / mole) # attach units
 

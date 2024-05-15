@@ -32,7 +32,7 @@ def splice_atoms(rwmol : RWMol, atom_id_1 : Optional[int]=None, atom_id_2 : Opti
         increase_bond_order(rwmol, atom_id_1, atom_id_2, flavor_pair=flavor_pair, in_place=True) 
 
 def saturate_ports(rdmol : RDMol, cap : RDMol=Chem.MolFromSmarts('[#0]-[#1]'), flavor_to_saturate : int=0) -> None:
-    '''Takes an RDMol and another "cap" molecule (by default just hydrogen) and caps all valid ports (with the specified flavor) on the target Mol with the cap group'''
+    '''Takes an RDKit Mol and another "cap" molecule (by default just hydrogen) and caps all valid ports (with the specified flavor) on the target Mol with the cap group'''
     flavor_pair : tuple[int, int] = (flavor_to_saturate, get_single_port(cap).flavor) # will raise exception if cap has anything other than 1 port
     
     rwmol = combined_rdmol(rdmol, cap, editable=True) # create initial combination to test if bonding is possible

@@ -75,7 +75,7 @@ class Port:
 
 # PORT ENUMERATION
 def get_port_ids(rdmol : RDMol) -> Generator[tuple[int, int], None, None]:
-    '''Get the linker and bridgehead indices of all ports found in an RDMol'''
+    '''Get the linker and bridgehead indices of all ports found in an RDKit Mol'''
     for (linker_id, bh_id) in rdmol.GetSubstructMatches(PORT_QUERY):
         yield linker_id, bh_id # unpacked purely for self-documentation
 

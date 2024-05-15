@@ -1,4 +1,4 @@
-'''For conversion of RDMols back and forth between different format encodings - often imbues a desired side effect (such as 2D-projection)'''
+'''For conversion of RDKit Mols back and forth between different format encodings - often imbues a desired side effect (such as 2D-projection)'''
 
 from abc import ABC, abstractmethod, abstractproperty
 from rdkit import Chem

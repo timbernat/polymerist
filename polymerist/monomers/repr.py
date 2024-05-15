@@ -110,7 +110,7 @@ class MonomerGroup:
         #     monomer = Chem.MolFromSmarts(SMARTS)
         #     clear_atom_map_nums(monomer, in_place=True) 
         #     hydrogenate_monomer_ports(monomer, in_place=True) 
-        #     unique_mono.add(Chem.MolToSmiles(monomer)) # TODO : eventually make this SMART-based (or even better RDMol-based); can't for now since hydrogenated fragments don't equate
+        #     unique_mono.add(Chem.MolToSmiles(monomer)) # TODO : eventually make this SMARTS-based (or even better RDKit Mol-based); can't for now since hydrogenated fragments don't equate
 
         # return unique_mono
 

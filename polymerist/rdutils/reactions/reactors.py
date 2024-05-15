@@ -1,4 +1,4 @@
-'''Classes for implementing reactions with respect to some set of reactant RDMols'''
+'''Classes for implementing reactions with respect to some set of reactant RDKit Mols'''
 
 from typing import ClassVar, Generator, Iterable, Optional, Type
 from dataclasses import dataclass, field
@@ -21,7 +21,7 @@ from ...genutils.decorators.functional import optional_in_place
 # REACTOR BASE CLASS 
 @dataclass
 class Reactor:
-    '''Class for executing a reaction template on collections of RDMol "reactants"'''
+    '''Class for executing a reaction template on collections of RDKit Mol "reactants"'''
     rxn_schema : AnnotatedReaction
     _ridx_prop_name : ClassVar[str] = field(init=False, default='reactant_idx') # name of the property to assign reactant indices to; set for entire class
 
