@@ -6,5 +6,5 @@ class SubstructMatchFailedError(Exception):
     pass
 
 class BondOrderModificationError(Exception):
-    '''Raised when an invalid RDBond modification is attempted'''
+    '''Raised when an invalid RDKit bond modification is attempted'''
     pass

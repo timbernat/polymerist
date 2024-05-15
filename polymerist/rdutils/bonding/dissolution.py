@@ -7,7 +7,7 @@ from typing import Optional
 from rdkit import Chem
 from rdkit.Chem.rdchem import BondType
 
-from ._bonding import BondOrderModificationError
+from ..rderrors import BondOrderModificationError
 from ..rdtypes import RWMol
 from ..labeling.bondwise import are_bonded_atoms
 from ...genutils.decorators.functional import optional_in_place
