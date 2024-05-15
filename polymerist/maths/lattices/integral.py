@@ -1,16 +1,16 @@
-'''Core tools for manipulating integer lattices in N-dimensions'''
+'''Core tools for manipulating integer lattices in D-dimensions'''
 
 from typing import Iterable
-from ...genutils.typetools.numpytypes import Shape, N, M
-from ...genutils.typetools.categorical import ListLike, Numeric
+from numbers import Number
+from ...genutils.typetools.numpytypes import Shape, D, N
 
 import numpy as np
 from itertools import product as cartesian_product
 from .coordinates import Coordinates, BoundingBox
 
 
-def generate_int_lattice(*dims : Iterable[int]) -> np.ndarray[Shape[M, N], int]:
-    '''Generate all N-D coordinates of points on a integer lattice with the sizes of all D dimensions given'''
+def generate_int_lattice(*dims : Iterable[int]) -> np.ndarray[Shape[N, D], int]:
+    '''Generate all D-D coordinates of points on a integer lattice with the sizes of all D dimensions given'''
     return np.fromiter(
         iter=cartesian_product(*[
             range(d)
@@ -19,9 +19,9 @@ def generate_int_lattice(*dims : Iterable[int]) -> np.ndarray[Shape[M, N], int]:
         dtype=np.dtype((int, len(dims)))
     )
 
-def nearest_int_coord_along_normal(point : np.ndarray[Shape[N], Numeric], normal : np.ndarray[Shape[N], Numeric]) -> np.ndarray[Shape[N], int]:
+def nearest_int_coord_along_normal(point : np.ndarray[Shape[D], Number], normal : np.ndarray[Shape[D], Number]) -> np.ndarray[Shape[D], int]:
     '''
-    Takes an N-dimensional control point and an N-dimensional normal vector
+    Takes an D-dimensional control point and an D-dimensional normal vector
     Returns the integer-valued point nearest to the control point which lies in
     the normal direction relative to the control point
     '''
@@ -47,11 +47,11 @@ def nearest_int_coord_along_normal(point : np.ndarray[Shape[N], Numeric], normal
 
     return int_point.astype(int)
 
-# TODO : implement enumeration of integral points within an N-simplex
+# TODO : implement enumeration of integral points within an D-simplex
 
-class CubicIntegerLattice(Coordinates):
+class CubicIntegerLattice(Coordinates[int]):
     '''For representing an n-dimensional integer lattice, consisting of all n-tuples of integers with values constrained by side lengths in each dimension'''
-    def __init__(self, counts_along_dims : np.ndarray[Shape[N], int]) -> None: # TODO: implement more flexible input support (i.e. star-unpacking, listlikes, etc.)
+    def __init__(self, counts_along_dims : np.ndarray[Shape[D], int]) -> None: # TODO: implement more flexible input support (i.e. star-unpacking, listlikes, etc.)
         assert(counts_along_dims.ndim == 1)
         super().__init__(generate_int_lattice(*counts_along_dims))
         self.counts_along_dims = counts_along_dims
@@ -65,19 +65,19 @@ class CubicIntegerLattice(Coordinates):
 
     # LATTICE DIMENSIONS
     @property
-    def capacity(self) -> int: # referred to as "M" in typehints
+    def capacity(self) -> int: # referred to as "N" in typehints
         '''The maximum number of points that the lattice could contains'''
         return np.prod(self.counts_along_dims)
 
     @property
-    def lex_ordered_weights(self) -> np.ndarray[Shape[N], int]:
+    def lex_ordered_weights(self) -> np.ndarray[Shape[D], int]:
         '''Vector of the number of points corresponding
         Can be viewed as a linear transformation between indices and point coordinates when coords are placed in lexicographic order'''
         return np.concatenate(([1], np.cumprod(self.counts_along_dims)[:-1]))
 
     # SUBLATTICE DECOMPOSITION
     @property
-    def odd_even_idxs(self) -> tuple[np.ndarray[Shape[M], int], np.ndarray[Shape[M], int]]: # TOSELF: each subarray actually has length M/2 (+1 if capacity is odd), not sure how to typehint that though
+    def odd_even_idxs(self) -> tuple[np.ndarray[Shape[N], int], np.ndarray[Shape[N], int]]: # TOSELF: each subarray actually has length N/2 (+1 if capacity is odd), not sure how to typehint that though
         '''Return two vectors of indices, corresponding to points in the "odd" and "even" non-neighboring sublattices, respectively'''
         parity_vector = np.mod(self.points.sum(axis=1), 2) # remainder of sum of coordinates of each point; corresponds to the condition that a single step along any dimension should invert parity
         is_odd = parity_vector.astype(bool) # typecast as booleans to permit indexing (and make intent a bit clearer)
@@ -85,23 +85,23 @@ class CubicIntegerLattice(Coordinates):
         return np.flatnonzero(is_odd), np.flatnonzero(~is_odd) # need to faltten to avoid inconvenient tuple wrapping
 
     @property
-    def odd_idxs(self) -> np.ndarray[Shape[M], int]:
+    def odd_idxs(self) -> np.ndarray[Shape[N], int]:
         '''Indices of the point in the in "odd" sublattice'''
         return self.odd_even_idxs[0]
 
     @property
-    def even_idxs(self) -> np.ndarray[Shape[M], int]:
+    def even_idxs(self) -> np.ndarray[Shape[N], int]:
         '''Indices of the point in the in "even" sublattice'''
         return self.odd_even_idxs[1]
 
     @property
-    def odd_sublattice(self) -> np.ndarray[Shape[M, N], int]:
+    def odd_sublattice(self) -> np.ndarray[Shape[N, D], int]:
         '''Returns points within the odd sublattice of the lattice points'''
         return self.points[self.odd_idxs]
     odd_points = odd_sublattice # alias for convenience
 
     @property
-    def even_sublattice(self) -> np.ndarray[Shape[M, N], int]:
+    def even_sublattice(self) -> np.ndarray[Shape[N, D], int]:
         '''Returns points within the even sublattice of the lattice points'''
         return self.points[self.even_idxs]
     even_points = even_sublattice # alias for convenience

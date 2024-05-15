@@ -26,7 +26,6 @@ def _union_member_factory(union : U, regname : str='Union') -> Callable[[Any], b
     return isinunion
 
 _UNION_TYPES : dict[str, U] = { # registry of aliases type Unions (will be dynamically registered with isinstance-like checkers at module level)
-    'Numeric'           : Union[int, float, complex, np_number],                # classes which behave like numbers
     'StringLike'        : Union[str, bytes, bytearray],                         # classes which 
     'ListLike'          : Union[list, tuple, set, frozenset, bytes, bytearray], # classes which are Container-like and can be initialized from a list of values
     'JSONSerializable'  : Union[str, bool, int, float, tuple, list, dict],      # classes which can be written to a JSON file by the default JSONEncoder/Decoder
