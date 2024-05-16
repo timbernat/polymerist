@@ -9,6 +9,7 @@ from rdkit.Chem.rdchem import Atom, Bond, Mol, RWMol
 from .labeling.bijection import bijective_atom_id_iter
 from ..genutils.decorators.functional import optional_in_place
 from ..genutils.typetools.categorical import _union_member_factory
+from ..genutils.importutils import compile_simple_getable_attrs
 
 
 # RDKit-specific generics and type aliases
@@ -62,18 +63,9 @@ RDPROP_SETTERS = {
 }
 
 # PROPERTY INSPECTION FUNCTIONS
-def detailed_atom_info(atom : Atom) -> dict[str, Any]:
-    '''Extract all get-able info about a particular RDKit atom
-    Does NOT include any non-default Prop values (e.g. atomMapNumber)'''
-    atom_info = {}
-    for attr_name in dir(atom):
-        if 'Get' in attr_name:
-            try:
-                atom_info[attr_name.removeprefix('Get')] = getattr(atom, attr_name)()
-            except: # TODO : refine this Exception call (can't directly reference RDKit Boost.Python.ArgumentError due to C++ nonsense)
-                pass
-    
-    return atom_info
+def detailed_rdobj_info(rdobj : RDObj) -> dict[str, Any]:
+    '''Extract all get-able info about a particular RDKit atom. Does NOT include any non-default Prop values (e.g. atomMapNumber)'''
+    return compile_simple_getable_attrs(rdobj, getter_str='Get', repl_str='')
 
 def atom_ids_with_prop(rdmol : Mol, prop_name : str) -> list[int]:
     '''Returns list of atom IDs of atom which have a particular property assigned'''

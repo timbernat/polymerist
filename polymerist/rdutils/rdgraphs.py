@@ -5,7 +5,7 @@ from typing import Iterable
 from rdkit import Chem
 import networkx as nx
 
-from ..genutils.importutils import compile_simple_getable_attrs
+from .rdprops import detailed_rdobj_info
 from ..genutils.textual.casing import camel_case_to_snake_case
 
 
@@ -48,7 +48,7 @@ def rdmol_to_networkx(rdmol : Chem.Mol, atom_attrs : Iterable[str]=DEFAULT_ATOM_
     for atom in rdmol.GetAtoms():
         atom_attr_vals = {
             camel_case_to_snake_case(attr) : attr_val
-                for attr, attr_val in compile_simple_getable_attrs(atom, getter_str='Get', repl_str='').items()
+                for attr, attr_val in detailed_rdobj_info(atom).items()
                     if attr in atom_attrs
         }
         atom_attr_vals.update(atom.GetPropsAsDict())
@@ -57,7 +57,7 @@ def rdmol_to_networkx(rdmol : Chem.Mol, atom_attrs : Iterable[str]=DEFAULT_ATOM_
     for bond in rdmol.GetBonds():
         bond_attr_vals = {
             camel_case_to_snake_case(attr) : attr_val
-                for attr, attr_val in compile_simple_getable_attrs(bond, getter_str='Get', repl_str='').items()
+                for attr, attr_val in detailed_rdobj_info(bond).items()
                     if attr in bond_attrs
         }
         bond_attr_vals.update(atom.GetPropsAsDict())
