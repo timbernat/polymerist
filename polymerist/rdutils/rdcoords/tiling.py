@@ -3,10 +3,9 @@
 import numpy as np
 
 from rdkit import Chem
-from rdkit.Chem import rdGeometry, rdMolTransforms
+from rdkit.Chem import rdGeometry, rdMolTransforms, Mol
 
 from ...genutils.typetools.numpytypes import Shape, N
-from ..rdtypes import RDMol
 from ...maths.linearalg import affine
 from ...maths.lattices.coordinates import Coordinates
 
@@ -23,10 +22,10 @@ def rdmol_effective_radius(rdmol : Chem.Mol, conf_id : int=0) -> float:
 
     return dists_to_centroid.max()
 
-def tile_lattice_with_rdmol(rdmol : RDMol, lattice_points : np.ndarray[Shape[N, 3], float], rotate_randomly : bool=True, conf_id : int=0) -> RDMol:
+def tile_lattice_with_rdmol(rdmol : Mol, lattice_points : np.ndarray[Shape[N, 3], float], rotate_randomly : bool=True, conf_id : int=0) -> Mol:
     '''
     Generate a tiled topology of copies of an RDKit molecule, transformed to occupy the same relative positions as points on the given lattice with unit dimensions
-    if "random_rotations" is True, each occurrence of the molecule will also have a random rotation applied to it. RDMol is NOT modified at any point in the procedure
+    if "random_rotations" is True, each occurrence of the molecule will also have a random rotation applied to it. Mol is NOT modified at any point in the procedure
     '''
     if rdmol.GetNumConformers() < 1:
         raise ValueError('Molecule must have at least one conformer to be tiled')

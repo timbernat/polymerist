@@ -1,11 +1,22 @@
 '''For assigning, transferring, and removing properties of RDKit objects'''
 
-from typing import Any, Optional, TypeVar
+from typing import Any, Optional, TypeVar, TypeAlias, Union
 from copy import deepcopy
 
-from .rdtypes import RDMol, RDAtom, RDObj, isrdobj
+from rdkit import Chem
+from rdkit.Chem.rdchem import Atom, Bond, Mol, RWMol
+
 from .labeling.bijection import bijective_atom_id_iter
 from ..genutils.decorators.functional import optional_in_place
+from ..genutils.typetools.categorical import _union_member_factory
+
+
+# RDKit-specific generics and type aliases
+T = TypeVar('T')   # generic type for AtomProp attributes
+RD = TypeVar('RD') # generic type to represent an RDKit object
+
+RDObj : TypeAlias = Union[Atom, Bond, Mol, RWMol]
+isrdobj = _union_member_factory(RDObj, 'RDObj')
 
 
 # REFERENCE FOR "MAGIC" PROP KEYS AND DESCRIPTIONS IN RDKit (from https://www.rdkit.org/docs/RDKit_Book.html#magic-property-values) 
@@ -50,12 +61,8 @@ RDPROP_SETTERS = {
     float : 'SetDoubleProp'
 }
 
-T = TypeVar('T') # generic type for AtomProp attributes
-RD = TypeVar('RD') # generic type to represent an RDKit object
-
-
 # PROPERTY INSPECTION FUNCTIONS
-def detailed_atom_info(atom : RDAtom) -> dict[str, Any]:
+def detailed_atom_info(atom : Atom) -> dict[str, Any]:
     '''Extract all get-able info about a particular RDKit atom
     Does NOT include any non-default Prop values (e.g. atomMapNumber)'''
     atom_info = {}
@@ -68,7 +75,7 @@ def detailed_atom_info(atom : RDAtom) -> dict[str, Any]:
     
     return atom_info
 
-def atom_ids_with_prop(rdmol : RDMol, prop_name : str) -> list[int]:
+def atom_ids_with_prop(rdmol : Mol, prop_name : str) -> list[int]:
     '''Returns list of atom IDs of atom which have a particular property assigned'''
     return [
         atom.GetIdx()
@@ -77,7 +84,7 @@ def atom_ids_with_prop(rdmol : RDMol, prop_name : str) -> list[int]:
     ]
 
 @optional_in_place
-def annotate_atom_prop(rdmol : RDMol, prop : str, prop_type : T=str, annotate_precision : Optional[int]=None) -> None:
+def annotate_atom_prop(rdmol : Mol, prop : str, prop_type : T=str, annotate_precision : Optional[int]=None) -> None:
     '''Labels the desired Prop for all atoms in a Mol which have it'''
     getter_type = RDPROP_GETTERS[prop_type]
     for atom in rdmol.GetAtoms():
@@ -87,7 +94,7 @@ def annotate_atom_prop(rdmol : RDMol, prop : str, prop_type : T=str, annotate_pr
             prop_val = round(prop_val, annotate_precision)
         atom.SetProp('atomNote', str(prop_val)) # need to convert to string, as double is susceptible to float round display errors (shows all decimal places regardless of rounding)
 
-def aggregate_atom_prop(rdmol : RDMol, prop : str, prop_type : T=str) -> dict[int, T]:
+def aggregate_atom_prop(rdmol : Mol, prop : str, prop_type : T=str) -> dict[int, T]:
     '''Collects the values of a given Prop across all atoms in an RDKit molecule'''
     getter_type = RDPROP_GETTERS[prop_type]
     return {
@@ -119,7 +126,7 @@ def assign_props_from_dict(prop_dict : dict[str, Any], rdobj : RDObj, preserve_t
 
 # PROPERTY REMOVAL FUNCTIONS
 @optional_in_place
-def clear_atom_props(rdmol : RDMol) -> None:
+def clear_atom_props(rdmol : Mol) -> None:
     '''Wipe properties of all atoms in a molecule'''
     for atom in rdmol.GetAtoms():
         for prop_name in atom.GetPropNames():
@@ -127,7 +134,7 @@ def clear_atom_props(rdmol : RDMol) -> None:
 
 
 # PROPERTY COMPARISON FUNCTIONS
-def difference_rdmol(rdmol_1 : RDMol, rdmol_2 : RDMol, prop : str='PartialCharge', remove_map_nums : bool=True) -> RDMol:
+def difference_rdmol(rdmol_1 : Mol, rdmol_2 : Mol, prop : str='PartialCharge', remove_map_nums : bool=True) -> Mol:
     '''
     Takes two RDKit Mols (presumed to have the same structure and atom map numbers) and the name of a property 
     whose partial charges are the differences betwwen the two Mols' charges (atomwise)

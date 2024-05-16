@@ -8,8 +8,17 @@ from ast import literal_eval
 import numpy as np
 
 from rdkit import Chem
+from rdkit.Chem.rdchem import (
+    Atom as RDAtom,
+    Mol,
+)
+
 from openff.toolkit import ToolkitRegistry
-from openff.toolkit.topology import Atom, Molecule, Topology
+from openff.toolkit.topology import (
+    Atom as OFFAtom,
+    Molecule,
+    Topology,
+)
 
 from . import GTR
 from ..genutils.iteration import asiterable
@@ -17,7 +26,6 @@ from ..genutils.fileutils.pathutils import dotless
 from ..genutils.decorators.functional import allow_string_paths, optional_in_place
 
 from ..rdutils.rdprops import RDPROP_GETTERS, RDPROP_SETTERS, copy_rd_props
-from ..rdutils.rdtypes import RDAtom, RDMol
 from ..rdutils.rdcoords.tiling import tile_lattice_with_rdmol
 
 
@@ -28,7 +36,7 @@ def get_largest_offmol(offtop : Topology) -> Molecule:
 
 
 # RDKIT METADATA-PRESERVING INTERCONVERSION
-def copy_atom_metadata(offatom : Atom, rdatom : RDAtom, preserve_type : bool=True) -> None:
+def copy_atom_metadata(offatom : OFFAtom, rdatom : RDAtom, preserve_type : bool=True) -> None:
     '''Copies all attributes from the metadata dict of an OpenFF-type Atom as Props of an RDKit-type atom'''
 
     for key, value in offatom.metadata.items():
@@ -38,7 +46,7 @@ def copy_atom_metadata(offatom : Atom, rdatom : RDAtom, preserve_type : bool=Tru
             setter = getattr(rdatom, RDPROP_SETTERS[type(value)]) # use the atom's setter for the appropriate type
             setter(key, value)
 
-def to_rdkit_with_metadata(offmol : Molecule, preserve_type : bool=True) -> RDMol:
+def to_rdkit_with_metadata(offmol : Molecule, preserve_type : bool=True) -> Mol:
     '''Converts an OpenFF molecule to an RDKit molecule, preserving atomic metadata'''
     rdmol = offmol.to_rdkit()
     for i, offatom in enumerate(offmol.atoms):

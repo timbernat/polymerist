@@ -2,19 +2,16 @@
 
 import logging
 LOGGER = logging.getLogger(__name__)
+
 import warnings
-
-from collections import Counter
-from pathlib import Path
-
-from rdkit import Chem
-from openmm.app import PDBFile
-
 with warnings.catch_warnings(record=True): # suppress numerous and irritating mbuild deprecation warnings
     warnings.filterwarnings('ignore',  category=DeprecationWarning)
     import mbuild as mb
     from mbuild import Compound
     from mbuild.lib.recipes.polymer import Polymer as MBPolymer
+
+from pathlib import Path
+from rdkit import Chem
 
 from .exceptions import MorphologyError
 from .estimation import estimate_chain_len_linear
@@ -24,12 +21,11 @@ from ..monomers.specification import SANITIZE_AS_KEKULE
 from ..genutils.decorators.functional import allow_string_paths
 from ..rdutils.bonding.portlib import get_linker_ids
 from ..rdutils.bonding.substitution import saturate_ports, hydrogenate_rdmol_ports
-from ..rdutils.rdtypes import RDMol
 from ..openmmtools.serialization import serialize_openmm_pdb
 
 
 # CONVERSION
-def mbmol_from_mono_rdmol(rdmol : RDMol) -> tuple[Compound, list[int]]:
+def mbmol_from_mono_rdmol(rdmol : Chem.Mol) -> tuple[Compound, list[int]]:
     '''Accepts a monomer-spec-compliant SMARTS string and returns an mbuild Compound and a list of the indices of atom ports'''
     linker_ids = [i for i in get_linker_ids(rdmol)] # record indices of ports - MUST unpack generator for mbuild compatibility
     

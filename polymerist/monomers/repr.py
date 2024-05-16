@@ -5,11 +5,10 @@ from dataclasses import dataclass, field
 
 from collections import defaultdict
 from rdkit import Chem
+from rdkit.Chem.rdchem import Mol
 
 from ..genutils.iteration import iter_len
 from ..genutils.fileutils.jsonio.jsonify import make_jsonifiable
-
-from ..rdutils.rdtypes import RDMol
 from ..rdutils.bonding.portlib import get_num_ports
 
 
@@ -24,7 +23,7 @@ class MonomerGroup:
     term_orient : dict[str, str] = field(default_factory=dict)
 
     @staticmethod
-    def is_terminal(monomer : RDMol) -> bool:
+    def is_terminal(monomer : Mol) -> bool:
         '''Determine whether or not a monomer is terminal'''
         return get_num_ports(monomer) == 1
 
@@ -34,7 +33,7 @@ class MonomerGroup:
         '''Alias of legacy "monomers" attribute'''
         return self.monomers # alias of legacy name for convenience
     
-    def iter_rdmols(self, term_only : Optional[bool]=None) -> Generator[tuple[str, RDMol], None, None]:
+    def iter_rdmols(self, term_only : Optional[bool]=None) -> Generator[tuple[str, Mol], None, None]:
         '''
         Generate (residue name, RDKit Mol) pairs of all monomers present
         Simplifies iteration over internal lists of monomer Mols
@@ -50,7 +49,7 @@ class MonomerGroup:
                 if (term_only is None) or (MonomerGroup.is_terminal(monomer) == term_only):
                     yield (resname, monomer)
 
-    def rdmols(self, term_only : Optional[bool]=None) -> dict[str, list[RDMol]]:
+    def rdmols(self, term_only : Optional[bool]=None) -> dict[str, list[Mol]]:
         '''
         Returns dict of RDKit Mol lists keyed by residue name
 
@@ -102,7 +101,7 @@ class MonomerGroup:
     __radd__ = __add__ # support reverse addition
 
     # CHEMICAL INFORMATION
-    def unique(self, cap_group : Union[str, RDMol]=Chem.MolFromSmarts('[H]-[*]')) -> 'MonomerGroup':
+    def unique(self, cap_group : Union[str, Mol]=Chem.MolFromSmarts('[H]-[*]')) -> 'MonomerGroup':
         '''Return a MonomerGroup containing only the unique monomers present, given a particular port saturating group (by default just a hydrogen)'''
         raise NotImplementedError
         # unique_mono = set()

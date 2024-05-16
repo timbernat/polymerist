@@ -4,13 +4,14 @@ import logging
 LOGGER = logging.getLogger(__name__)
 
 from typing import Optional
+from rdkit.Chem.rdchem import RWMol
+
 from collections import Counter
 from IPython.display import display # for Jupyter display support
 
 from . import portlib
 from .formation import increase_bond_order
 from .dissolution import decrease_bond_order
-from ..rdtypes import RWMol
 from ..labeling import molwise
 
 from ...genutils.sequences import int_complement

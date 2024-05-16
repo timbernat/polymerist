@@ -9,7 +9,6 @@ from typing import Union
 from rdkit import Chem
 from rdkit.Chem import QueryAtom
 
-from ..rdutils.rdtypes import RDAtom, RDMol
 from ..smileslib.primitives import is_valid_SMILES, is_valid_SMARTS, RDKIT_QUERYBONDS_BY_BONDTYPE
 from ..rdutils.labeling import molwise
 
@@ -79,7 +78,7 @@ def compliant_atom_query_from_info(atomic_num : int, degree : int, atom_map_num 
         return Chem.AtomFromSmarts(atom_query)
     return atom_query
 
-def compliant_atom_query_from_rdatom(rdatom : RDAtom, as_atom : bool=False) -> Union[str, QueryAtom]:
+def compliant_atom_query_from_rdatom(rdatom : Chem.Atom, as_atom : bool=False) -> Union[str, QueryAtom]:
     '''Construct a monomer-spec compliant atom SMARTS string from an RDKit Atom'''
     return compliant_atom_query_from_info(
         atomic_num   = rdatom.GetAtomicNum(),

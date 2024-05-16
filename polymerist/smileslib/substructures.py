@@ -4,10 +4,7 @@ from typing import Generator, TypeVar
 T = TypeVar('T')
 
 from rdkit import Chem
-from rdkit.Chem import (
-    rdqueries,
-    Mol as RDMol
-)
+from rdkit.Chem import rdqueries, Mol
 
 
 # REFERENCE TABLES FOR SPECIAL ATOM TYPES
@@ -30,15 +27,15 @@ SPECIAL_QUERY_MOLS = { # TODO : make these lambda-like so that a unique object i
 
 
 # COUNTING SUBSTRUCTURE QUERIES
-def num_substruct_queries(target_mol : RDMol, substruct_query : RDMol, *args, **kwargs) -> int:
+def num_substruct_queries(target_mol : Mol, substruct_query : Mol, *args, **kwargs) -> int:
     '''Get the number of RDKit substruct matches to a SMARTS query within a given target Mol'''
     return len(target_mol.GetSubstructMatches(substruct_query, *args, **kwargs)) # default "asMols=False" is fine here for length
 
-def num_automorphisms(substruct_query : RDMol, *args, **kwargs) -> int:
+def num_automorphisms(substruct_query : Mol, *args, **kwargs) -> int:
     '''Get the matches a substructure query has to itself; provides measure of the degree of symmetry of the query'''
     return num_substruct_queries(substruct_query, substruct_query, uniquify=False, *args, **kwargs) # !CRITICAL! that matches be non-unique
 
-def num_substruct_queries_distinct(target_mol : RDMol, substruct_query : RDMol) -> int: # TODO : also include stereochemical symmetries (via "useChirality" flag) 
+def num_substruct_queries_distinct(target_mol : Mol, substruct_query : Mol) -> int: # TODO : also include stereochemical symmetries (via "useChirality" flag) 
     '''Get the number of distinct, non-overlapping RDKit substruct matches to a SMARTS query within a given target Mol
     Accounts for automorphic symmetries of the query to avoid double-counting distinct groups'''
     num_distinct : float = num_substruct_queries(target_mol, substruct_query, uniquify=False) # !CRITICAL! that matches be non-unique
@@ -50,14 +47,14 @@ def num_substruct_queries_distinct(target_mol : RDMol, substruct_query : RDMol) 
 
 
 # MAPPING SUBSTRUCTURE QUERIES
-def matching_labels_from_substruct_dict(target_mol : RDMol, substruct_queries : dict[T, RDMol]) -> Generator[T, None, None]:
+def matching_labels_from_substruct_dict(target_mol : Mol, substruct_queries : dict[T, Mol]) -> Generator[T, None, None]:
     '''Takes a target RDKit Mol and a string-keyed dict of SMARTS substructure query Mols and 
     yields ONLY the keys of substructures which are found in the target'''
     for match_mol_name, match_mol in substruct_queries.items():
         if target_mol.HasSubstructMatch(match_mol):
             yield match_mol_name
 
-def matching_dict_from_substruct_dict(target_mol : RDMol, substruct_queries : dict[T, RDMol]) -> dict[T, bool]:
+def matching_dict_from_substruct_dict(target_mol : Mol, substruct_queries : dict[T, Mol]) -> dict[T, bool]:
     '''Takes a target RDKit Mol and a string-keyed dict of SMARTS substructure query Mols and 
     returns a dict of bools with the same keys indicating whether each match is present'''
     return {
@@ -65,7 +62,7 @@ def matching_dict_from_substruct_dict(target_mol : RDMol, substruct_queries : di
             for match_mol_name, match_mol in substruct_queries.items()
     }
 
-def matching_dict_from_substruct_dict_alt(target_mol : RDMol, substruct_queries : dict[T, RDMol]) -> dict[T, bool]:
+def matching_dict_from_substruct_dict_alt(target_mol : Mol, substruct_queries : dict[T, Mol]) -> dict[T, bool]:
     '''Takes a target RDKit Mol and a string-keyed dict of SMARTS substructure query Mols and 
     returns a dict of bools with the same keys indicating whether each match is present
     

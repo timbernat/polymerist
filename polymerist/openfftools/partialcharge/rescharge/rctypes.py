@@ -1,9 +1,9 @@
 '''Custom types used in determining residue charges'''
 
 from typing import TypeAlias
+from rdkit.Chem.rdchem import Mol
 from dataclasses import dataclass, field
 
-from rdkit.Chem import Mol as RDMol
 from ....genutils.fileutils.jsonio.jsonify import make_jsonifiable
 
 
@@ -15,7 +15,7 @@ class ChargedResidue:
     charges : ChargeMap
     residue_name : str
     SMARTS : str
-    mol_fragment : RDMol
+    mol_fragment : Mol
 
 @make_jsonifiable
 @dataclass

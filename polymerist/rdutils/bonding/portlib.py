@@ -2,9 +2,10 @@
 
 from typing import ClassVar, Generator, Optional
 from dataclasses import dataclass, field
-from rdkit import Chem
 
-from ..rdtypes import RDAtom, RDBond, RDMol
+from rdkit import Chem
+from rdkit.Chem.rdchem import Atom, Bond, Mol
+
 from ...genutils.iteration import iter_len
 from ...genutils.containers import UnorderedRegistry
 
@@ -17,11 +18,11 @@ class MolPortError(Exception):
     '''Raised when port-related errors as encountered'''
     pass
 
-def is_linker(rdatom : RDAtom) -> bool:
+def is_linker(rdatom : Atom) -> bool:
     '''Indicate whether an atom is a linker (intermonomer "*" type atom)'''
     return rdatom.GetAtomicNum() == 0
 
-def get_num_linkers(rdmol : RDMol) -> int:
+def get_num_linkers(rdmol : Mol) -> int:
     '''Count how many wild-type inter-molecule linker atoms are in a Mol'''
     return sum(
         is_linker(atom)
@@ -31,9 +32,9 @@ def get_num_linkers(rdmol : RDMol) -> int:
 @dataclass(frozen=True)
 class Port:
     '''Class for encapsulating the components of a "port" bonding site (linker-bond-bridgehead)'''
-    linker     : RDAtom
-    bond       : RDBond
-    bridgehead : RDAtom
+    linker     : Atom
+    bond       : Bond
+    bridgehead : Atom
 
     bondable_flavors : ClassVar[UnorderedRegistry] = field(default=UnorderedRegistry((0, 0))) # by default, only two (0, 0)-flavor ("unlabelled") ports are bondable
 
@@ -74,17 +75,17 @@ class Port:
         return self.flavor == target_flavor
 
 # PORT ENUMERATION
-def get_port_ids(rdmol : RDMol) -> Generator[tuple[int, int], None, None]:
+def get_port_ids(rdmol : Mol) -> Generator[tuple[int, int], None, None]:
     '''Get the linker and bridgehead indices of all ports found in an RDKit Mol'''
     for (linker_id, bh_id) in rdmol.GetSubstructMatches(PORT_QUERY):
         yield linker_id, bh_id # unpacked purely for self-documentation
 
-def get_linker_ids(rdmol : RDMol) -> Generator[int, None, None]:
+def get_linker_ids(rdmol : Mol) -> Generator[int, None, None]:
     '''Get indices of all atoms which are ports'''
     for (linker_id, bh_id) in get_port_ids(rdmol):
         yield linker_id
 
-def get_ports(rdmol : RDMol, target_atom_id : Optional[int]=None, target_flavor : Optional[int]=None) -> Generator[Port, None, None]:
+def get_ports(rdmol : Mol, target_atom_id : Optional[int]=None, target_flavor : Optional[int]=None) -> Generator[Port, None, None]:
     '''Find and generate all ports in a molecule. Can optioanlly narrow scope to port whose bridegehead is a particular atom and/or whose linker has a particular flavor'''
     target_atom = None if (target_atom_id is None) else rdmol.GetAtomWithIdx(target_atom_id)
 
@@ -100,11 +101,11 @@ def get_ports(rdmol : RDMol, target_atom_id : Optional[int]=None, target_flavor 
             if (target_atom_id is None) or (port.bridgehead.GetIdx() == target_atom_id):# will match if no atom is given OR if an atom is given and the bridgehead matches that Atom
                 yield port
 
-def get_num_ports(rdmol : RDMol, target_atom_id : Optional[int]=None, target_flavor : Optional[int]=None) -> int: 
+def get_num_ports(rdmol : Mol, target_atom_id : Optional[int]=None, target_flavor : Optional[int]=None) -> int: 
     '''Counts the number of port atoms present in a Mol'''
     return iter_len(get_ports(rdmol, target_atom_id=target_atom_id, target_flavor=target_flavor))
 
-def get_single_port(rdmol : RDMol) -> Port:
+def get_single_port(rdmol : Mol) -> Port:
     '''Get the singular port of a Mol which contains only 1 port'''
     num_ports = get_num_ports(rdmol)
     if num_ports == 0:

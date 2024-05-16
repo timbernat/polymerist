@@ -1,7 +1,9 @@
 '''Tools for replacing Ports and functional groups'''
 
 from typing import Optional
+
 from rdkit import Chem
+from rdkit.Chem import Mol, RWMol
 
 from ._bonding import combined_rdmol
 from .formation import increase_bond_order
@@ -9,7 +11,6 @@ from .portlib import get_linker_ids, get_single_port
 from .identification import get_num_bondable_port_pairs, get_first_bondable_port_pair
 
 from ..labeling import molwise
-from ..rdtypes import RDMol, RWMol
 from ...genutils.decorators.functional import optional_in_place
 
 
@@ -31,7 +32,7 @@ def splice_atoms(rwmol : RWMol, atom_id_1 : Optional[int]=None, atom_id_2 : Opti
 
         increase_bond_order(rwmol, atom_id_1, atom_id_2, flavor_pair=flavor_pair, in_place=True) 
 
-def saturate_ports(rdmol : RDMol, cap : RDMol=Chem.MolFromSmarts('[#0]-[#1]'), flavor_to_saturate : int=0) -> None:
+def saturate_ports(rdmol : Mol, cap : Mol=Chem.MolFromSmiles('[*]-[H]'), flavor_to_saturate : int=0) -> None:
     '''Takes an RDKit Mol and another "cap" molecule (by default just hydrogen) and caps all valid ports (with the specified flavor) on the target Mol with the cap group'''
     flavor_pair : tuple[int, int] = (flavor_to_saturate, get_single_port(cap).flavor) # will raise exception if cap has anything other than 1 port
     
@@ -48,10 +49,10 @@ def saturate_ports(rdmol : RDMol, cap : RDMol=Chem.MolFromSmarts('[#0]-[#1]'), f
         num_bonds_formable = get_num_bondable_port_pairs(rwmol, flavor_pair=flavor_pair) # update count of available bonds (this may change as new bonds are added)
     molwise.assign_ordered_atom_map_nums(rwmol, in_place=True) # ensure map numbers are ordered and minial
     
-    return Chem.rdchem.Mol(rwmol) # revert to "regular" Mol from RWMol
+    return Chem.Mol(rwmol) # revert to "regular" Mol from RWMol
 
 @optional_in_place # temporarily placed here for backwards-compatibility reasons
-def hydrogenate_rdmol_ports(rdmol : RDMol) -> None:
+def hydrogenate_rdmol_ports(rdmol : Mol) -> None:
     '''Replace all port atoms with hydrogens'''
     # return Chem.ReplaceSubstructs(rdmol, Chem.MolFromSmarts('[#0]'), Chem.MolFromSmarts('[#1]'), replaceAll=True)[0] # changes order of atom ids, undesiredly
     for port_id in get_linker_ids(rdmol):

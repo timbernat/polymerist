@@ -8,10 +8,9 @@ from io import StringIO
 from pathlib import Path
 from functools import cached_property
 
-from rdkit.Chem import rdChemReactions
+from rdkit.Chem import rdChemReactions, Mol
 
 from .reactexc import BadNumberReactants
-from ..rdtypes import RDMol
 from ..bonding._bonding import combined_rdmol
 from ..labeling.molwise import ordered_map_nums
 from ..labeling.bondwise import get_bonded_pairs_by_map_nums
@@ -67,7 +66,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         return self.to_smiles()
 
     @classmethod
-    def from_rdmols(cls, reactant_templates : Iterable[RDMol], product_templates : Iterable[RDMol], agent_templates : Optional[Iterable[RDMol]]=None) -> 'AnnotatedReaction':
+    def from_rdmols(cls, reactant_templates : Iterable[Mol], product_templates : Iterable[Mol], agent_templates : Optional[Iterable[Mol]]=None) -> 'AnnotatedReaction':
         '''For instantiating reactions directly from molecules instead of SMARTS strings'''
         # label atoms as belonging to reactant or product via RDKit 'magic' internal property (1 = reactant, 2 = product, 3 = agent)
         if agent_templates is None:
@@ -176,7 +175,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         
         return prod_info_map
     
-    def valid_reactant_ordering(self, reactants : Sequence[RDMol]) -> Optional[list[RDMol]]:
+    def valid_reactant_ordering(self, reactants : Sequence[Mol]) -> Optional[list[Mol]]:
         '''Given an RDKit chemical reaction mechanism and a sequence of reactant Mols, will determine if there is
         an ordering of the reactants which is compatible with the reactant templates defined in the reaction
 

@@ -4,12 +4,11 @@ import logging
 LOGGER = logging.getLogger(__name__)
 
 from typing import Optional
-from rdkit.Chem.rdchem import BondType
+from rdkit.Chem.rdchem import BondType, RWMol
 
 from .dissolution import _decrease_bond_order
 from .identification import get_first_bondable_port_pair
 
-from ..rdtypes import RWMol
 from ..rdkdraw import clear_highlights
 from ...genutils.decorators.functional import optional_in_place
 from ...smileslib.primitives import RDKIT_BONDS_BY_BONDTYPE

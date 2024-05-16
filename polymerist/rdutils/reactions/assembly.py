@@ -4,9 +4,9 @@ from dataclasses import dataclass, field
 from typing import Iterable, Optional, Union
 
 from rdkit import Chem
+from rdkit.Chem.rdchem import Mol
 
 from .reactions import AnnotatedReaction
-from ..rdtypes import RDMol
 from ..labeling import molwise
 from ..bonding._bonding import combined_rdmol
 from ..bonding.permutation import swap_bonds
@@ -16,20 +16,20 @@ from ...monomers import specification
 @dataclass # TODO : make JSONifiable
 class ReactionAssembler:
     '''Class for producing reaction templates from reactants, bond derangements'''
-    reactive_groups  : Iterable[RDMol]
-    byproducts       : Iterable[RDMol]            = field(default_factory=list)
+    reactive_groups  : Iterable[Mol]
+    byproducts       : Iterable[Mol]              = field(default_factory=list)
     bond_derangement : dict[int, tuple[int, int]] = field(default_factory=dict)
     rxn_name         : str = ''
     # TODO : incorporate stereo
 
     @property
-    def reactants(self) -> RDMol:
+    def reactants(self) -> Mol:
         '''Combine cached reactive groups into single, contiguously-numbered Mol for manipulation'''
         # 1) extracting and labelling reactants
         reactants = molwise.assign_contiguous_atom_map_nums(*self.reactive_groups, in_place=False) # needed up-front to display reactants for derangement determination
         return Chem.CombineMols(*reactants) 
 
-    def products(self, show_steps : bool=False) -> RDMol:
+    def products(self, show_steps : bool=False) -> Mol:
         '''Generate the product template defined by the provided reactants and bond derangement'''
         if not self.bond_derangement:
             raise ValueError('Must provide non-empty bond derangement')
@@ -40,7 +40,7 @@ class ReactionAssembler:
 
         return products
     
-    def products_by_importance(self, combined : bool=True, show_steps : bool=False) -> tuple[Union[Optional[RDMol], list[RDMol]], Union[Optional[RDMol], list[RDMol]]]:
+    def products_by_importance(self, combined : bool=True, show_steps : bool=False) -> tuple[Union[Optional[Mol], list[Mol]], Union[Optional[Mol], list[Mol]]]:
         '''Partition reaction products into major and minor/byproducts, each returned as a single Combined Mol'''
         product_partition = main_products, byproducts = [], []
         for product in Chem.GetMolFrags(self.products(show_steps=show_steps), asMols=True):

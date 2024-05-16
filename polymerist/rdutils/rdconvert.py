@@ -2,8 +2,8 @@
 
 from abc import ABC, abstractmethod, abstractproperty
 from rdkit import Chem
+from rdkit.Chem.rdchem import Mol
 
-from .rdtypes import RDMol
 from ..genutils.decorators.classmod import register_subclasses
 
 from .labeling.bijection import bijective_atom_id_iter
@@ -19,11 +19,11 @@ class RDConverter(ABC): # TODO : add some optional sanitization measures to ensu
         pass
 
     @abstractmethod
-    def _convert(self, rdmol : RDMol) -> RDMol:
+    def _convert(self, rdmol : Mol) -> Mol:
         '''Implement conversion mechanism here'''
         pass
 
-    def convert(self, rdmol : RDMol, sanitize : bool=True) -> RDMol:
+    def convert(self, rdmol : Mol, sanitize : bool=True) -> Mol:
         '''Tranform RDKit Mol using the selected method'''
         newmol = self._convert(rdmol)
         if sanitize:
@@ -40,32 +40,32 @@ class RDConverter(ABC): # TODO : add some optional sanitization measures to ensu
 
 class SMARTSConverter(RDConverter):
     TAG = 'SMARTS'
-    def _convert(self, rdmol : RDMol) -> RDMol:
+    def _convert(self, rdmol : Mol) -> Mol:
         return Chem.MolFromSmarts(Chem.MolToSmarts(rdmol))
 
 class SMILESConverter(RDConverter):
     TAG = 'SMILES'
-    def _convert(self, rdmol : RDMol) -> RDMol:
+    def _convert(self, rdmol : Mol) -> Mol:
         return Chem.MolFromSmiles(Chem.MolToSmiles(rdmol), sanitize=False)
     
 class CXSMARTSConverter(RDConverter):
     '''Similar to SMARTSConverter but preserves the 3D structure'''
     TAG = 'CXSMARTS'
-    def _convert(self, rdmol : RDMol) -> RDMol:
+    def _convert(self, rdmol : Mol) -> Mol:
         return Chem.MolFromSmarts(Chem.MolToCXSmarts(rdmol))
 
 class CXSMILESConverter(RDConverter):
     '''Similar to SMILESConverter but preserves the 3D structure'''
     TAG = 'CXSMILES'
-    def _convert(self, rdmol : RDMol) -> RDMol:
+    def _convert(self, rdmol : Mol) -> Mol:
         return Chem.MolFromSmiles(Chem.MolToCXSmiles(rdmol), sanitize=False)
 
 class InChIConverter(RDConverter): # TOSELF : this does not preserve atom map num ordering (how to incorporate AuxInfo?)
     TAG = 'InChI'
-    def _convert(self, rdmol : RDMol) -> RDMol:
+    def _convert(self, rdmol : Mol) -> Mol:
         return Chem.AddHs(Chem.MolFromInchi(Chem.MolToInchi(rdmol), removeHs=False, sanitize=False))
     
 class JSONConverter(RDConverter):
     TAG = 'JSON'
-    def _convert(self, rdmol : RDMol) -> RDMol:
+    def _convert(self, rdmol : Mol) -> Mol:
         return Chem.rdMolInterchange.JSONToMols(Chem.MolToJSON(rdmol))[0]

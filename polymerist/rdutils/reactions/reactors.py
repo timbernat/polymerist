@@ -2,9 +2,10 @@
 
 from typing import ClassVar, Generator, Iterable, Optional, Type
 from dataclasses import dataclass, field
-
 from itertools import chain
+
 from rdkit import Chem
+from rdkit.Chem.rdchem import Mol
 
 from .reactexc import ReactantTemplateMismatch
 from .reactions import AnnotatedReaction, RxnProductInfo
@@ -12,7 +13,6 @@ from .fragment import IBIS, IntermonomerBondIdentificationStrategy, ReseparateRG
 
 from .. import rdprops
 from ..labeling import bondwise, molwise
-from ..rdtypes import RDMol
 
 from ...monomers.specification import SANITIZE_AS_KEKULE
 from ...genutils.decorators.functional import optional_in_place
@@ -36,7 +36,7 @@ class Reactor:
 
     @staticmethod
     @optional_in_place
-    def _label_reactants(reactants : Iterable[RDMol], reactant_label : str) -> None:
+    def _label_reactants(reactants : Iterable[Mol], reactant_label : str) -> None:
         '''Assigns "reactant_idx" Prop to all reactants to help track where atoms go during the reaction'''
         for i, reactant in enumerate(reactants):
             for atom in reactant.GetAtoms():
@@ -45,7 +45,7 @@ class Reactor:
     # POST-REACTION CLEANUP METHODS
     @staticmethod
     @optional_in_place
-    def _relabel_reacted_atoms(product : RDMol, reactant_label : str, reactant_map_nums : dict[int, int]) -> None:
+    def _relabel_reacted_atoms(product : Mol, reactant_label : str, reactant_map_nums : dict[int, int]) -> None:
         '''Re-assigns "reactant_idx" Prop to modified reacted atoms to re-complete atom-to-reactant numbering'''
         for atom_id in rdprops.atom_ids_with_prop(product, 'old_mapno'):
             atom = product.GetAtomWithIdx(atom_id)
@@ -56,7 +56,7 @@ class Reactor:
 
     @staticmethod
     @optional_in_place
-    def _sanitize_bond_orders(product : RDMol, product_template : RDMol, product_info : RxnProductInfo) -> None:
+    def _sanitize_bond_orders(product : Mol, product_template : Mol, product_info : RxnProductInfo) -> None:
         '''Ensure bond order changes specified by the reaction are honored by RDKit'''
         for prod_bond_id, map_num_pair in product_info.mod_bond_ids_to_map_nums.items():
             target_bond = product_template.GetBondWithIdx(prod_bond_id)
@@ -69,7 +69,7 @@ class Reactor:
             product_bond.SetBondType(target_bond.GetBondType()) # set bond type to what it *should* be from the reaction schema
 
     # REACTION EXECUTION METHODS
-    def react(self, reactants : Iterable[RDMol], repetitions : int=1, clear_props : bool=False) -> list[RDMol]:
+    def react(self, reactants : Iterable[Mol], repetitions : int=1, clear_props : bool=False) -> list[Mol]:
         '''Execute reaction over a collection of reactants and generate product molecule(s)
         Does NOT require the reactants to match the order of the reacion template (only that some order fits)'''
         reactants = self.rxn_schema.valid_reactant_ordering(reactants) # check that the reactants are compatible with the reaction
@@ -77,7 +77,7 @@ class Reactor:
             raise ReactantTemplateMismatch(f'Reactants provided to {self.__class__.__name__} are incompatible with reaction schema defined')
         reactants = self._label_reactants(reactants, reactant_label=self._ridx_prop_name, in_place=False) # assign reactant indices (not in-place)
         
-        products : list[RDMol] = []
+        products : list[Mol] = []
         raw_products = self.rxn_schema.RunReactants(reactants, maxProducts=repetitions) # obtain unfiltered RDKit reaction output. TODO : generalize to work when more than 1 repetition is requested
         for i, product in enumerate(chain.from_iterable(raw_products)): # clean up products into a usable form
             self._relabel_reacted_atoms(
@@ -108,10 +108,10 @@ class AdditionReactor(Reactor):
         return super().__post_init__()
     
     @property
-    def product_info(self) -> RDMol:
+    def product_info(self) -> Mol:
         return self.rxn_schema.product_info_maps[0]
 
-    def react(self, reactants : Iterable[RDMol], repetitions : int = 1, clear_props : bool = False) -> Optional[RDMol]:
+    def react(self, reactants : Iterable[Mol], repetitions : int = 1, clear_props : bool = False) -> Optional[Mol]:
         products = super().react(reactants, repetitions, clear_props) # return first (and only) product as standalone molecule
         if products:
             return products[0]
@@ -124,7 +124,7 @@ class CondensationReactor(Reactor):
 @dataclass
 class PolymerizationReactor(Reactor):
     '''Reactor which exhaustively generates monomers fragments according to a given a polymerization mechanism'''
-    def propagate(self, monomers : Iterable[RDMol], fragment_strategy : IBIS=ReseparateRGroupsUnique(), clear_map_nums : bool=True) -> Generator[tuple[list[RDMol], list[RDMol]], None, None]:
+    def propagate(self, monomers : Iterable[Mol], fragment_strategy : IBIS=ReseparateRGroupsUnique(), clear_map_nums : bool=True) -> Generator[tuple[list[Mol], list[Mol]], None, None]:
         '''Keep reacting and fragmenting a pair of monomers until all reactive sites have been reacted
         Returns fragment pairs at each step of the chain propagation process'''
         reactants = monomers # initialize reactive pair with monomers
@@ -134,7 +134,7 @@ class PolymerizationReactor(Reactor):
             except ReactantTemplateMismatch:
                 break
             
-            fragments : list[RDMol] = []
+            fragments : list[Mol] = []
             for i, product in enumerate(intermediates):
                 Chem.SanitizeMol(product, sanitizeOps=SANITIZE_AS_KEKULE) # clean up molecule, specifically avoiding de-kekulization in the case of aromatics
                 if clear_map_nums:
