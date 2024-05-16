@@ -1,6 +1,6 @@
 '''Conversion tools for representing positive integers in fixed and mixed radix positional bases'''
 
-from typing import Any, Callable, Generator, Iterable, Sequence, Union
+from typing import Any, Generator, Sequence, Union
 from math import inf
 
 
@@ -89,55 +89,3 @@ class PositionalNumberingSystem:
             return self.int_to_digits(value, as_str=True)
         else:
             raise TypeError
-
-
-# USEFUL NUMBER SYSTEMS WITH PARTICULAR SPECIALIZED RADICES
-def hypergeometric_ratios(funct : Callable[[int], int]) -> Generator[int, None, None]:
-    '''Generates ratios between successive natural number terms according to a provided function'''
-    i = 0
-    while True:
-        yield funct(i)
-        i += 1
-
-class FixedRadixNumberSystem(PositionalNumberingSystem):
-    '''Positional numbering system with a single fixed radix'''
-    def __init__(self, radix : int=10) -> None:
-        self._radix = radix
-
-    @property
-    def radix(self) -> int:
-        return self._radix
-    base = radix
-
-    @property
-    def radices(self) -> Iterable[int]: # override radices getter with generator
-        return hypergeometric_ratios(lambda i : self.radix)
-
-class FactorialNumberSystem(PositionalNumberingSystem):
-    '''For representing factoradic numbers, useful in enmerating permutations via Lehmer codes'''
-    def __init__(self) -> None:
-        pass
-
-    @property
-    def radices(self) -> Iterable[int]:
-        return hypergeometric_ratios(lambda i : i + 1)
-    
-
-# initialization of some common bases
-Factoradic = FactorialNumberSystem()
-
-commmon_bases : dict[str, int] = {
-    'binary'      : 2,
-    'ternary'     : 3,
-    'seximal'     : 6,
-    'octal'       : 8,
-    'decimal'     : 10,
-    'duodecimal'  : 12,
-    'hexadecimal' : 16,
-}
-for base_name, base in commmon_bases.items():
-    base_sys = FixedRadixNumberSystem(base)
-    globals()[base_name.capitalize()]     = base_sys # systematic name
-    globals()[f'base{base}'.capitalize()] = base_sys # common name
-
-    globals()[f'nega{base_name}'.capitalize()] = FixedRadixNumberSystem(-base) # also include negative base for kicks
