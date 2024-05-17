@@ -106,6 +106,17 @@ def bell_number(n : int) -> float:
             for k in range(n + 1)
     )
 
+@lru_cache
+def bernoulli(n : int) -> int: # NOTE: avoided implementing in terms of Stirling numbers of second kind due to catastophic cancellation of factorials
+    '''Calculates the n-th Bernoulli number
+    Related to the sums of powers of integers (via Faulhalber's formula)'''
+    if n == 0:
+        return 1
+    return -sum( # NOTE: implemented recursively, as both explicit and Stirling number (2nd) implementations fail even for n < 20
+        binomial_coeff(n + 1, k) * bernoulli(k)
+            for k in range(n)
+    ) / (n + 1)
+
 # Graph enumeration
 @lru_cache
 def count_labelled_graphs(N : int) -> int:
