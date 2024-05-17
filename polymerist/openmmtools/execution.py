@@ -14,11 +14,8 @@ from openmm.unit import Quantity
 from .parameters import SimulationParameters
 from .serialization import serialize_system, serialize_topology_from_simulation, SimulationPaths
 from .preparation import initialize_simulation_and_files
+from .evaluation import get_context_positions
 
-
-def get_simulation_positions(simulation : Simulation) -> ndarray:
-    '''Extract coordinates from the current state of a simulation''' 
-    return simulation.context.getState(getPositions=True).getPositions(asNumpy=True) # NOTE : forcing numpy output for now, as OpenMM Vec3's don;t seem particularly useful; may change this in the future
 
 def run_simulation_schedule(working_dir : Path, schedule : dict[str, SimulationParameters], init_top : Topology, init_sys : System, init_pos : ndarray, return_history : bool=False) -> Optional[dict[str, tuple[Simulation, SimulationPaths]]]:
     '''Run several OpenMM simulations in series, based on an initial set of OpenMM objects and a "schedule" consisting of a sequence of named parameter sets'''
@@ -33,7 +30,7 @@ def run_simulation_schedule(working_dir : Path, schedule : dict[str, SimulationP
         if i == 0:
             ommtop, ommsys, ommpos = init_top, init_sys, init_pos # use initial Topology and System for first sim
         else:
-            ommtop, ommsys, ommpos = simulation.topology, simulation.system, get_simulation_positions(simulation) # use Topology and System from previous sim for next sim
+            ommtop, ommsys, ommpos = simulation.topology, simulation.system, get_context_positions(simulation.context) # use Topology and System from previous sim for next sim
 
         LOGGER.info(f'Initializing simulation {i + 1}/{num_steps} ("{step_name}")')
         simulation, sim_paths = initialize_simulation_and_files(
