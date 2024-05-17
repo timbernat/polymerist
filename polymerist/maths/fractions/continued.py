@@ -8,7 +8,7 @@ import numpy as np
 
 
 # CONSTANT PARAMETERS SHARED AMONGST MANY FUNCTIONS BELOW
-INT_TYPE : Type = np.uint64
+INT_TYPE : Type = np.int64
 EPS = 1E-8
 TOL = 1E-6
 
@@ -46,9 +46,9 @@ def continued_fraction_to_continuants(coeffs : Iterator[int]) -> Generator[tuple
 def rational_approxes(x : Real, tol : float=TOL, eps : float=EPS) -> Generator[tuple[int, int], None, None]:
     '''Unfold a real number into its continued fraction representation, then generate successive continuants of it'''
     for p, q in continued_fraction_to_continuants(real_to_continued_fraction_coeffs(x, eps=eps)):
+        yield p, q
         if abs(p/q - x) < tol:
             break
-        yield p, q
 
 def best_rational_approx(x : Real, tol : float=TOL, eps : float=EPS) -> tuple[int, int]:
     '''Provide a rational approximation to a value with the smallest denominator that is within some tolerance'''
