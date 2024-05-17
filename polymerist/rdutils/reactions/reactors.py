@@ -14,7 +14,7 @@ from .fragment import IBIS, IntermonomerBondIdentificationStrategy, ReseparateRG
 from .. import rdprops
 from ..labeling import bondwise, molwise
 
-from ...monomers.specification import SANITIZE_AS_KEKULE
+from ...polymers.monomers.specification import SANITIZE_AS_KEKULE
 from ...genutils.decorators.functional import optional_in_place
 
 

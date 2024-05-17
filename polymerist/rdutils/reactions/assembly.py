@@ -10,7 +10,7 @@ from .reactions import AnnotatedReaction
 from ..labeling import molwise
 from ..bonding._bonding import combined_rdmol
 from ..bonding.permutation import swap_bonds
-from ...monomers import specification
+from ...polymers.monomers import specification
 
 
 @dataclass # TODO : make JSONifiable

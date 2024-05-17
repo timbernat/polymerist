@@ -15,8 +15,8 @@ from rdkit import Chem
 
 from .exceptions import MorphologyError
 from .estimation import estimate_chain_len_linear
-from ..monomers.repr import MonomerGroup
-from ..monomers.specification import SANITIZE_AS_KEKULE
+from ..polymers.monomers.repr import MonomerGroup
+from ..polymers.monomers.specification import SANITIZE_AS_KEKULE
 
 from ..genutils.decorators.functional import allow_string_paths
 from ..rdutils.bonding.portlib import get_linker_ids
