@@ -21,7 +21,7 @@ from ..monomers.specification import SANITIZE_AS_KEKULE
 from ..genutils.decorators.functional import allow_string_paths
 from ..rdutils.bonding.portlib import get_linker_ids
 from ..rdutils.bonding.substitution import saturate_ports, hydrogenate_rdmol_ports
-from ..openmmtools.serialization import serialize_openmm_pdb
+from ..mdtools.openmmtools.serialization import serialize_openmm_pdb
 
 
 # CONVERSION
