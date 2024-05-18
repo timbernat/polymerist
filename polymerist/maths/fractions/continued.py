@@ -14,7 +14,7 @@ DEFAULT_INT_TYPE : Type = np.int64
 DEFAULT_EPS = 1E-8
 DEFAULT_TOL = 1E-6
 
-# CONTINUED FRACTIONS AND RATIONAL APPROXIMATIONS
+# CONTINUED FRACTIONS AND PARTIAL CONVERGENTS ("CONTINUANTS")
 def continuant_matrix(a : int, int_type : I=DEFAULT_INT_TYPE) -> np.ndarray[Shape[2, 2], int]:
     '''Homographic matrix for a evaluating the next continuant from a continued fraction coefficient'''
     return np.array([
