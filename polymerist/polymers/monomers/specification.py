@@ -9,8 +9,8 @@ from typing import Union
 from rdkit import Chem
 from rdkit.Chem import QueryAtom
 
-from ..smileslib.primitives import is_valid_SMILES, is_valid_SMARTS, RDKIT_QUERYBONDS_BY_BONDTYPE
-from ..rdutils.labeling import molwise
+from ...smileslib.primitives import is_valid_SMILES, is_valid_SMARTS, RDKIT_QUERYBONDS_BY_BONDTYPE
+from ...rdutils.labeling import molwise
 
 
 # CHEMICAL INFO SPECIFICATION
