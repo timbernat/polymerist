@@ -56,7 +56,7 @@ def multinomial_coeff_native(multips : Iterable[int]) -> float:
 
     return multicoeff
 
-def catalan_number(n : int) -> float:
+def catalan(n : int) -> float:
     '''Calculates the n-th Catalan number
     Counts dozens of different things, including the number of monotonic 2D random walks
     and the number of valid (i.e. fully closed) groupings of n pairs of parentheses'''
@@ -98,7 +98,7 @@ def stirling_first(n : int, k : int) -> float: # note : needs to be defined seco
     )
     
 @lru_cache
-def bell_number(n : int) -> float:
+def bell(n : int) -> float:
     '''Calculates the n-th Bell number
     Counts the number of ways to partition n objects into any number of non-empty pairwise-disjoint subsets'''
     return sum(
