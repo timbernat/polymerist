@@ -17,6 +17,29 @@ from .parameters import ThermoParameters, SimulationParameters
 from .forcegroups import impose_unique_force_groups
 
 
+def load_state_flexible(state : Optional[Union[str, Path, State]]=None) -> Optional[State]:
+    '''Allows one to flexibly load an OpenMM state, either from a State object or file-like object'''
+    if isinstance(state, State) or (state is None):
+        state = state
+    else:
+        if isinstance(state, Path):
+            state_path = state
+        elif isinstance(state, str):
+            state_path = Path(state)
+        # TODO : add support for load from opened file
+        else:
+            raise TypeError('State can only be loaded from pathlike object') 
+        
+        try:
+            with state_path.open('r') as state_file:
+                state = XmlSerializer.deserialize(state_file.read())
+        except ValueError:
+            state = None
+    
+    if state is None:
+        LOGGER.warning('No valid State/State file provided, initializing State as None')
+    return state
+
 def simulation_from_thermo(topology : Topology, system : System, thermo_params : ThermoParameters, time_step : Quantity, state : Optional[Union[str, Path, State]]=None) -> Simulation:
     '''Prepare an OpenMM simulation from a serialized thermodynamics parameter set'''
     ens_fac = EnsembleFactory.from_thermo_params(thermo_params)
@@ -26,20 +49,14 @@ def simulation_from_thermo(topology : Topology, system : System, thermo_params :
             LOGGER.info(f'Added {force.getName()} Force to System')
     impose_unique_force_groups(system)
 
-    if isinstance(state, str):
-        state_path = state
-    elif isinstance(state, Path):
-        state_path = str(state)
-    else:
-        state_path = None
-
     simulation = Simulation(
         topology=topology,
         system=system,
         integrator=ens_fac.integrator(time_step),
-        state=state_path
     )
-    if isinstance(state, State):
+    state = load_state_flexible(state)
+    if state is not None:
+        LOGGER.info('Setting simulation state')
         simulation.context.setState(state)
         simulation.context.reinitialize(preserveState=True) # TOSELF : unclear whether this is necessary, redundant, or in fact harmful
 
