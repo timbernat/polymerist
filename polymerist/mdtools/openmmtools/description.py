@@ -3,8 +3,8 @@
 from typing import Any, Union
 from openmm import NonbondedForce, System
 
-from polymerist.genutils.importutils import compile_simple_getable_attrs
-from polymerist.genutils.textual.prettyprint import dict_to_indented_str
+from ...genutils.importutils import compile_simple_getable_attrs
+from ...genutils.textual.prettyprint import dict_to_indented_str
 
 
 # REFERENCE TABLES FOR NONBONDED METHODS

@@ -15,7 +15,7 @@ from openmm.unit import Quantity
 
 from . import FFDIR
 from .boxvectors import box_vectors_flexible, VectorQuantity, BoxVectorsQuantity
-from ..unitutils.interop import openff_to_openmm
+from ...unitutils.interop import openff_to_openmm
 
 
 def forcefield_flexible(forcefield : Union[ForceField, str, Path]) -> ForceField:

@@ -8,8 +8,8 @@ from openmm.unit import Quantity
 
 from .thermo import ThermoParameters
 from .reporters import ReporterParameters
-from ..genutils.fileutils.jsonio.jsonify import make_jsonifiable, dataclass_serializer_factory
-from ..genutils.fileutils.jsonio.serialize import PathSerializer, QuantitySerializer, MultiTypeSerializer
+from ...genutils.fileutils.jsonio.jsonify import make_jsonifiable, dataclass_serializer_factory
+from ...genutils.fileutils.jsonio.serialize import PathSerializer, QuantitySerializer, MultiTypeSerializer
 
 
 # PARAMETER SET HANDLERS

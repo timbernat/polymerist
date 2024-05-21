@@ -6,8 +6,8 @@ from rdkit.Chem import Descriptors, Mol
 from openmm.unit import gram, centimeter, mole
 from openmm.unit import Quantity, AVOGADRO_CONSTANT_NA
 
-from ...unitutils.dimensions import is_volume
-from ...unitutils.interop import allow_openff_units
+from ....unitutils.dimensions import is_volume
+from ....unitutils.interop import allow_openff_units
 
 
 def molecular_weight(rdmol : Mol, exact_isotopes : bool=False) -> Quantity:

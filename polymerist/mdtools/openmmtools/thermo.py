@@ -11,9 +11,9 @@ from openmm import Integrator, VerletIntegrator, LangevinMiddleIntegrator
 from openmm.openmm import Force, MonteCarloBarostat
 from openmm.unit import Quantity, kelvin, atmosphere, picosecond
 
-from ..genutils.fileutils.jsonio.jsonify import make_jsonifiable
-from ..genutils.fileutils.jsonio.serialize import QuantitySerializer
-from ..genutils.decorators.classmod import register_subclasses
+from ...genutils.fileutils.jsonio.jsonify import make_jsonifiable
+from ...genutils.fileutils.jsonio.serialize import QuantitySerializer
+from ...genutils.decorators.classmod import register_subclasses
 
 
 # PARAMETER CLASSES

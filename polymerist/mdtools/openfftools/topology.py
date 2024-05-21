@@ -21,12 +21,12 @@ from openff.toolkit.topology import (
 )
 
 from . import GTR
-from ..genutils.iteration import asiterable
-from ..genutils.fileutils.pathutils import dotless
-from ..genutils.decorators.functional import allow_string_paths, optional_in_place
+from ...genutils.iteration import asiterable
+from ...genutils.fileutils.pathutils import dotless
+from ...genutils.decorators.functional import allow_string_paths, optional_in_place
 
-from ..rdutils.rdprops import RDPROP_GETTERS, RDPROP_SETTERS, copy_rd_props
-from ..rdutils.rdcoords.tiling import tile_lattice_with_rdmol
+from ...rdutils.rdprops import RDPROP_GETTERS, RDPROP_SETTERS, copy_rd_props
+from ...rdutils.rdcoords.tiling import tile_lattice_with_rdmol
 
 
 # TOPOLOGY INFO

@@ -13,8 +13,8 @@ from openff.toolkit.utils.exceptions import ToolkitUnavailableException # TODO :
 
 from .. import TKREGS, _OE_TKWRAPPER_IS_AVAILABLE, OEUnavailableException
 from .chargemethods import NAGL_MODEL
-from ...genutils.decorators.classmod import register_subclasses
-from ...genutils.decorators.functional import optional_in_place
+from ....genutils.decorators.classmod import register_subclasses
+from ....genutils.decorators.functional import optional_in_place
 
 
 def has_partial_charges(mol : Union[Molecule, Chem.Mol]) -> bool:
