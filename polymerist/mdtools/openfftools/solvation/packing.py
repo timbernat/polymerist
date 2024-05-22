@@ -31,7 +31,7 @@ def pack_topology_with_solvent(offtop : Topology, solvent : Molecule, box_vecs :
 
     # assign properties from desired box vectors if size checks pass
     box_vol = boxvectors.get_box_volume(box_vecs, units_as_openm=True)
-    N = physprops.num_mols_in_box(solvent.to_rdkit(), box_vol=box_vol, density=density)
+    N = physprops.num_mols_in_box(solvent, box_vol=box_vol, density=density)
 
     # packing waters into topology and saving
     LOGGER.info(f'Solvating {box_vol} Topology with {N} {solvent.name} molecules to density of {density}')
