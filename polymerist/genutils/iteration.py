@@ -2,24 +2,29 @@
 
 from typing import Any, Callable, Generator, Iterable, TypeVar, Union
 
-from itertools import islice, combinations, product as cartesian_product
+from operator import mul
+from functools import reduce
 from collections import deque
+from itertools import islice, combinations, product as cartesian_product
 
 from .typetools.parametric import Args, KWArgs
 from .decorators.functional import optional_in_place
-
-
-# PROPERTIES OF ITERABLES
-def iter_len(itera : Iterable):
-    '''Get size of an iterable object where ordinary len() call is invalid (namely a generator)
-    Note that this will "use up" a generator upon iteration'''
-    return sum(1 for _  in itera)
 
 
 # READ-ONLY ITERATION
 T = TypeVar('T') # generic type of object(s) in iterator
 T1 = TypeVar('T1') # generic type of object(s) in first iterator
 T2 = TypeVar('T2') # generic type of object(s) in second iterator
+
+
+def iter_len(itera : Iterable):
+    '''Get size of an iterable object where ordinary len() call is invalid (namely a generator)
+    Note that this will "use up" a generator upon iteration'''
+    return sum(1 for _  in itera)
+
+def product(itera : Iterable[T]) -> T:
+    '''Multiplicative analogue to builtin sum()'''
+    return reduce(mul, itera) # assumes that the type T implements __mul__/__rmul__
 
 def sliding_window(items : Iterable[T], n : int=1) -> Generator[tuple[T], None, None]:
     '''Generates sliding windows of width n over an iterable collection of items
