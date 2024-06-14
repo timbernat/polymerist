@@ -1,4 +1,4 @@
-'''Tools for generating and manipulating ordered sequences'''
+'''Generic operations for indexing, generating, and iterating over sequences'''
 
 from typing import Generator, Iterable, Sequence, TypeVar, Union
 T = TypeVar('T') # generic type for sequence element
