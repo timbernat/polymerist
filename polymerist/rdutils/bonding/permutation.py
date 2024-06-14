@@ -14,7 +14,7 @@ from .formation import increase_bond_order
 from .dissolution import decrease_bond_order
 from ..labeling import molwise
 
-from ...genutils.sequences import int_complement
+from ...genutils.sequences.seqops import int_complement
 from ...genutils.decorators.functional import optional_in_place
 
 

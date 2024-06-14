@@ -1,0 +1,1 @@
+'''Tools for working with ordered sequences (i.e. collections of elements with definite length and order)'''
