@@ -78,6 +78,13 @@ def modify_dict(path_dict : dict[K, V], modifier_fn : Callable[[K, V, Args, KWAr
         else:
             path_dict[key] = modifier_fn(key, val) 
 
+def sort_dict_by_keys(targ_dict : dict, reverse : bool=False) -> dict[Any, Any]:
+    '''Sort a dictionary according to the values of each key'''
+    return { # sort dict in ascending order by size
+        key : targ_dict[key]
+            for key in sorted(targ_dict, reverse=reverse)
+    }
+
 def sort_dict_by_values(targ_dict : dict, reverse : bool=False) -> dict[Any, Any]:
     '''Sort a dictionary according to the values of each key'''
     return { # sort dict in ascending order by size
