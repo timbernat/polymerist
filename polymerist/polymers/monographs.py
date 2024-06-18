@@ -6,7 +6,7 @@ import networkx as nx
 from itertools import product as cartesian_product
 
 from ..genutils.iteration import asiterable
-from ..genutils.sequences.seqops import bin_ids_forming_sequence
+from ..genutils.sequences.choices import bin_ids_forming_sequence
 from ..genutils.textual.delimiters import validate_braces
 from ..genutils.fileutils.jsonio.serialize import TypeSerializer
 
