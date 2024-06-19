@@ -4,7 +4,7 @@ from typing import Generator, Iterable, Sequence, TypeVar
 T = TypeVar('T') # generic type for sequence element
 
 from copy import deepcopy
-from containers import defaultdict, Counter
+from collections import defaultdict, Counter
 from itertools import product as cartesian_product
 
 from .seqops import is_unique
