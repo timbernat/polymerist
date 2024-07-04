@@ -16,7 +16,7 @@ from ..labeling.molwise import ordered_map_nums
 from ..labeling.bondwise import get_bonded_pairs_by_map_nums
 
 from ...genutils.decorators.functional import allow_string_paths, allow_pathlib_paths
-from ...genutils.sequences.choices import bin_ids_forming_sequence
+from ...genutils.sequences.discernment import DISCERNMENTSolver
 from ...smileslib.substructures import matching_labels_from_substruct_dict
 
 
@@ -189,15 +189,16 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
             raise BadNumberReactants(f'{self.__class__.__name__} expected {num_reactants_in_mechanism} reactants, but {num_reactants_provided} were provided')
 
         # if number of fragments is correct, perform more complex subset choice evaluation
-        possible_fragment_orderings = bin_ids_forming_sequence( # generates all possible orders of the fragments which match the expected reactant templates for the reaction
-            sequence=reactant_templates_by_index.keys(),
-            choice_bins = ( # generator (rather than list) comprehension will suffice here, since there is no need to reuse these bins
+        reactant_ordering_planner = DISCERNMENTSolver(
+            symbol_inventory=[
                 matching_labels_from_substruct_dict(reactant, reactant_templates_by_index)
                     for reactant in reactants
-            ),
-            unique_bins=True
+            ]
         )
-        try:
-            return [reactants[i] for i in next(possible_fragment_orderings)] # get first valid ordering
-        except StopIteration:
-            return None # slightly verbose, but prefer to be explicit here
+
+        desired_reactant_template_indices = [i for i in reactant_templates_by_index] # = [i for i in range(num_reactants_in_mechanism)]
+        if not reactant_ordering_planner.solution_exists(desired_reactant_template_indices, unique_bins=True):
+            return None 
+        else:
+            reactant_ordering = next(reactant_ordering_planner.enumerate_choices(desired_reactant_template_indices, unique_bins=True))
+            return [reactants[i] for i in reactant_ordering] # get first valid ordering

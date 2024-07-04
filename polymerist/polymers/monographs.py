@@ -6,7 +6,7 @@ import networkx as nx
 from itertools import product as cartesian_product
 
 from ..genutils.iteration import asiterable
-from ..genutils.sequences.choices import bin_ids_forming_sequence
+from ..genutils.sequences.discernment import DISCERNMENTSolver
 from ..genutils.textual.delimiters import validate_braces
 from ..genutils.fileutils.jsonio.serialize import TypeSerializer
 
@@ -129,15 +129,15 @@ class MonomerGraph(nx.Graph):
             raise ValueError(f'Provided too {quantifier} chain start indices traversal of the given graph ({n_nodes} provided for {n_chains}-chain graph)')
 
         # 2) check that there exists a 1:1 mapping between the provided node collection and DISTINCT connected components
-        possible_cc_orders = bin_ids_forming_sequence(start_node_idxs, nx.connected_components(self), unique_bins=True)
-        try:
-            cc_order = next(possible_cc_orders)
+        cc_order_planner = DISCERNMENTSolver(nx.connected_components(self))
+        if not cc_order_planner.solution_exists(unique_bins=True):
+            raise ValueError('Starting node indices provided do not uniquely correspond to distinct chains')
+        else:
+            cc_order = next(cc_order_planner.enumerate_choices(start_node_idxs, unique_bins=True))
             return {
                 chain_idx : start_node_idx
                     for (chain_idx, start_node_idx) in zip(cc_order, start_node_idxs) # the parity of this is guaranteed by the prior length match check
-        }
-        except StopIteration:
-            raise ValueError('Starting node indices provided do not uniquely correspond to distinct chains')
+            }
     
     def to_smidge_string(self, start_node_idxs :  Optional[Union[int, Sequence[int]]]=None) -> str:
         '''Convert a monomer graph into a SMIDGE ("SMILES-like Monomer Interconnectivity & Degree Graph Encoding") string'''
