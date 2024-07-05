@@ -19,13 +19,13 @@ except ModuleNotFoundError:
     pass
 
 
-def full_builtin(*dims : Iterable[int], fill_value : Any=None) -> list[Any]:
+def full_arr_builtin(*dims : Iterable[int], fill_value : Any=None) -> list[Any]:
     '''Similar to numpy.full (https://numpy.org/doc/stable/reference/generated/numpy.full.html) but with builtin list type'''
     arrlist = fill_value
-    for d in reversed(dims):
-        if not isinstance(d, int):
-            raise TypeError('All dimensions must be of type int (not {d.__class__.__name__})')
-        arrlist = [arrlist for _ in range(d)]
+    for dim_size in reversed(dims):
+        if not isinstance(dim_size, int):
+            raise TypeError(f'All dimensions must be of type int (not {dim_size.__class__.__name__})')
+        arrlist = [arrlist for _ in range(dim_size)]
     return arrlist
 
 class SymbolInventory(dict, Generic[T, L]):
@@ -192,7 +192,7 @@ class SymbolInventory(dict, Generic[T, L]):
         if find_spec('numpy') is not None:
             occ_matr = np.zeros(shape, dtype=int)
         else: # default to list if numpy is not installed
-            occ_matr = full_builtin(*shape, fill_value=0)
+            occ_matr = full_arr_builtin(*shape, fill_value=0)
         
         for symbol, bin_counts in self.items():
             i = self.symbol_index_map[symbol]
