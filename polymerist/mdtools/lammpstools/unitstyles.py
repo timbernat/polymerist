@@ -2,7 +2,7 @@
 
 from typing import ClassVar, Optional
 from dataclasses import dataclass, field
-from ..genutils.decorators.classmod import register_subclasses
+from ...genutils.decorators.classmod import register_subclasses
 
 # sensible units
 from openmm.unit import *
@@ -12,9 +12,9 @@ from openmm.unit import kilogram, attogram, picogram                     # mass
 from openmm.unit import centimeter, micrometer, nanometer                # length
 from openmm.unit import microsecond, nanosecond, picosecond, femtosecond # time
 
-from ..unitutils.extraunits import picocoulomb
-from ..unitutils.extraunits import electronvolt, atomic_time    # physicist units
-from ..unitutils.extraunits import statcoulomb, statvolt, poise # CGS units
+from ...unitutils.extraunits import picocoulomb
+from ...unitutils.extraunits import electronvolt, atomic_time    # physicist units
+from ...unitutils.extraunits import statcoulomb, statvolt, poise # CGS units
 
 
 # Base container class for LAMMPS unit styles

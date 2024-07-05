@@ -10,7 +10,7 @@ from openmm.unit import Unit, Quantity
 from openmm.unit import degree, kilocalorie_per_mole
 
 from .unitstyles import LAMMPSUnitStyle
-from ..genutils.decorators.functional import allow_string_paths, allow_pathlib_paths
+from ...genutils.decorators.functional import allow_string_paths, allow_pathlib_paths
 
 
 _DISTANCE_WILDCARD : str = '$DISTANCE'
