@@ -1,1 +1,0 @@
-'''Tools for generating and manipulating monomer connectivity graphs'''
