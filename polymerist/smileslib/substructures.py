@@ -29,7 +29,6 @@ SPECIAL_QUERY_MOLS = { # TODO : make these lambda-like so that a unique object i
 # COUNTING SUBSTRUCTURE QUERIES
 def num_substruct_queries(target_mol : Mol, substruct_query : Mol, *args, **kwargs) -> int:
     '''Get the number of RDKit substruct matches to a SMARTS query within a given target Mol'''
-    print(args, kwargs)
     return len(target_mol.GetSubstructMatches(substruct_query, *args, **kwargs)) # default "asMols=False" is fine here for length
 
 def num_automorphisms(substruct_query : Mol, *args, **kwargs) -> int:
