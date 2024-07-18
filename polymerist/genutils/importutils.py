@@ -70,7 +70,7 @@ def iter_submodule_info(module : ModuleType, recursive : bool=True, blacklist : 
 
 def iter_submodules(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None) -> Generator[ModuleType, None, None]:
     '''Generate all submodules of a given module. If the "recursive" flag is set, will generate ALL possible submodules in the tree recursively'''
-    for submodule, _submodule_info in iter_submodule_info(module, recursive=recursive, blacklist=blacklist):
+    for submodule, *_submodule_info in iter_submodule_info(module, recursive=recursive, blacklist=blacklist):
         yield submodule # only yield submodule; for more compact iteration
 
 
