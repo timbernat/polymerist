@@ -1,0 +1,43 @@
+name: polymerist-minimal
+channels:
+    - conda-forge
+    - openeye
+dependencies:
+    # Basic Python dependencies
+    - python ==3.11.0
+    - pip
+    - jupyterlab
+
+    # Numerical libraries
+    - numpy
+    - pandas
+    - dgl >=1.0
+    - networkx
+  
+    # MD engines
+    - openmm
+    - lammps
+    - mdtraj
+
+    # Molecule building
+    - mbuild
+    - rdkit
+
+    # Visualization
+    - pillow
+    - matplotlib
+    - ipywidgets ==8.0.4 # more recent versions don't work with Jupyter notebooks, for some reason
+    - py3Dmol
+    - nglview
+
+    # OpenFF stack
+    - openff-toolkit ~=0.16
+    - openff-interchange >=0.3.28
+    - openff-nagl
+
+    # Chemical database queries
+    - cirpy
+    - pubchempy
+    - chemspipy
+    - pip:
+        - espaloma-charge ==0.0.8
