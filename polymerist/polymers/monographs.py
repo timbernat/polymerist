@@ -130,7 +130,7 @@ class MonomerGraph(nx.Graph):
 
         # 2) check that there exists a 1:1 mapping between the provided node collection and DISTINCT connected components
         cc_order_planner = DISCERNMENTSolver(nx.connected_components(self))
-        if not cc_order_planner.solution_exists(unique_bins=True):
+        if not cc_order_planner.solution_exists(start_node_idxs, unique_bins=True):
             raise ValueError('Starting node indices provided do not uniquely correspond to distinct chains')
         else:
             cc_order = next(cc_order_planner.enumerate_choices(start_node_idxs, unique_bins=True))
