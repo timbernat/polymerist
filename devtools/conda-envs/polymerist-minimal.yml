@@ -28,7 +28,7 @@ dependencies:
     - matplotlib
     - ipywidgets ==8.0.4 # more recent versions don't work with Jupyter notebooks, for some reason
     - py3Dmol
-    - nglview
+    - nglview ==3.0.6
 
     # OpenFF stack
     - openff-toolkit ~=0.16
