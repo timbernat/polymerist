@@ -43,7 +43,7 @@ def has_fully_mapped_atoms(rdmol : Mol) -> bool:
     else:
         return True
     
-def has_uniquely_mapped_atoms(rdmol : Mol) -> bool:
+def has_uniquely_mapped_atoms(rdmol : Mol) -> bool: # TODO: use genutils.sequences.seqops uniqueness check here
     '''Check whether an RDKit Mol has distinct atom map numbers for each member Atom'''
     map_nums = ordered_map_nums(rdmol)
     return (len(map_nums) == len(set(map_nums))) # NOTE : not using rdmol.GetNumAtoms() as reference to avoid ambiguity with SMILES without explicit Hs
