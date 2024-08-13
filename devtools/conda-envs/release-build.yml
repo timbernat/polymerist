@@ -23,6 +23,7 @@ dependencies:
     # Molecule building
     - mbuild
     - rdkit
+    - openeye-toolkits # TODO: consider making this optional?
 
     # Visualization
     - pillow
