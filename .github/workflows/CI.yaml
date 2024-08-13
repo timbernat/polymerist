@@ -17,8 +17,8 @@ on:
 
 jobs:
   test:
-    name: Test on {{ '${{ matrix.os }}' }}, Python {{ '${{ matrix.python-version }}' }}
-    runs-on: {{ '${{ matrix.os }}' }}
+    name: Test on ${{ matrix.os }}, Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [macOS-latest, ubuntu-latest, windows-latest]
@@ -34,10 +34,10 @@ jobs:
           df -h
           ulimit -a
 {% if cookiecutter.dependency_source == 'Dependencies from pip only (no conda)' %}
-      - name: Set up Python {{ '${{ matrix.python-version }}' }}
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
-          python-version: {{ '${{ matrix.python-version }}' }}
+          python-version: ${{ matrix.python-version }}
 
       - name: Testing Dependencies
         shell: bash
@@ -59,7 +59,7 @@ jobs:
               - defaults
 {%- endif %}
           create-args: >- 
-            python={{ '${{ matrix.python-version }}' }}
+            python=${{ matrix.python-version }}
 {% endif %}
       - name: Install package
 {%- if cookiecutter.dependency_source == 'Dependencies from pip only (no conda)' %}
@@ -88,4 +88,4 @@ jobs:
         with:
           file: ./coverage.xml
           flags: unittests
-          name: codecov-{{ '${{ matrix.os }}' }}-py{{ '${{ matrix.python-version }}' }}
+          name: codecov'${{ matrix.os }}-py${{ matrix.python-version }}
