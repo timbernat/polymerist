@@ -12,6 +12,7 @@ dependencies:
   - ambertools=23.3=py311h9fea076_6
   - annotated-types=0.6.0=pyhd8ed1ab_0
   - anyio=4.3.0=pyhd8ed1ab_0
+  - anytree=2.12.1=pyhd8ed1ab_0
   - argon2-cffi=23.1.0=pyhd8ed1ab_0
   - argon2-cffi-bindings=21.2.0=py311h459d7ec_4
   - arpack=3.8.0=nompi_h0baa96a_101
