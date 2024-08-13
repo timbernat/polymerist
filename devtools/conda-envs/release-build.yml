@@ -1,4 +1,4 @@
-name: polymerist-minimal
+name: polymerist-env
 channels:
     - conda-forge
     - openeye
