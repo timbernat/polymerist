@@ -1,4 +1,4 @@
-name: polymerist-minimal
+name: polymerist-env
 channels:
     - conda-forge
     - openeye
@@ -13,6 +13,7 @@ dependencies:
     - pandas
     - dgl >=1.0
     - networkx
+    - anytree
   
     # MD engines
     - openmm
@@ -22,6 +23,7 @@ dependencies:
     # Molecule building
     - mbuild
     - rdkit
+    - openeye-toolkits # TODO: consider making this optional?
 
     # Visualization
     - pillow
