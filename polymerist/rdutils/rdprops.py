@@ -9,7 +9,7 @@ from rdkit.Chem.rdchem import Atom, Bond, Mol, RWMol
 from .labeling.bijection import bijective_atom_id_iter
 from ..genutils.decorators.functional import optional_in_place
 from ..genutils.typetools.categorical import _union_member_factory
-from ..genutils.importutils import compile_simple_getable_attrs
+from ..genutils.attrs import compile_simple_getable_attrs
 
 
 # RDKit-specific generics and type aliases

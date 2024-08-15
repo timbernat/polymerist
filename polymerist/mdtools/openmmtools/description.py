@@ -3,7 +3,7 @@
 from typing import Any, Union
 from openmm import NonbondedForce, System
 
-from ...genutils.importutils import compile_simple_getable_attrs
+from ...genutils.attrs import compile_simple_getable_attrs
 from ...genutils.textual.prettyprint import dict_to_indented_str
 
 
