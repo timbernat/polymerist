@@ -1,10 +1,10 @@
 '''Decorators for modifying classes'''
 
-from typing import Callable, Iterable, Optional, TypeVar
+from typing import Callable, Iterable, Optional, TypeVar, Union
 C = TypeVar('C')
 
 
-def generate_repr(cls : Optional[C]=None, disp_attrs : Optional[Iterable[str]]=None, lookup_attr : Optional[str]=None):
+def generate_repr(cls : Optional[C]=None, disp_attrs : Optional[Iterable[str]]=None, lookup_attr : Optional[str]=None) -> Union[C, Callable[[C], C]]:
     '''
     Class decorator for auto-generating __repr__ methods
 
@@ -33,7 +33,7 @@ def generate_repr(cls : Optional[C]=None, disp_attrs : Optional[Iterable[str]]=N
         return class_decorator
     return class_decorator(cls) # return literal class decorator call
         
-def register_subclasses(cls : Optional[C]=None, key_attr : str='__name__', reg_attr : str='subclass_registry') -> Callable[[C], C]:
+def register_subclasses(cls : Optional[C]=None, key_attr : str='__name__', reg_attr : str='subclass_registry') -> Union[C, Callable[[C], C]]:
     '''
     Parametric class decorator for automatically generating a registry of subclasses of a target class
     Binds registry to the "registry" class property in the target class
