@@ -4,6 +4,8 @@ from typing import Any, Callable, Generic, Iterable, Optional, TypeAlias, TypeVa
 from abc import ABC, abstractmethod
 
 Filter : TypeAlias = Callable[[Any], bool] # TODO: move this to somewhere in typetools
+NULL_FILTER : Filter = lambda inp : False # a filter which doesn't do anything (but has the right call signature)
+
 T = TypeVar('T')
 
 from anytree.node import Node
@@ -40,7 +42,7 @@ def copy_node_isolated(node : Node) -> Node:
 def copy_tree(node : Node, stop : Optional[Filter]=None) -> Node: 
     '''Create a copy of an anytree Node hierarchy. Can provide filters and stop criteria to exclude nodes or whole branches'''
     if stop is None:
-        stop = lambda node : False
+        stop = NULL_FILTER
 
     node_copy = copy_node_isolated(node) # make a read-only copy of JUST the current node's attributes
     assert(node_copy.children == tuple())
@@ -74,7 +76,12 @@ class AbstractNodeCorrespondence(ABC, Generic[T]): # in concrete implementations
         Should return NoneType if the instance is "leaf-like"'''
         pass
 
-def compile_tree_factory(node_corresp : AbstractNodeCorrespondence[T], class_alias : Optional[str]=None, obj_attr_name : Optional[str]=None) -> Callable[[T, Optional[int]], Node]:
+def compile_tree_factory(
+        node_corresp : AbstractNodeCorrespondence[T],
+        class_alias : Optional[str]=None,
+        obj_attr_name : Optional[str]=None,
+        
+    ) -> Callable[[T, Optional[int]], Node]:
     '''Factory method for producing a tree-generating function for the given Type''' # TODO: include blacklist
     if class_alias is None: # an alternative name to use when describing the tree creation for this class
         class_alias = node_corresp.FROMTYPE.__name__
@@ -82,8 +89,12 @@ def compile_tree_factory(node_corresp : AbstractNodeCorrespondence[T], class_ali
     if obj_attr_name is None: # the name given to the Node attribute which store an instance of the given arbitrary type
         obj_attr_name = class_alias
 
-    def compile_tree(obj : T,  max_depth : Optional[int]=None, _curr_depth : int=0) -> Node:
+
+    def compile_tree(obj : T,  max_depth : Optional[int]=None, stop : Optional[Filter]=None, _curr_depth : int=0) -> Node:
         # NOTE: deliberately omitting docstring here, as it will be built procedurally after defining this function
+        if stop is None: # to blacklist certain branches from being formed
+            stop = NULL_FILTER
+
         node = Node(name=node_corresp.name(obj))
         setattr(node, obj_attr_name, obj) # keep an instance of the object directly for reference
 
@@ -92,8 +103,9 @@ def compile_tree_factory(node_corresp : AbstractNodeCorrespondence[T], class_ali
                 or (_curr_depth < max_depth)    # 2) a limit IS set, but hasn't been reached yet
             ): 
             for child_obj in node_corresp.children(obj):
-                sub_node = compile_tree(child_obj, max_depth=max_depth, _curr_depth=_curr_depth+1)
-                sub_node.parent = node
+                if not stop(child_obj):
+                    sub_node = compile_tree(child_obj, max_depth=max_depth, stop=stop, _curr_depth=_curr_depth+1)
+                    sub_node.parent = node
 
         return node
 
