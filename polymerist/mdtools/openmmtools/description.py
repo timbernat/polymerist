@@ -3,7 +3,7 @@
 from typing import Any, Union
 from openmm import NonbondedForce, System
 
-from ...genutils.attrs import compile_simple_getable_attrs
+from ...genutils.attrs import compile_argfree_getable_attrs
 from ...genutils.textual.prettyprint import dict_to_indented_str
 
 
@@ -30,7 +30,7 @@ def describe_forces(ommsys : System, as_str : bool=False) -> Union[str, dict[str
     '''Provides a dictionary (keyed by force names) which summarizes the parameters of each Force in an OpenMM system'''
     force_desc_dict = {}
     for force in ommsys.getForces():
-        force_attrs = compile_simple_getable_attrs(force, getter_str='\Aget', repl_str='') # getter string here asserts that "get" is at the start of the attribute name
+        force_attrs = compile_argfree_getable_attrs(force, getter_str='\Aget', repl_str='') # getter string here asserts that "get" is at the start of the attribute name
         force_attrs['Type'] = type(force).__name__
         
         if (nonbond_id := force_attrs.get(NONBOND_METHOD_KEY)) is not None:
