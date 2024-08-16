@@ -60,7 +60,7 @@ def register_subclasses(cls : Optional[C]=None, key_attr : str='__name__', reg_a
 
 # NOTE: "klass" is needed to distinguish between the class modified by this decorator and the classmethod arg when calling super()
 # "klass" here is the parent, while "cls" is the child
-def register_abstract_class_attrs(*attr_names : list[str]) -> Callable[[C], C]:
+def register_abstract_class_attrs(*attr_names : list[str]) -> Callable[[C], C]: # TODO: add mechanism for typehinting
     '''Register a list of string attribute names as abstract class attributes, 
     which MUST be implemented by child classes of the wrapped class'''
     def class_decorator(klass : C) -> C:
@@ -73,7 +73,7 @@ def register_abstract_class_attrs(*attr_names : list[str]) -> Callable[[C], C]:
                 
                 if attr_val_on_child is NotImplemented:         # if the value has not been set in code...
                     if passed_attr_value is not NotImplemented: # ...fall back to value passed into class definition, if it exists...
-                        attr_val_on_child = passed_attr_value
+                        setattr(cls, attr_name, passed_attr_value)
                     else:                                       # otherwise, fail and raise Exception
                         raise TypeError(f"Can't instantiate abstract class {cls.__name__} with abstract class property '{attr_name}' undefined")
 
