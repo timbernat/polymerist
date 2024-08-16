@@ -4,7 +4,7 @@ from typing import Any, Optional
 import re
 
 
-def compile_simple_getable_attrs(obj : Any, getter_str : str='get', repl_str : Optional[str]=None) -> dict[str, Any]:
+def compile_argfree_getable_attrs(obj : Any, getter_str : str='get', repl_str : Optional[str]=None) -> dict[str, Any]:
     '''Takes an object and returns a dict of the return values of all argument-free methods of the objects
     Looks for methods of the object whose names contain with "getter_str", and can replace this with the value of "repl_str" in the final dict output if provided'''
     getable_dict = {}
