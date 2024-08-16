@@ -9,7 +9,7 @@ from anytree.node import Node
 from anytree.exporter import DictExporter
 
 from ..decorators.classmod import register_abstract_class_attrs
-from . import Filter, NULL_FILTER
+from ..filters import Filter, NULL_FILTER
 
 
 @register_abstract_class_attrs('FROMTYPE') # TODO: figure out way to parameterize Generic T here with the type passed as FROMTYPE
@@ -43,7 +43,7 @@ def compile_tree_factory(
     if obj_attr_name is None: # the name given to the Node attribute which store an instance of the given arbitrary type
         obj_attr_name = class_alias
 
-    def compile_tree(obj : T,  max_depth : Optional[int]=None, exclude : Optional[Filter[T]]=NULL_FILTER, _curr_depth : int=0) -> Node:
+    def compile_tree(obj : node_corresp.FROMTYPE,  max_depth : Optional[int]=None, exclude : Optional[Filter[node_corresp.FROMTYPE]]=NULL_FILTER, _curr_depth : int=0) -> Node:
         # NOTE: deliberately omitting docstring here, as it will be built procedurally after defining this function
         node = Node(name=node_corresp.name(obj))
         setattr(node, obj_attr_name, obj) # keep an instance of the object directly for reference
