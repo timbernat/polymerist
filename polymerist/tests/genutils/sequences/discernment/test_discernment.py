@@ -11,17 +11,25 @@ from polymerist.genutils.sequences.discernment.inventory import SymbolInventory
 from polymerist.genutils.sequences.discernment.strategies import DISCERNMENTStrategy
 
 
-class DISCERNMENTInconsistencyError(Exception):
-    '''Custom Exception for indicating inconsistencies between DISCERNMENT Strategy implementations'''
-    pass
-
+# DEFINE/LOAD HARD-CODED INPUTS AND EXPECTED OUTPUTS TO A PARTICULAR DISCERNMENT PROBLEM
+@pytest.fixture(scope='module')
+def word() -> str:
+    return 'accg'
 
 @pytest.fixture(scope='module')
-def solution_path():
+def choice_bins() -> str:
+    return ('bbc','aced','bad','daea','fccce','g','abcd','fggegc')
+
+@pytest.fixture(scope='module')
+def symbol_inventory(choice_bins) -> SymbolInventory:
+    return SymbolInventory.from_bins(choice_bins)
+
+@pytest.fixture(scope='module')
+def solution_path() -> Path:
     return get_file_path_within_package('correct_discernment_solution.json', testdata)
 
-@pytest.fixture(scope='module')
-def correct_solution(solution_path):
+@pytest.fixture(scope='module') 
+def correct_solution(solution_path) -> set[tuple[int, ...]]:
     with solution_path.open('r') as file:
         solution = set(
             tuple(indices)
@@ -30,40 +38,60 @@ def correct_solution(solution_path):
     return solution
 
 
-def test_discernment_algorithm_consistency(correct_solution : set[tuple[int, ...]], ignore_multiplicities : bool=False, unique_bins : bool=False) -> None:
-    '''Check to ensure that all implementations of DISCERNMENT solution strageties yield the same outputs and don't modify a provided symbol inventory
-    Raises failure-specific Exception if inconsistency is detected, terminates silently (no Exception, returns None) otherwise'''
-    # hard-code inputs and expected solution
-    WORD = 'accg'
-    CHOICE_BINS = ('bbc','aced','bad','daea','fccce','g','abcd','fggegc')
+@pytest.mark.parametrize("ignore_multiplicities,unique_bins,DSClass", [(False, False, DSClass) for DSClass in DISCERNMENTStrategy.__subclasses__()]) # TODO: produce solutions with unique bins AND ignored multiplicities to fully test
+class TestDISCERNMENTStrategies:
+    all_results : dict[str, set[int]] = {} # cache solutions to avoid tedoius recalculations
+    def test_preserves_symbol_inventory(
+        self,
+        word : str,
+        symbol_inventory : SymbolInventory,
+        correct_solution : set[tuple[int, ...]],
+        ignore_multiplicities : bool,
+        unique_bins : bool,
+        DSClass : type[DISCERNMENTStrategy],
+    ) -> None:
+        '''Check to ensure that all implementations of DISCERNMENT solution strageties yield the same outputs and don't modify a provided symbol inventory
+        Raises failure-specific Exception if inconsistency is detected, terminates silently (no Exception, returns None) otherwise'''
+        mod_sym_inv = symbol_inventory.deepcopy() # create a copy of the symbol inventory to ensure any errant modifications do not affect other tests
 
-    print(correct_solution)
-
-    sym_inv = SymbolInventory.from_bins(CHOICE_BINS)
-    orig_sym_inv = sym_inv.deepcopy()
-    
-    all_results : dict[str, set[int]] = {}
-    for DSClass in DISCERNMENTStrategy.__subclasses__():
         method_name = DSClass.__name__
         ds_strat = DSClass()
-
-        solution = set(
+        proposed_solution = set(
             idxs
                 for idxs in ds_strat.enumerate_choice_labels(
-                    WORD,
-                    sym_inv,
+                    word,
+                    mod_sym_inv,
                     ignore_multiplicities=ignore_multiplicities,
                     unique_bins=unique_bins
                 )
         )
-        if solution != correct_solution: # check that answer produces is accurate
-            raise DISCERNMENTInconsistencyError(f'Algorithm {method_name} does not produce to correct enumeration of bin labels') 
-        if sym_inv != orig_sym_inv: # check that the symbol inventory is unmodified
-            raise DISCERNMENTInconsistencyError(f'Algorithm {method_name} does not return symbol inventory to original state after completion')
-        for other_method_name, other_solution in all_results.items(): # check against all other methods PRIOR TO INSERTION (minimal number of checks guaranteed to verify all pairwise checks)
-            # print(method_name, other_method_name)
-            if (solution - other_solution != set()) or (other_solution - solution != set()): # check both symmetric differences to make sure none are 
-                raise DISCERNMENTInconsistencyError(f'Algorithms {method_name} and {other_method_name} produce inconsistent solutions')
+        self.all_results[method_name] = proposed_solution # cache for comparison in later tests
+        assert (mod_sym_inv == symbol_inventory), f'Algorithm {method_name} does not produce to correct enumeration of bin labels'
 
-        # implicit else
-        all_results[method_name] = solution
+    def test_solution_is_correct(
+        self,
+        word : str,
+        symbol_inventory : SymbolInventory,
+        correct_solution : set[tuple[int, ...]],
+        ignore_multiplicities : bool,
+        unique_bins : bool,
+        DSClass : type[DISCERNMENTStrategy],
+    ) -> None:
+        method_name = DSClass.__name__
+        assert (self.all_results[method_name] == correct_solution), f'Algorithm {method_name} does not return symbol inventory to original state after completion'
+
+    def test_solution_strategies_are_consistent(
+        self,
+        word : str,
+        symbol_inventory : SymbolInventory,
+        correct_solution : set[tuple[int, ...]],
+        ignore_multiplicities : bool,
+        unique_bins : bool,
+        DSClass : type[DISCERNMENTStrategy],
+    ) -> None:
+        method_name = DSClass.__name__
+        proposed_solution = self.all_results[method_name]
+
+        for other_method_name, other_solution in self.all_results.items(): # check against all other methods PRIOR TO INSERTION (minimal number of checks guaranteed to verify all pairwise checks)
+            # check both symmetric differences to make sure no solution sequences are unique to either method 
+            assert (proposed_solution - other_solution == set()) and (other_solution - proposed_solution == set()), f'Algorithms {method_name} and {other_method_name} produce inconsistent solutions'
