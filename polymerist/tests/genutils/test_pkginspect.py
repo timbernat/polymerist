@@ -3,16 +3,21 @@
 from types import ModuleType
 
 import pytest
+from pathlib import Path
 import math, json # use these as test cases, since they are pretty stable in stdlib
 
 from polymerist import polymerist # this is a dummy toplevel module, and NOt the entire polymerist package
 from polymerist import genutils
 from polymerist.genutils import pkginspect
-from polymerist.tests import data as test_data
+from polymerist import tests
 
 
 
 # TABULATED EXPECTED TESTS OUTPUTS
+non_module_types = [ # types that are obviously not modules OR packages, and which should fail
+    bool, int, float, complex, tuple, list, dict, set, # str, Path # str and Path need to be tested separately
+]
+
 are_modules = [
     ('--not_a_module--', False), # deliberately weird to ensure this never accidentally clashes with a legit module name
     (math, True),
@@ -48,8 +53,21 @@ def test_is_module(module : ModuleType, expected_output : bool) -> None:
     '''See if Python module perception behaves as expected'''
     assert pkginspect.is_module(module) == expected_output
 
+@pytest.mark.parametrize('non_module_type', non_module_types)
+def test_is_module_fail_on_invalid_types(non_module_type : type) -> None:
+    '''check that module perception fails on invalid inputs'''
+    with pytest.raises(AttributeError) as err_info:
+        instance = non_module_type() # create a default instance
+        _ = pkginspect.is_module(instance)
+
 @pytest.mark.parametrize('module, expected_output', are_packages)
 def test_is_package(module : ModuleType, expected_output : bool) -> None:
     '''See if Python package perception behaves as expected'''
     assert pkginspect.is_package(module) == expected_output
 
+@pytest.mark.parametrize('non_module_type', non_module_types) # NOTE: these args are in fact deliberately NOT renamed to ".*package" from ".*module"
+def test_is_module_fail_on_invalid_types(non_module_type : type) -> None:
+    '''check that package perception fails on invalid inputs'''
+    with pytest.raises(AttributeError) as err_info:
+        instance = non_module_type() # create a default instance
+        _ = pkginspect.is_package(instance)
