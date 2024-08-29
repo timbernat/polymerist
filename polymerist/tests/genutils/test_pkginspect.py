@@ -84,6 +84,21 @@ def test_is_module_fail_on_invalid_types(non_module_type : type) -> None:
     ]
 )
 def test_get_resource_path(rel_path : str, module : ModuleType) -> None:
-    '''Test that fetching a resource (i.e. file OR dir) from a package'''
+    '''Test fetching a resource (i.e. file OR dir) from a package'''
     resource_path = pkginspect.get_resource_path_within_package(rel_path, module)
+    assert isinstance(resource_path, Path)
+
+@pytest.mark.parametrize(
+    'rel_path, module',
+    [
+        pytest.param('data', tests, marks=pytest.mark.xfail(raises=FileNotFoundError, reason="This is a directory, NOT a file")),
+        ('data/sample.dat', tests),
+        pytest.param('daata/simple.dat', tests, marks=pytest.mark.xfail(raises=ValueError, reason="This isn't a real file")),
+        ('pkginspect.py', genutils),
+        pytest.param('fake/whatever.txt', pkginspect, marks=pytest.mark.xfail(raises=TypeError, reason="Module is not a package and therefore cannot contain resources")),
+    ]
+)
+def test_get_file_path(rel_path : str, module : ModuleType) -> None:
+    '''Test fetching a file (i.e. NOT a dir) from a package'''
+    resource_path = pkginspect.get_file_path_within_package(rel_path, module)
     assert isinstance(resource_path, Path)
