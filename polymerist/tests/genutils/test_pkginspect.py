@@ -102,3 +102,18 @@ def test_get_file_path(rel_path : str, module : ModuleType) -> None:
     '''Test fetching a file (i.e. NOT a dir) from a package'''
     resource_path = pkginspect.get_file_path_within_package(rel_path, module)
     assert isinstance(resource_path, Path)
+
+@pytest.mark.parametrize(
+    'rel_path, module',
+    [
+        ('data', tests),
+        pytest.param('data/sample.dat', tests, marks=pytest.mark.xfail(raises=NotADirectoryError, reason='This IS a real file, but not a directory')),
+        pytest.param('daata/simple.dat', tests, marks=pytest.mark.xfail(raises=ValueError, reason="This isn't a real file")),
+        pytest.param('pkginspect.py', genutils, marks=pytest.mark.xfail(raises=NotADirectoryError, reason='This IS a real file, but not a directory')),
+        pytest.param('fake/whatever.txt', pkginspect, marks=pytest.mark.xfail(raises=TypeError, reason="Module is not a package and therefore cannot contain resources")),
+    ]
+)
+def test_get_dir_path(rel_path : str, module : ModuleType) -> None:
+    '''Test fetching a dir (i.e. NOT a file) from a package'''
+    resource_path = pkginspect.get_dir_path_within_package(rel_path, module)
+    assert isinstance(resource_path, Path)
