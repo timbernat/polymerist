@@ -1,0 +1,1 @@
+'''Additional data shipped along with polymerist source code'''
