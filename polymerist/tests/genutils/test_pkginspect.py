@@ -47,7 +47,7 @@ are_packages = [
 ]
 
 
-# UNIT TESTS
+# MODULE AND PACKAGE PERCEPTION
 @pytest.mark.parametrize('module, expected_output', are_modules)
 def test_is_module(module : ModuleType, expected_output : bool) -> None:
     '''See if Python module perception behaves as expected'''
@@ -71,3 +71,19 @@ def test_is_module_fail_on_invalid_types(non_module_type : type) -> None:
     with pytest.raises(AttributeError) as err_info:
         instance = non_module_type() # create a default instance
         _ = pkginspect.is_package(instance)
+
+# FETCHING DATA FROM PACKAGES
+@pytest.mark.parametrize(
+    'rel_path, module',
+    [
+        ('data', tests),
+        ('data/sample.dat', tests),
+        pytest.param('daata/simple.dat', tests, marks=pytest.mark.xfail(raises=ValueError, reason="This isn't a real file")),
+        ('pkginspect.py', genutils),
+        pytest.param('fake/whatever.txt', pkginspect, marks=pytest.mark.xfail(raises=TypeError, reason="Module is not a package and therefore cannot contain resources")),
+    ]
+)
+def test_get_resource_path(rel_path : str, module : ModuleType) -> None:
+    '''Test that fetching a resource (i.e. file OR dir) from a package'''
+    resource_path = pkginspect.get_resource_path_within_package(rel_path, module)
+    assert isinstance(resource_path, Path)
