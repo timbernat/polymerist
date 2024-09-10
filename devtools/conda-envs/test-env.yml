@@ -1,7 +1,7 @@
 name: test
 channels:
-    - conda-forge
-    - openeye
+  - conda-forge
+  - openeye
 dependencies:
     # Basic Python dependencies
   - python
@@ -13,38 +13,38 @@ dependencies:
   - pytest-cov
   - codecov
 
-    # Numerical libraries
-    - numpy
-    - pandas
-    - dgl >=1.0
-    - networkx
-    - anytree
-  
-    # MD engines
-    - openmm
-    - lammps
-    - mdtraj
+  # Numerical libraries
+  - numpy
+  - pandas
+  - dgl >=1.0
+  - networkx
+  - anytree
 
-    # Molecule building
-    - mbuild
-    - rdkit
-    - openeye-toolkits # TODO: consider making this optional?
+  # MD engines
+  - openmm
+  - lammps
+  - mdtraj
 
-    # Visualization
-    - pillow
-    - matplotlib
-    - ipywidgets ==8.0.4 # more recent versions don't work with Jupyter notebooks, for some reason
-    - py3Dmol
-    - nglview ==3.0.6
+  # Molecule building
+  - mbuild
+  - rdkit
+  - openeye-toolkits # TODO: consider making this optional?
 
-    # OpenFF stack
-    - openff-toolkit ~=0.16
-    - openff-interchange >=0.3.28
-    - openff-nagl
+  # Visualization
+  - pillow
+  - matplotlib
+  - ipywidgets ==8.0.4 # more recent versions don't work with Jupyter notebooks, for some reason
+  - py3Dmol
+  - nglview ==3.0.6
 
-    # Chemical database queries
-    - cirpy
-    - pubchempy
-    - chemspipy
-    - pip:
-        - espaloma-charge ==0.0.8
+  # OpenFF stack
+  - openff-toolkit ~=0.16
+  - openff-interchange >=0.3.28
+  - openff-nagl
+
+  # Chemical database queries
+  - cirpy
+  - pubchempy
+  - chemspipy
+  - pip:
+      - espaloma-charge ==0.0.8
