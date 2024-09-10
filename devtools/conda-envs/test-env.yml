@@ -1,7 +1,9 @@
 name: test
 channels:
+    - conda-forge
+    - openeye
 dependencies:
-    # Base depends
+    # Basic Python dependencies
   - python
   - pip
 
