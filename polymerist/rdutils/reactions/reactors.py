@@ -72,7 +72,7 @@ class Reactor:
     def react(self, reactants : Iterable[Mol], repetitions : int=1, clear_props : bool=False) -> list[Mol]:
         '''Execute reaction over a collection of reactants and generate product molecule(s)
         Does NOT require the reactants to match the order of the reacion template (only that some order fits)'''
-        reactants = self.rxn_schema.valid_reactant_ordering(reactants) # check that the reactants are compatible with the reaction
+        reactants = self.rxn_schema.valid_reactant_ordering(reactants, as_mols=True) # check that the reactants are compatible with the reaction
         if reactants is None:
             raise ReactantTemplateMismatch(f'Reactants provided to {self.__class__.__name__} are incompatible with reaction schema defined')
         reactants = self._label_reactants(reactants, reactant_label=self._ridx_prop_name, in_place=False) # assign reactant indices (not in-place)
