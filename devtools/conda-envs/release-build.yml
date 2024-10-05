@@ -27,6 +27,7 @@ dependencies:
 
     # Molecule building
     - mbuild
+    - openbabel
     - rdkit
     - openeye-toolkits # TODO: consider making this optional?
 
