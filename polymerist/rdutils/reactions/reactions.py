@@ -175,11 +175,14 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         
         return prod_info_map
     
-    def valid_reactant_ordering(self, reactants : Sequence[Mol]) -> Optional[list[Mol]]:
-        '''Given an RDKit chemical reaction mechanism and a sequence of reactant Mols, will determine if there is
+    def valid_reactant_ordering(self, reactants : Sequence[Mol], as_mols : bool=True) -> Optional[list[Mol]]:
+        '''
+        Given an RDKit chemical reaction mechanism and a sequence of reactant Mols, will determine if there is
         an ordering of the reactants which is compatible with the reactant templates defined in the reaction
 
-        Returns the first found ordering, or NoneType if no such ordering exists'''
+        Returns the first found ordering, or NoneType if no such ordering exists
+        Ordering returned as list of Chem.Mol objects if as_mols == True, or as list of ints otherwise
+        '''
         # 0) Preliminary quick check on number of reactants; can discount a bad reactant collection prior to more expensive check
         num_reactants_provided = len(reactants)
         num_reactant_templates_in_mechanism = self.GetNumReactantTemplates()
@@ -212,6 +215,8 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
                 word=reactant_template_indices,
                 unique_bins=True) # need to have unique bins so a single reactant is not taken more than once
             )
-            return [reactants[i] for i in reactant_ordering] # get first valid ordering
+            if as_mols:
+                return [reactants[i] for i in reactant_ordering] # get first valid ordering
+            return reactant_ordering
         else: # NOTE: this else clause is not strictly necessary (would otherwise return None anyway), but prefer to have it for explicitness
             return None 
