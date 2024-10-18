@@ -51,7 +51,7 @@ def decrease_bond_order(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, new_fla
         # _increase_bond_order(rwmol, atom_id, new_port_id)
 
 @optional_in_place
-def dissolve_bond(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, new_flavor_pair : int=0) -> None:
+def dissolve_bond(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, new_flavor_pair : Optional[tuple[int, int]]=None) -> None:
     '''Completely decompose a bond between two atoms, filling in ports with the chosen flavor''' 
     while rwmol.GetBondBetweenAtoms(atom_id_1, atom_id_2) is not None:
         decrease_bond_order(rwmol, atom_id_1, atom_id_2, new_flavor_pair=new_flavor_pair, in_place=True)

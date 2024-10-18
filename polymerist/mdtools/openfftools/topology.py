@@ -97,14 +97,14 @@ def topology_to_sdf(path : Path, offtop : Topology, toolkit_registry : ToolkitRe
         for mol in offtop.molecules:
             serial_mol = package_atom_metadata(mol, in_place=False)  # packageage metadata for serialization WITHOUT disturbing the original molecule
             serial_mol.to_file(sdf_file, file_format='SDF', toolkit_registry=toolkit_registry) # NOTE : not using save_molecule() here, as that function does not currently support bytes-like input (needed for multiple mols in same file)
-    LOGGER.info(f'Successfully serialized SDF Topology to {path}')
+    LOGGER.debug(f'Successfully serialized SDF Topology to {path}')
 
 @allow_string_paths
 def topology_from_sdf(path : Path, *args, **kwargs) -> Topology:
     '''Load an OpenFF Topology from an SDF file, assigning metadata and partial charges if stored'''
     assert(path.suffix == '.sdf')
 
-    LOGGER.info(f'Loading serialized SDF Topology from {path}')
+    LOGGER.debug(f'Loading serialized SDF Topology from {path}')
     return Topology.from_molecules(
         unpackage_atom_metadata(mol, in_place=False) # reassign metadata if serialized
             for mol in asiterable(Molecule.from_file(path, *args, **kwargs)) # asiterable() gracefully handles the singleton case

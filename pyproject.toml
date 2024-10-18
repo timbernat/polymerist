@@ -65,6 +65,12 @@ where = ["."]
 polymerist = [
     "py.typed"
 ]
+# "polymerist.data" = [
+#    "look_and_say.dat"
+# ]
+"polymerist.tests.data" = [
+    "*.*", # include any data files shipped in tests.data
+]
 
 [tool.versioningit]
 default-version = "1+unknown"

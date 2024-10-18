@@ -1,4 +1,4 @@
-name: polymerist-env
+name: polymerist-explicit
 channels:
   - openeye
   - conda-forge
@@ -12,6 +12,7 @@ dependencies:
   - ambertools=23.3=py311h9fea076_6
   - annotated-types=0.6.0=pyhd8ed1ab_0
   - anyio=4.3.0=pyhd8ed1ab_0
+  - anytree=2.12.1=pyhd8ed1ab_0
   - argon2-cffi=23.1.0=pyhd8ed1ab_0
   - argon2-cffi-bindings=21.2.0=py311h459d7ec_4
   - arpack=3.8.0=nompi_h0baa96a_101
@@ -49,12 +50,12 @@ dependencies:
   - bzip2=1.0.8=hd590300_5
   - c-ares=1.27.0=hd590300_0
   - c-blosc2=2.12.0=hb4ffafa_0
-  - ca-certificates=2024.2.2=hbcca054_0
+  - ca-certificates=2024.7.4=hbcca054_0
   - cached-property=1.5.2=hd8ed1ab_1
   - cached_property=1.5.2=pyha770c72_1
   - cachetools=5.3.3=pyhd8ed1ab_0
   - cairo=1.18.0=h3faef2a_0
-  - certifi=2024.2.2=pyhd8ed1ab_0
+  - certifi=2024.7.4=pyhd8ed1ab_0
   - cffi=1.16.0=py311hb3a22ac_0
   - chardet=5.2.0=py311h38be061_1
   - charset-normalizer=3.3.2=pyhd8ed1ab_0
@@ -251,7 +252,7 @@ dependencies:
   - markupsafe=2.1.5=py311h459d7ec_0
   - matplotlib-base=3.8.3=py311h54ef318_0
   - matplotlib-inline=0.1.6=pyhd8ed1ab_0
-  - mbuild=0.17.0=pyhd8ed1ab_0
+  - mbuild=0.17.1=pyhd8ed1ab_1
   - mda-xdrlib=0.2.0=pyhd8ed1ab_0
   - mdtraj=1.9.9=py311h90fe790_1
   - mdurl=0.1.2=pyhd8ed1ab_0
@@ -289,21 +290,21 @@ dependencies:
   - openeye-toolkits=2023.2.3=py311_0
   - openff-amber-ff-ports=0.0.4=pyhca7485f_0
   - openff-forcefields=2024.01.0=pyhca7485f_0
-  - openff-interchange=0.3.23=pyhd8ed1ab_0
-  - openff-interchange-base=0.3.23=pyhd8ed1ab_0
+  - openff-interchange=0.3.28=pyhd8ed1ab_0
+  - openff-interchange-base=0.3.28=pyhd8ed1ab_0
   - openff-models=0.1.2=pyhca7485f_0
   - openff-nagl=0.3.4=pyhd8ed1ab_0
   - openff-nagl-base=0.3.4=pyhd8ed1ab_0
   - openff-nagl-models=0.1.2=pyhd8ed1ab_0
   - openff-recharge=0.5.1=pyhd8ed1ab_0
-  - openff-toolkit=0.15.2=pyhd8ed1ab_0
-  - openff-toolkit-base=0.15.2=pyhd8ed1ab_0
+  - openff-toolkit=0.16.1=pyhd8ed1ab_1
+  - openff-toolkit-base=0.16.1=pyhd8ed1ab_1
   - openff-units=0.2.1=pyh1a96a4e_0
   - openff-utilities=0.1.12=pyhd8ed1ab_0
   - openjpeg=2.5.2=h488ebb8_0
   - openmm=8.1.1=py311h6d2dbb8_1
   - openmpi=4.1.6=hc5af2df_101
-  - openssl=3.2.1=hd590300_1
+  - openssl=3.3.1=h4bc722e_2
   - opt_einsum=3.3.0=pyhc1e730c_2
   - orc=1.9.2=h4b38347_0
   - overrides=7.7.0=pyhd8ed1ab_0
