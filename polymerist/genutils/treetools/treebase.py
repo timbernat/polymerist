@@ -1,4 +1,4 @@
-'''Tools for interfacing and representing arbitrary external classes with tree-like data structures'''
+'''Interfaces for encoding arbitrary classes into tree-like data structures'''
 
 from typing import Any, Callable, Generic, Iterable, Optional, TypeAlias, TypeVar
 from abc import ABC, abstractmethod
