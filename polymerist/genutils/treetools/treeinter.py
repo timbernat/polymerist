@@ -12,7 +12,7 @@ T = TypeVar('T')
 
 
 @register_abstract_class_attrs('FROMTYPE') # TODO: figure out way to parameterize Generic T here with the type passed as FROMTYPE
-class AbstractNodeCorrespondence(ABC, Generic[T]): 
+class NodeCorrespondence(ABC, Generic[T]): 
     '''Abstract base for implementing how to build an anytree Node tree for an arbitrary class'''
     @abstractmethod
     def name(self, obj : T) -> str:
@@ -31,7 +31,7 @@ class AbstractNodeCorrespondence(ABC, Generic[T]):
         pass
 
 def compile_tree_factory(
-        node_corresp : AbstractNodeCorrespondence[T],
+        node_corresp : NodeCorrespondence[T],
         class_alias : Optional[str]=None,
         obj_attr_name : Optional[str]=None,
     ) -> Callable[[T, Optional[int]], Node]:
