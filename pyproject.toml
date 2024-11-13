@@ -69,7 +69,7 @@ polymerist = [
 #    "look_and_say.dat"
 # ]
 "polymerist.tests.data" = [
-    "*.*", # include any data files shipped in tests.data
+    "**/*.*", # include any data files shipped in tests.data
 ]
 
 [tool.versioningit]
