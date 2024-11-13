@@ -76,8 +76,6 @@ def compile_tree_factory(
         _curr_depth : int=0
     ) -> Node:
         # NOTE: deliberately omitting docstring here, as it will be built procedurally after defining this function
-        exclude = lambda obj : exclude_mixin(obj) | exclude(obj) # incorporate mixin into exclusion criterion # TODO: make this more efficient for double-defaults
-
         node = Node(name=node_corresp.name(obj))
         setattr(node, obj_attr_name, obj) # keep an instance of the object directly for reference
 
@@ -86,7 +84,7 @@ def compile_tree_factory(
                 or (_curr_depth < max_depth)    # 2) a limit IS set, but hasn't been reached yet
             ): 
             for child_obj in node_corresp.children(obj):
-                if not exclude(child_obj):
+                if not (exclude(child_obj) or exclude_mixin(child_obj)):
                     sub_node = compile_tree(child_obj, max_depth=max_depth, exclude=exclude, _curr_depth=_curr_depth+1)
                     sub_node.parent = node
 
