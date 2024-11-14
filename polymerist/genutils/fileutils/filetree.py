@@ -12,7 +12,7 @@ from ..decorators.functional import allow_string_paths
 
 # FILE TREES
 class PathToNodeCorrespondence(NodeCorrespondence, FROMTYPE=Path):
-    '''Concrete implementation of how to produce filetrees from pathlib Paths'''
+    '''Concrete implementation of pathlib Paths as nodes in a tree'''
     def name(self, path : Path) -> str:
         return path.name
     
