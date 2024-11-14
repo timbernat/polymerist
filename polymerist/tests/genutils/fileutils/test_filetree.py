@@ -4,7 +4,7 @@ import pytest
 from pathlib import Path
 from anytree.iterators import PreOrderIter, LevelOrderGroupIter
 
-from polymerist.genutils.pkginspect import get_dir_path_within_package
+from polymerist.genutils.importutils.pkginspect import get_dir_path_within_package
 from polymerist.tests import data as testdata
 
 from polymerist.genutils.fileutils.filetree import path_tree, dir_tree
