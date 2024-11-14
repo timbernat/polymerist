@@ -4,94 +4,168 @@ import logging
 LOGGER = logging.getLogger(__name__)
 
 from types import ModuleType
-from typing import Generator, Iterable, Optional
+from typing import Generator, Iterable, Optional, Union
 
-import pkgutil
-import importlib
+from importlib import import_module
+from pkgutil import iter_modules
 
-from enum import StrEnum
-from itertools import chain
+from anytree.node import Node
+from anytree.render import AbstractStyle, ContStyle
+from anytree.iterators import PreOrderIter
 
-
-# FILETREE CHARACTERS
-_TREE_WIDTH : int = 4
-assert(_TREE_WIDTH > 0)
-
-class TreeChars(StrEnum):
-    '''Box characters for representing connections between components of a hierarchcal structure'''
-    SPACE   = ' '*_TREE_WIDTH
-    DASH    = '\u2500'*_TREE_WIDTH
-    PIPE    = '\u2502' + ' '*(_TREE_WIDTH - 1)
-    BRANCH  = '\u251C' + '\u2500'*(_TREE_WIDTH - 1)
-    ELBOW   = '\u2514' + '\u2500'*(_TREE_WIDTH - 1)
-    ELBOW_R = '\u2514' + '\u2500'*(_TREE_WIDTH - 1) # direction-agnostic alias
-    ELBOW_L = '\u2500'*(_TREE_WIDTH - 1) + '\u2518'
+from ..treetools.treebase import NodeCorrespondence, compile_tree_factory
+from ..treetools.treeviz import treestr
+from .pkginspect import module_stem, is_package
 
 
-# BASE SUBMODULE GENERATORS
-def module_by_pkg_str(pkg_str : str) -> ModuleType:
-    '''Load module from dot-separated module name string (intended to be called on __package__ attr)'''
-    return importlib.import_module(pkg_str)
 
-def iter_submodule_info(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None) -> Generator[tuple[ModuleType, str, bool], None, None]:
-    '''Generate all submodules of a given module, yielding a tuple of (the module, the module name, and whether the module is also a package).
-    If the "recursive" flag is set, will generate ALL possible submodules in the tree recursively'''
+# HIERARCHICAL MODULE TREE GENERATION
+class ModuleToNodeCorrespondence(NodeCorrespondence, FROMTYPE=ModuleType):
+    '''Concrete implementation of Python modules and packages as nodes in a tree'''
+    def name(self, module : ModuleType) -> str:
+        return module_stem(module) # TODO: find Python package-spec compliant way of extracting this easily
+    
+    def has_children(self, module : ModuleType) -> bool:
+        return is_package(module)
+    
+    def children(self, module : ModuleType) -> Iterable[ModuleType]:
+        for _loader, module_name, ispkg in iter_modules(module.__path__, prefix=module.__name__+'.'):
+            try:
+                submodule = import_module(module_name)
+                yield submodule
+            except ModuleNotFoundError:
+                continue
+
+module_tree = compile_tree_factory(
+    ModuleToNodeCorrespondence(),
+    class_alias='package',
+    obj_attr_name='module',
+    exclude_mixin=lambda module : module_stem(module).startswith('_'),
+)
+
+# BACKWARDS-COMPATIBLE PORTS OF LEGACY IMPORTUTILS FUNCTIONS
+def module_tree_direct(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None) -> Node:
+    '''Produce a tree from the Python package hierarchy starting with a given module
+    
+    Parameters
+    ----------
+    module : ModuleType
+        The "root" module to begin importing from
+        Represented in the Node object returned by this function
+    recursive : bool, default=True
+        Whether or not to recursively import modules from subpackages and add them to the tree
+    blacklist : list[str] (optional), default None
+        List of module names to exclude from tree building
+        If provided, will exclude any modules whose names occur in this list
+
+    Returns
+    -------
+    modtree : Node
+        The root node of the module tree, corresponding to the module object passed to "module"
+    '''
     if blacklist is None:
         blacklist = []
-    
-    for _loader, submodule_name, submodule_ispkg in pkgutil.iter_modules(module.__path__):
-        if submodule_name in blacklist:
-            continue # skip over import blacklisted modules
 
-        try:
-            submodule = importlib.import_module(f'{module.__package__}.{submodule_name}')
-        except ModuleNotFoundError:
-            continue
-
-        yield (submodule, submodule_name, submodule_ispkg)
-        if submodule_ispkg and recursive:
-            yield from iter_submodule_info(submodule, recursive=True, blacklist=blacklist)
+    return module_tree(
+        module,
+        max_depth=None if recursive else 1,
+        exclude=lambda module : module_stem(module) in blacklist,
+    )
 
 def iter_submodules(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None) -> Generator[ModuleType, None, None]:
-    '''Generate all submodules of a given module. If the "recursive" flag is set, will generate ALL possible submodules in the tree recursively'''
-    for submodule, *_submodule_info in iter_submodule_info(module, recursive=recursive, blacklist=blacklist):
-        yield submodule # only yield submodule; for more compact iteration
+    '''
+    Generates all modules which can be imported from the given toplevel module
+    
+    Parameters
+    ----------
+    module : ModuleType
+        The "root" module to begin importing from
+        Represented in the Node object returned by this function
+    recursive : bool, default=True
+        Whether or not to recursively import modules from subpackages and add them to the tree
+    blacklist : list[str] (optional), default None
+        List of module names to exclude from tree building
+        If provided, will exclude any modules whose names occur in this list
 
+    Returns
+    -------
+    submodules : Generator[ModuleType]
+        A generator which yields modules in traversal pre-order as they appear wihin the package hierarchy
+    '''
+    modtree = module_tree_direct(module, recursive=recursive, blacklist=blacklist)
+    for module_node in PreOrderIter(modtree):
+        yield module_node.module
 
-# TOOLS FOR REGISTERING AND PULLING INFO FROM SUBMODULES
+def iter_submodule_info(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None) -> Generator[tuple[ModuleType, str, bool], None, None]:
+    '''
+    Generates information about all modules which can be imported from the given toplevel module
+    Namely, yields the module object, module name, and whether or not the module is a package
+
+    Parameters
+    ----------
+    module : ModuleType
+        The "root" module to begin importing from
+        Represented in the Node object returned by this function
+    recursive : bool, default=True
+        Whether or not to recursively import modules from subpackages and add them to the tree
+    blacklist : list[str] (optional), default None
+        List of module names to exclude from tree building
+        If provided, will exclude any modules whose names occur in this list
+
+    Returns
+    -------
+    submodule_info : Generator[ModuleType, str, bool]
+        A generator which yields modules info in traversal pre-order as they appear wihin the package hierarchy
+        yields 3-tuples containing ModuleType objects, module names, and whether the current module is also a subpackage
+    '''
+    modtree = module_tree_direct(module, recursive=recursive, blacklist=blacklist)
+    for module_node in PreOrderIter(modtree):
+        yield module_node.module, module_node.name, module_node.is_leaf
+
 def register_submodules(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None) -> None:
-    '''Registers submodules of a given module into it's own namespace (i.e. autoimports submodules)'''
-    for (submodule, submodule_name, submodule_ispkg) in iter_submodule_info(module, recursive=False, blacklist=blacklist): # initially only iterate on one level to keep track of parent module
-        setattr(module, submodule_name, submodule)
-        if submodule_ispkg and recursive:
-            register_submodules(submodule, recursive=recursive, blacklist=blacklist)
+    '''
+    Registers all submodules of a given module into it's own namespace (i.e. autoimports submodules)
+    
+    Parameters
+    ----------
+    module : ModuleType
+        The "root" module to begin importing from
+        Represented in the Node object returned by this function
+    recursive : bool, default=True
+        Whether or not to recursively import modules from subpackages and add them to the tree
+    blacklist : list[str] (optional), default None
+        List of module names to exclude from tree building
+        If provided, will exclude any modules whose names occur in this list
 
-def _module_hierarchy(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None, _prefix : str='') -> Generator[str, None, None]:
-    '''Returns an iterable of level strings representing a module hierarchy, with each level of nesting indicated by a series of pipes and dashes'''
-    end_sentinel = (object(), object(), object()) # used to unambiguously check whether the initial generator is in fact empty
-    module_iter = chain(iter_submodule_info(module, recursive=False, blacklist=blacklist), [end_sentinel])
+    Returns
+    -------
+    None
+    '''
+    for submodule in iter_submodules(module, recursive=recursive, blacklist=blacklist):
+        setattr(module, submodule.__name__, submodule)
 
-    module_info = next(module_iter) # primer for hierarchy iteration, need to first check 
-    reached_end = bool(module_info == end_sentinel) # if module hierarchy is empty, don't bother trying to iterate
-    while not reached_end:
-        (submodule, submodule_name, submodule_ispkg) = module_info # unpacking to keep current module_info values in namespace (and for convenience)
-        module_info = next(module_iter) # peek ahead to check if the current module is in fact the last at this layer
-        if module_info == end_sentinel:
-            splitter, extension = TreeChars.ELBOW, TreeChars.SPACE
-            reached_end = True
-        else:
-            splitter, extension = TreeChars.BRANCH, TreeChars.PIPE
-        
-        yield _prefix + splitter + submodule_name
-        if submodule_ispkg and recursive:
-            yield from _module_hierarchy(submodule, recursive=recursive, blacklist=blacklist, _prefix=_prefix + extension) # retrieve partial output
+def module_hierarchy(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None, style : Union[str, AbstractStyle]=ContStyle()) -> str:
+    '''
+    Generates a printable string which summarizes a Python packages hierarchy. Reminiscent of GNU tree output
 
-def module_hierarchy(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None) -> str:
-    return '\n'.join(_module_hierarchy(module, recursive=recursive, blacklist=blacklist))
+    Parameters
+    ----------
+    module : ModuleType
+        The "root" module to begin importing from
+        Represented in the Node object returned by this function
+    recursive : bool, default=True
+        Whether or not to recursively import modules from subpackages and add them to the tree
+    blacklist : list[str] (optional), default None
+        List of module names to exclude from tree building
+        If provided, will exclude any modules whose names occur in this list
+    style : str or AbstractStyle
+        An element drawing style for the final tree structure printout
 
-def submodule_loggers(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None) -> dict[str, Optional[logging.Logger]]:
-    '''Produce a dict of any Logger objects present in each submodule. Can optionally generate recursively and blacklist certain modules'''
-    return {
-        submodule_name : getattr(submodule, 'LOGGER', None) # default to None rather than raising Exception
-            for (submodule, submodule_name, submodule_ispkg) in iter_submodule_info(module, recursive=recursive, blacklist=blacklist) 
-    }
+    Returns
+    -------
+    module_summary : str
+        Printable string which displays the package structure
+    '''
+    modtree = module_tree_direct(module, recursive=recursive, blacklist=blacklist)
+    return treestr(modtree, style=style)
+
