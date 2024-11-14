@@ -1,4 +1,4 @@
-'''Utilities for automating submodule import and logger creation'''
+'''Tools for iterating over and extracting information from Python package hierarchies'''
 
 import logging
 LOGGER = logging.getLogger(__name__)
