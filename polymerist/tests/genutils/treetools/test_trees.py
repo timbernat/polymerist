@@ -13,5 +13,6 @@ def example_tree_for_tests() -> Node: # TODO: move to separate tests module even
     g = Node('g', foo='gg', parent=root)
     i = Node('i', foo='ii', parent=g)
     h = Node('h', foo='hh', parent=i)
+    a_dup = Node('a', foo='a+a', parent=g) # testing how nodes with duplicate names are handled
 
     return root
