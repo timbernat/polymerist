@@ -81,6 +81,9 @@ def copy_tree(root : Node, stop : Optional[Filter[Node]]=None, attr_filter : Opt
         An anytree.node.Node object which is the root of a tree-like hierarchy
     stop : Filter[Node] (optional), default None
         An optional criterion to decide when to stop traversing the tree to be copied
+        This criterion is not inclusive, i.e. a Node matching this criterion WILL be 
+        included in the copied tree, but any child Nodes of this flagged node will not
+
         Should be a function which accepts a single Node arg and returns a bool
         Return value of True will exclude all subsequent nodes on a branch, while value of True will proceed with iteration and copying 
         If None, will default to always False (i.e. no extra stop conditions, full tree will be copied)
