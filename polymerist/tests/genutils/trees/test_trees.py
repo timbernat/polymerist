@@ -5,6 +5,7 @@ import pytest
 
 from anytree.node import Node
 from anytree.search import find as find_node
+from anytree.iterators import AbstractIter, PreOrderIter, PostOrderIter, LevelOrderIter
 
 from polymerist.genutils.trees.treecopy import get_node_attrs, copy_node_unbound, copy_tree
 
@@ -62,12 +63,46 @@ def test_get_node_attrs_attr_name_filter(node_name : str, node_attrs : dict[str,
     attrs = get_node_attrs(node, attr_filter=lambda attr_name : attr_name != 'foo', include_name=False)
     assert 'foo' not in attrs
 
+
 def test_copy_node_unbound_values(g_node : Node) -> None:
     '''Test that copy_node_unbound() correctly copies Node attributes'''
-    copy_node = copy_node_unbound(g_node)
-    assert get_node_attrs(copy_node) == get_node_attrs(g_node)
+    copied_node = copy_node_unbound(g_node)
+    assert get_node_attrs(copied_node) == get_node_attrs(g_node)
 
 def test_copy_node_unbound_relatives(g_node : Node) -> None:
     '''Test that copy_node_unbound() correctly removes ancestors and children from node'''
-    copy_node = copy_node_unbound(g_node)
-    assert copy_node.parent is None and not copy_node.children
+    copied_node = copy_node_unbound(g_node)
+    assert copied_node.parent is None and not copied_node.children
+
+
+@pytest.mark.parametrize('iter_type', [PreOrderIter, PostOrderIter, LevelOrderIter])
+def test_copy_tree(example_tree : Node, iter_type : AbstractIter) -> None:
+    '''Test that trees structures are exactly copied with no filters'''
+    copied_tree = copy_tree(example_tree, stop=None, attr_filter=None)
+    assert all(
+        get_node_attrs(node_orig) == get_node_attrs(node_copied) 
+            for node_orig, node_copied in zip(iter_type(example_tree), iter_type(copied_tree))
+    )
+
+@pytest.mark.parametrize('iter_type', [PreOrderIter, PostOrderIter, LevelOrderIter])
+def test_copy_tree_mod_attr(example_tree : Node, iter_type : AbstractIter) -> None:
+    '''Test that modifying attributes on copied trees does NOT affect original'''
+    copied_tree = copy_tree(example_tree, stop=None, attr_filter=None)
+    TARG_ATTR : str = 'foo'
+    for node in iter_type(copied_tree): # modify attributes
+        if hasattr(node, TARG_ATTR):
+            setattr(node, TARG_ATTR, getattr(node, TARG_ATTR) + '__')
+
+    assert all( # attributes should NOT be equal, since they should've only been changed on the copy
+        getattr(node_orig, TARG_ATTR) != getattr(node_copied, TARG_ATTR)
+            for node_orig, node_copied in zip(iter_type(example_tree), iter_type(copied_tree))
+                if hasattr(node_orig, TARG_ATTR)
+    )
+
+def test_copy_tree_stop(example_tree : Node) -> None:
+    '''Test that stop conditions for tree copying are respected and targetted branches are pruned'''
+    copied_tree = copy_tree(example_tree, stop=lambda node : node.name == 'a', attr_filter=None)
+    assert all(
+        copied_node.name != 'a'
+            for copied_node in PreOrderIter(copied_tree) # in this case, the iteration order uniquely doesn't matter, only care that all nodes are traversed 
+    )
