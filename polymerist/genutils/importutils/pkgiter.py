@@ -13,8 +13,8 @@ from anytree.node import Node
 from anytree.render import AbstractStyle, ContStyle
 from anytree.iterators import PreOrderIter
 
-from ..treetools.treebase import NodeCorrespondence, compile_tree_factory
-from ..treetools.treeviz import treestr
+from ..trees.treebase import NodeCorrespondence, compile_tree_factory
+from ..trees.treeviz import treestr
 from .pkginspect import module_stem, is_package
 
 

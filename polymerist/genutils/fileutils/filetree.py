@@ -5,8 +5,8 @@ from typing import Iterable
 from pathlib import Path
 from subprocess import Popen
 
-from ..treetools.treebase import NodeCorrespondence, compile_tree_factory
-from ..treetools.treeviz import treestr
+from ..trees.treebase import NodeCorrespondence, compile_tree_factory
+from ..trees.treeviz import treestr
 from ..decorators.functional import allow_string_paths
 
 

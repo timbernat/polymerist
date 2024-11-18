@@ -5,7 +5,7 @@ import pytest
 
 from anytree.node import Node
 
-from polymerist.genutils.treetools import treecopy
+from polymerist.genutils.trees import treecopy
 
 
 @pytest.fixture
