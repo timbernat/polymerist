@@ -1,5 +1,8 @@
 '''Implementations of the canonical monomer substructure SMARTS specification defined in https://doi.org/10.26434/chemrxiv-2023-f2zxd-v2'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import logging
 LOGGER = logging.getLogger(__name__)
 

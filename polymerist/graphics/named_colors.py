@@ -1,5 +1,8 @@
 '''Particular color values which occur often enough or are unique enough to have distinct names'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 

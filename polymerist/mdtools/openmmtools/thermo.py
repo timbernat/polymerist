@@ -1,5 +1,8 @@
 '''Simplifies creation of Simulations which correspond to a particular thermodynamic ensembles'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import logging
 LOGGER = logging.getLogger(__name__)
 

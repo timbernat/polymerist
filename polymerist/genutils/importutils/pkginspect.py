@@ -1,5 +1,8 @@
 '''For checking whether object are valid Python modules and packages, and if so for gathering info from within them'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Optional, Union
 from types import ModuleType
 from pathlib import Path

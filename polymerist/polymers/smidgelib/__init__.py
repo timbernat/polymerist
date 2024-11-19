@@ -1,5 +1,8 @@
 '''Utilities for parsing, validating, and translating SMILES-like Monomer Interconnectivity and Degree Graph Encoding (SMIDGE) string'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import re
 from rdkit import Chem
 

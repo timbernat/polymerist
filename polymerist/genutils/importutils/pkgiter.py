@@ -1,5 +1,8 @@
 '''Tools for iterating over and extracting information from Python package hierarchies'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import logging
 LOGGER = logging.getLogger(__name__)
 

@@ -1,5 +1,8 @@
 '''Tools for labelling and extracting force groups for Forces within an OpenMM System'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Union
 from collections import defaultdict
 from openmm import Force, NonbondedForce, System

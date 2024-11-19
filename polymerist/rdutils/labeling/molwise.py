@@ -1,5 +1,8 @@
 '''For reading, writing, and clearing labels from all Atoms and/or Bonds in an RDKit molecule'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Generator, Iterable, Optional, Union
 from rdkit.Chem.rdchem import Mol
 

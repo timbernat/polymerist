@@ -1,5 +1,8 @@
 '''For dynamically inspecting and modifying attributes of Python objects'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Any, Optional, Union
 import re
 

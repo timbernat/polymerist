@@ -1,5 +1,8 @@
 '''For curating pre-defined solvent molecules'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from pathlib import Path # TODO : reimplement "properly" "using importlib_resources (more complicated than it's worth for now)
 _MODULE_PATH = Path(__path__[0])
 

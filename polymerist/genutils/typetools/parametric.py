@@ -1,5 +1,8 @@
 '''Type aliases for Python callable input parameters'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import TypeVar, ParamSpec, _UnionGenericAlias
 
 T = TypeVar('T') # universal generic type

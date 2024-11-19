@@ -1,5 +1,8 @@
 '''Tools for generating and manipulating monomer connectivity graphs'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Any, ClassVar, Generator, Optional, Sequence, Union
 
 import networkx as nx

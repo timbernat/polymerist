@@ -1,5 +1,8 @@
 '''Typehinting and generic implementations of filter (indicator) functions'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Callable, TypeVar
 
 T = TypeVar('T')

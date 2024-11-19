@@ -1,5 +1,8 @@
 '''Custom types used in determining residue charges'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import TypeAlias
 from rdkit.Chem.rdchem import Mol
 from dataclasses import dataclass, field

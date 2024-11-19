@@ -1,5 +1,8 @@
 '''For estimating properties of chains based on their constituent monomers and chain info'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import numpy as np
 from rdkit import Chem
 

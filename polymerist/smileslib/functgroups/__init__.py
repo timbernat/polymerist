@@ -1,5 +1,8 @@
 '''SMARTS-based queries for functional groups and other chemical signatures'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 # Creating module-specific logger
 import logging
 LOGGER = logging.getLogger(__name__)

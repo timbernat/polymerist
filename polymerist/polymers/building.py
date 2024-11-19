@@ -1,5 +1,8 @@
 '''Utilities for building new polymer structures; currently limited to linear polymers and PDB save format'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import logging
 LOGGER = logging.getLogger(__name__)
 

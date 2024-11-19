@@ -1,5 +1,8 @@
 '''Representation of vectors of coordinates and elementary distance geometry operations'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Generic, Optional, TypeVar, Union
 from numbers import Number
 from ...genutils.typetools.numpytypes import Shape, N, D

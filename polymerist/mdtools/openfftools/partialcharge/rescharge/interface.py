@@ -1,5 +1,8 @@
 '''Interfaces between residue-charge calculation methods and OpenFF (or other external) tools'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import ClassVar
 from dataclasses import dataclass
 

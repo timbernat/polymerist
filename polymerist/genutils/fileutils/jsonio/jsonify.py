@@ -1,5 +1,8 @@
 '''Tools for making existing classes easily readable/writable to JSON'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Any, Callable, ClassVar, Optional, Type, TypeVar, Union
 C = TypeVar('C') # generic type for classes
 

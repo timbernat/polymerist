@@ -1,5 +1,8 @@
 '''For obtaining, scaling, and manipulating box vectors for Topologies'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Annotated, Literal, TypeAlias, Union
 import numpy.typing as npt
 

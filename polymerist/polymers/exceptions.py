@@ -1,5 +1,8 @@
 '''Custom Exceptions specific to Polymers and related objects''' # TODO: go through these and purge errors which are no longer relevant (ported from polysaccharide v1)
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 
 class SubstructMatchFailedError(Exception):
     '''Raised when molecule graph isomorphism match does not form a cover'''

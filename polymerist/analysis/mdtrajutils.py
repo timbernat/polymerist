@@ -1,5 +1,8 @@
 '''Thin wrappers around mdtraj-implemented property calculations'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Any, Callable, Iterable, Optional, TypeAlias, Union
 from dataclasses import dataclass, field
 

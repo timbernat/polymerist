@@ -1,5 +1,8 @@
 '''Interfaces for extending what types of objects can be serialized to JSON'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Any, ClassVar, Optional, Type, TypeVar, Union
 from abc import ABC, abstractstaticmethod
 from inspect import isclass

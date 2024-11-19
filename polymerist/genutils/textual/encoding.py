@@ -1,5 +1,8 @@
 '''Encoding, hashing, and conversion of string to and from various formats'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import hashlib, base64
 
 

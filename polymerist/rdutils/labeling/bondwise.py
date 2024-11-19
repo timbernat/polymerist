@@ -1,5 +1,8 @@
 '''For obtaining info from and for labelling individual RDKit Bonds'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Any, Callable, Iterable, Optional
 from itertools import combinations
 

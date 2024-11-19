@@ -1,5 +1,8 @@
 '''Generic operations for indexing, generating, and iterating over sequences'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Generator, Sequence, TypeVar, Union
 T = TypeVar('T') # generic type for sequence element
 S = TypeVar('S') # generic type for a distinct sequence element

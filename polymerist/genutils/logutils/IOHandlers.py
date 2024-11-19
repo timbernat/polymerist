@@ -1,5 +1,8 @@
 '''Tools for simplifying logging from multiple sources'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import logging
 from logging import Logger
 from traceback import format_exception

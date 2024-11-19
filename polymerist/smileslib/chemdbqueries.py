@@ -1,5 +1,8 @@
 '''For querying chemical databases for information about molecules specified by SMILES string and other structures'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import logging
 LOGGER  = logging.getLogger(__name__)
 

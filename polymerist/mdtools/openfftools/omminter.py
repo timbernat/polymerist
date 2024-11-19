@@ -1,5 +1,8 @@
 '''For interfacing between OpenFF and OpenMM representations, along with the file analogues'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Optional, Union
 
 from pathlib import Path

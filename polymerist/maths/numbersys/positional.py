@@ -1,5 +1,8 @@
 '''Conversion tools for representing positive integers in fixed and mixed radix positional bases'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Any, Generator, Sequence, Union
 from math import inf
 

@@ -1,5 +1,8 @@
 '''Utilities from describing the various parameters and settings possessed by OpenMM objects'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Any, Union
 from openmm import NonbondedForce, System
 

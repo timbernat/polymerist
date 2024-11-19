@@ -1,5 +1,7 @@
 """Provide the primary functions."""
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
 
 def canvas(with_attribution=True):
     """

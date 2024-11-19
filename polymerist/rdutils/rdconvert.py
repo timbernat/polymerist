@@ -1,5 +1,8 @@
 '''For conversion of RDKit Mols back and forth between different format encodings - often imbues a desired side effect (such as 2D-projection)'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from abc import ABC, abstractmethod, abstractproperty
 from rdkit import Chem
 from rdkit.Chem.rdchem import Mol

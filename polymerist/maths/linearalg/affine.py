@@ -1,5 +1,8 @@
 '''Utilities to streamline creation of 4x4 affine transformation matrices of 3D linear transformations in homogeneous coordinates'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import numpy as np
 import numpy.typing as npt
 from typing import Annotated, Literal

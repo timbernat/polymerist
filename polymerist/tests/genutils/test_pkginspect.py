@@ -1,5 +1,8 @@
 '''Unit tests for package inspection utilities'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from types import ModuleType
 
 import pytest

@@ -1,5 +1,8 @@
 '''For extracting properties from OpenMM Contexts (e.g. positions, energies, etc)'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Optional
 
 from openmm import Context

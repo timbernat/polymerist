@@ -1,5 +1,8 @@
 '''Backend web-scraping to (re)build SMARTS lookup table from the Daylight SMARTS official site'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from dataclasses import dataclass
 
 import requests

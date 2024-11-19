@@ -1,5 +1,8 @@
 '''Type aliases specific to numpy arrays'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Type, TypeAlias, TypeVar, Union
 import numpy.typing as npt
 

@@ -1,5 +1,8 @@
 '''For gathering information and running calculations from LAMMPS input files'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Optional, Union
 
 import re

@@ -1,5 +1,8 @@
 '''Wrappers for printing out tree-like data structures'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Callable, Iterable, TypeVar, Union
 
 from anytree import Node

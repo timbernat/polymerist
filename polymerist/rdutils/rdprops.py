@@ -1,5 +1,8 @@
 '''For assigning, transferring, and removing properties of RDKit objects'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Any, Optional, TypeVar, TypeAlias, Union
 from copy import deepcopy
 

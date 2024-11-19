@@ -1,5 +1,8 @@
 '''Tabulated references of Greek letter names, prefices, and unicode characters'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 GREEK_LETTER_NAMES = [ # names for greek character literals
     'alpha',
     'beta',

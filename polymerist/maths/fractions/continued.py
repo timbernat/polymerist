@@ -1,5 +1,8 @@
 '''Representations and computation methods for continued fractions and ration approximations to real numbers'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Union, Generator, Iterable, Type, TypeAlias, TypeVar
 from ...genutils.typetools.numpytypes import Shape, NPInt
 

@@ -1,5 +1,8 @@
 '''Implementations of various number systems and representations of numbers'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from .commonbases import FixedRadixNumberSystem, FactorialNumberSystem
 
 # initialization of some common bases

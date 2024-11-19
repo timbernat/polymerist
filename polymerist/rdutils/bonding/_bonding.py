@@ -1,5 +1,8 @@
 '''Base utilities and exceptions used throughout the bonding module''' # TODO : deprecate this module
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import logging
 LOGGER = logging.getLogger(__name__)
 

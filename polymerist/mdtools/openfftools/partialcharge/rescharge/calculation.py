@@ -1,5 +1,8 @@
 '''Utilities for generating, storing, and applying partial charges to OpenFF Molecules'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import logging
 LOGGER = logging.getLogger(__name__)
 

@@ -1,5 +1,8 @@
 '''Unit tests for filetree operations'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import pytest
 from pathlib import Path
 from anytree.iterators import PreOrderIter, LevelOrderGroupIter

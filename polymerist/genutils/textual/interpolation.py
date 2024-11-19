@@ -1,5 +1,8 @@
 '''For inserting text into other text in a rules-based manner'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import re
 
 

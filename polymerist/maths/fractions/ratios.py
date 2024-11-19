@@ -1,5 +1,8 @@
 '''For representing rational numbers, and more general ratios'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from dataclasses import dataclass
 from typing import Any, Callable, ClassVar, TypeVar
 N = TypeVar('N')

@@ -1,5 +1,8 @@
 '''Conversion tools between various programming language cases (https://en.wikipedia.org/wiki/Letter_case#Use_within_programming_languages)'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 def snake_case_to_camel_case(varname : str) -> str:
     '''Convert a name from Snake Case to Camel Case
     E.g. name_of_a_thing -> NameOfAThing'''

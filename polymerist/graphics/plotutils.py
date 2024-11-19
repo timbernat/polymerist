@@ -1,5 +1,8 @@
 '''Tools for generating plots and other graphics'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Callable, Iterable, Optional
 from pathlib import Path
 from PIL.Image import Image

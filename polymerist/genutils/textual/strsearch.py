@@ -1,5 +1,8 @@
 '''For searching and replacing through strings and text files'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Callable, Optional
 from pathlib import Path
 

@@ -1,5 +1,8 @@
 '''For converting macroscopic parameters (such as concentration, bulk density, etc) into microscopic parameters for simulations'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Union
 
 from math import ceil

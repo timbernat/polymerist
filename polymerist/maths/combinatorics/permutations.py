@@ -1,5 +1,8 @@
 '''Utilites for representing pure permutations, cycles, and permutation groups'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Generator, Iterable, Optional, Sequence, TypeVar
 from dataclasses import dataclass, field
 T = TypeVar('T')

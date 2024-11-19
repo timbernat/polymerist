@@ -1,5 +1,8 @@
 '''For mapping 1-to-1 between two allegedly identical molecules'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Generator
 from rdkit.Chem.rdchem import Atom, Mol
 
