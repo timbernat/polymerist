@@ -1,7 +1,7 @@
 '''Unit tests for DISCERNMENT-related functionality'''
 
 import pytest
-from polymerist.genutils.pkginspect import get_file_path_within_package
+from polymerist.genutils.importutils.pkginspect import get_file_path_within_package
 from polymerist.tests import data as testdata
 
 import json

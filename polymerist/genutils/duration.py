@@ -6,36 +6,28 @@ from dataclasses import dataclass, field
 from time import time
 from string import Template
 from datetime import timedelta
-from openmm.unit import Quantity, microsecond, millisecond, second, minute, hour, day, year # TODO : remove dependence on OpenMM for Unit support
 
-from .genutils.typetools.categorical import _union_member_factory
+from .typetools.categorical import _union_member_factory
 
 
 # TIME CONVERSION CONSTANTS
-SECONDS_PER_INTERVAL = { # lookup of conversion factors to seconds
-    unit.get_name() : unit.conversion_factor_to(second)
-        for unit in (year, day, hour, minute, second, millisecond, microsecond)
+SECONDS_PER_INTERVAL = { # hard-coded version which omits dependency on OpenMM/other unit engine
+    'year'        : 31_557_600.0,
+    'day'         : 86_400.0,
+    'hour'        : 3_600.0,
+    'minute'      : 60.0,
+    'second'      : 1.0,
+    'millisecond' : 1E-3,
+    'microsecond' : 1E-6,
 }
-SECONDS_PER_INTERVAL['year'] = SECONDS_PER_INTERVAL.pop('julian year') # rename year from OpenMM default for clarity
-
 SECONDS_PER_INTERVAL_ORDERED = { # arrange in descending order by magnitude of conversion factor
     unit_name : factor
         for unit_name, factor in sorted(SECONDS_PER_INTERVAL.items(), key=lambda x : x[1], reverse=True)
 }
 
-# SECONDS_PER_INTERVAL_ORDERED = { # hard-coded version which omits dependency on OpenMM/other unit engine
-#     'year'        : 31_557_600.0,
-#     'day'         : 86_400.0,
-#     'hour'        : 3_600.0,
-#     'minute'      : 60.0,
-#     'second'      : 1.0,
-#     'millisecond' : 1E-3,
-#     'microsecond' : 1E-6,
-# }
-
 
 # TYPING AND CONVERSION
-Timeable : TypeAlias = Union[int, float, timedelta, Quantity]
+Timeable : TypeAlias = Union[int, float, timedelta]
 istimeable = _union_member_factory(Timeable, 'Timeable')
 
 def _convert_interval_to_seconds(interval : Timeable) -> float:
@@ -46,10 +38,10 @@ def _convert_interval_to_seconds(interval : Timeable) -> float:
         return float(interval)
     elif isinstance(interval, timedelta):
         return interval.total_seconds()
-    elif isinstance(interval, Quantity):
-        if not interval.unit.is_compatible(second):
-            raise ValueError('Quantity must have units dimensions of time to be interpreted as an interval')
-        return interval.in_units_of(second)._value
+    # elif isinstance(interval, Quantity): # deprecated to avoid OpenMM requirement; may reintroduce standard unit engine for polymerist has been decided
+    #     if not interval.unit.is_compatible(second):
+    #         raise ValueError('Quantity must have units dimensions of time to be interpreted as an interval')
+    #     return interval.in_units_of(second)._value
     else:
         raise TypeError(f'Unsupported type "{interval.__class__.__name__}" for time interval breakdown')
     
