@@ -164,7 +164,11 @@ def tree_to_networkx(root : Node, stop : Optional[Filter[Node]]=None, attr_filte
                 pruned[node] = True # ...mark the current node as also pruned...
                 continue            # ...and skip over its addition
         
-        nx_tree.add_node(i, label=node.name, **get_node_attrs(node, attr_filter=attr_filter, include_name=False))
+        nx_tree.add_node(
+            i, 
+            name=node.name, # label=node.name # NOTE: attr "name" conflicts with pydot Node "name" init attribute; consider using "label" or similar for uniqueness?
+            **get_node_attrs(node, attr_filter=attr_filter, include_name=False)
+        )
         if parent_idx is not None:
             nx_tree.add_edge(parent_idx, i) # parent guaranteed to have been visited first and be mapped by pre-order topological sorting
         pruned[node] = False # only once a node is added to the graph should it be explicitly marked as not pruned
