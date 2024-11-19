@@ -1,1 +1,1 @@
-'''Physical constants, dimensioanl analysis, and unit conversion utilities'''
+'''Physical constants, dimensional analysis, and unit conversion utilities'''
