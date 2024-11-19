@@ -7,7 +7,7 @@ from types import ModuleType
 from typing import Generator, Iterable, Optional, Union
 
 from importlib import import_module
-from pkgutil import iter_modules
+from pkgutil import iter_modules as _iter_modules
 
 from anytree.node import Node
 from anytree.render import AbstractStyle, ContStyle
@@ -29,7 +29,7 @@ class ModuleToNodeCorrespondence(NodeCorrespondence, FROMTYPE=ModuleType):
         return is_package(module)
     
     def children(self, module : ModuleType) -> Iterable[ModuleType]:
-        for _loader, module_name, ispkg in iter_modules(module.__path__, prefix=module.__name__+'.'):
+        for _loader, module_name, ispkg in _iter_modules(module.__path__, prefix=module.__name__+'.'):
             try:
                 submodule = import_module(module_name)
                 yield submodule
