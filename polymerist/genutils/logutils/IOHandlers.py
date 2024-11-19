@@ -53,14 +53,14 @@ def submodule_loggers(module : ModuleType, recursive : bool=True, blacklist : Op
     logger_registry = {}
     for module in iter_submodules(module, recursive=recursive, blacklist=blacklist):
         full_module_name = module.__name__
-        module_logger = logging.root.manager.loggerDict.get(full_module_name, None)
-        if isinstance(module, logging.PlaceHolder): # exclude dummy Placeholder loggers
-            module_logger = None
+        module_logger = get_logger_registry().get(full_module_name, None)
+        if isinstance(module, logging.PlaceHolder): 
+            continue # exclude dummy Placeholder loggers
 
-        if not (sparse and module_logger is None):
+        if not (sparse and (module_logger is None)):
             logger_registry[full_module_name] = module_logger
 
-        return logger_registry
+    return logger_registry
 
 # FILE-STREAM HANDLING CLASSES
 class MultiStreamFileHandler(logging.FileHandler):
