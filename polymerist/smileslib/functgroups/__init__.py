@@ -8,10 +8,9 @@ LOGGER = logging.getLogger(__name__)
 from pathlib import Path
 _MODULE_PATH = Path(__file__).parent
 
-# load/generating functional group smarts table
-from . import _daylight_scrape
-from .records import FnGroupSMARTSEntry
 import pandas as pd
+
+from ._daylight_scrape import scrape_SMARTS, FnGroupSMARTSEntry
 
 
 _fgtab_name : str = 'fn_group_smarts'
