@@ -1,5 +1,8 @@
 '''For generating human-readable string representations of other Python objects'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Any
 from textwrap import indent
 

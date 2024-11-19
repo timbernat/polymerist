@@ -1,5 +1,8 @@
 '''Tools for replacing Ports and functional groups'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Optional
 
 from rdkit import Chem

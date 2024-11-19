@@ -1,5 +1,8 @@
 '''Unit test for attribute inspection'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from polymerist.genutils.attrs import compile_argfree_getable_attrs
 import pytest
 

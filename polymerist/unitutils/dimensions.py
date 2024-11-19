@@ -1,5 +1,8 @@
 '''For checking dimensionality and presence of units'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Any, Union
 
 from pint import Quantity as PintQuantity # this is also the base class for all OpenFF-style units

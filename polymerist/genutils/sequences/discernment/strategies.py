@@ -1,5 +1,8 @@
 '''Abstract base and concrete implementations of algorithms which solve the DISCERNMENT Problem'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Generator, Generic, ParamSpec, Sequence, TypeVar
 from abc import ABC, abstractmethod
 

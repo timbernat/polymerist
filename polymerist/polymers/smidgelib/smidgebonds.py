@@ -1,5 +1,8 @@
 '''Representation classes for monomer graphs bonds which encode intermonomer Port information'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import re
 from rdkit import Chem
 

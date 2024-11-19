@@ -1,5 +1,8 @@
 '''Tools for breaking bonds in RDKit Mols and assigning new Ports'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import logging
 LOGGER = logging.getLogger(__name__)
 

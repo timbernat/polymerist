@@ -1,5 +1,8 @@
 '''Utilities for representing, converting, and formatting amounts of time'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import ClassVar, Union, TypeAlias
 from dataclasses import dataclass, field
 

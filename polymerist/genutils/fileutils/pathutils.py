@@ -1,5 +1,8 @@
 '''Utilities for editing, augmenting, and querying Paths'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Union
 from pathlib import Path
     

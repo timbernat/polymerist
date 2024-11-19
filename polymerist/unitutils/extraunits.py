@@ -1,5 +1,8 @@
 '''Defining units which, for one reason or another, are not defined in Pint or OpenMM units'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import sys
 _MODULE = sys.modules[__name__]
 

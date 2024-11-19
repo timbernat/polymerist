@@ -1,5 +1,8 @@
 '''Tools for copying parts and wholes of trees, at various levels of resolution'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Any, Optional
 
 from anytree.node import Node

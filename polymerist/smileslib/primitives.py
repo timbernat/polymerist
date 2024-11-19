@@ -1,5 +1,8 @@
 '''SMILES and SMARTS primitives and functions for validation'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from rdkit import Chem
 from rdkit.Chem.rdchem import BondType
 

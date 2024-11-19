@@ -1,5 +1,8 @@
 '''Classes for implementing reactions with respect to some set of reactant RDKit Mols'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import ClassVar, Generator, Iterable, Optional, Type
 from dataclasses import dataclass, field
 from itertools import chain

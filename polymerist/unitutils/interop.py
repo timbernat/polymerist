@@ -1,5 +1,8 @@
 '''Decorators for handling interconversion between the OpenMM and OpenFF (Pint) unit engines'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Callable, TypeVar
 R = TypeVar('R')   # for representing generic return values
 Q = TypeVar('Q')   # for representing generic Quantity-like objects

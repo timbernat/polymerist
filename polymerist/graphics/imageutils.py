@@ -1,5 +1,8 @@
 '''Tools for editing and manipulating images, and image colors, sizes, and representations'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Union
 
 import numpy as np

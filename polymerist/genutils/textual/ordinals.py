@@ -1,5 +1,8 @@
 '''Tools for converting back and forth between integers and ordinal number words and prefices (https://en.wikipedia.org/wiki/Ordinal_numeral)'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 def ordinal_suffix_from_int(n : int) -> str:
     '''Produce the appropriate word suffix for an integer in sequential order
     E.g 1 -> "st" as in "first", 17 -> "th" as in "seventeenth, etc.'''

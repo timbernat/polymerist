@@ -1,5 +1,8 @@
 '''Systematic Greek numerical prefixes'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from ..combinatorics.partitions import make_change_greedy
 
 # CONSTANT REFERENCE VALUES (adapted from https://en.wikipedia.org/wiki/List_of_polygons#Systematic_polygon_names)

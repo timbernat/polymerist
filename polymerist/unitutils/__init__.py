@@ -1,1 +1,4 @@
-'''Physical constants, dimensioanl analysis, and unit conversion utilities'''
+'''Physical constants, dimensional analysis, and unit conversion utilities'''
+
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'

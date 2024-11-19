@@ -1,5 +1,8 @@
 '''Tools for determining how many and which bondable ports are in an RDKit Mol'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Generator, Iterable, Optional
 from itertools import (
     combinations,

@@ -1,5 +1,8 @@
 '''Tools for manipulating files and directories in the file system'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Iterable
 
 from pathlib import Path

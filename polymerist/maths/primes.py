@@ -1,5 +1,8 @@
 '''Utilities for examining prime numbers and integer factorizations'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import TypeAlias
 
 from math import sqrt

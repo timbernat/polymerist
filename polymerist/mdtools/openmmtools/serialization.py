@@ -1,5 +1,8 @@
 '''For reading and writing OpenMM components to files'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import logging
 LOGGER = logging.getLogger(__name__)
 

@@ -1,5 +1,8 @@
 '''Registry module for keeping track of which partial charging toolkit registries and related methods are available'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Type
 from collections import defaultdict
 

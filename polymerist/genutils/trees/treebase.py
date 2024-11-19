@@ -1,5 +1,8 @@
 '''Interfaces for encoding arbitrary classes into tree-like data structures'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Any, Callable, Generic, Iterable, Optional, TypeAlias, TypeVar
 from abc import ABC, abstractmethod
 

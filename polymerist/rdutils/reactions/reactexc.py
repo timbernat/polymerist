@@ -1,5 +1,8 @@
 '''Exceptions specific to reactions'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 class BadNumberReactants(Exception):
     '''To be raised when too many or too few Mols are provided than expected'''
     pass

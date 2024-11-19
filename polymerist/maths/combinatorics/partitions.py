@@ -1,5 +1,8 @@
 '''For explicitly enumerating partitions of sets and multisets'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Generator, Sequence
 
 

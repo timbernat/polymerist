@@ -1,5 +1,8 @@
 '''Tools for manipulating and extending OpenFF objects, and for interfacing with other tools and formats'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Any
 from pathlib import Path
 

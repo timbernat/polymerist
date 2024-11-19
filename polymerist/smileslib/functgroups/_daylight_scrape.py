@@ -1,9 +1,27 @@
+'''Backend web-scraping to (re)build SMARTS lookup table from the Daylight SMARTS official site'''
+
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
+from dataclasses import dataclass
+
 import requests
 from bs4 import BeautifulSoup
+
 import pandas as pd
 
-from .records import FnGroupSMARTSEntry
 
+@dataclass(frozen=True)
+class FnGroupSMARTSEntry:
+    '''For encapuslating SMARTS group info from Daylight SMARTS registry'''
+    category   : str
+    category_desc : str
+
+    group_type : str
+    group_name : str
+
+    SMARTS : str
+    SMARTS_desc : str
 
 DAYLIGHT_URL = 'https://www.daylight.com/dayhtml_tutorials/languages/smarts/smarts_examples.html'
 

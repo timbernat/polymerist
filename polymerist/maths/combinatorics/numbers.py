@@ -1,5 +1,8 @@
 '''Utilities for calculating fundamental combinatorial numbers'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Iterable
 from operator import mul
 from math import factorial # not worth re-implementing here, the C-implementation is plenty fast

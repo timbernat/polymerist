@@ -1,5 +1,8 @@
 '''For inspecting and managing toplevel imports within Python files and modules'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Optional
 from types import ModuleType
 from dataclasses import dataclass, field

@@ -3,6 +3,7 @@
 Code derived from original implementation and conceptualization by Connor Davel (https://github.com/openforcefield/polymer_examples/blob/main/monomer_generation/partition.py) '''
 
 __author__ = 'Connor Davel, Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
 
 from typing import TypeAlias
 

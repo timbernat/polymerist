@@ -1,5 +1,8 @@
 '''For representing monomer information'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Generator, Optional, TypeAlias, Union
 from dataclasses import dataclass, field
 

@@ -8,10 +8,11 @@ dependencies:
   - pip
   - jupyterlab
 
-    # Testing
+    # Testing and docs
   - pytest
   - pytest-cov
   - codecov
+  - sphinx
 
   # Numerical libraries
   - numpy
@@ -27,6 +28,7 @@ dependencies:
 
   # Molecule building
   - mbuild
+  - openbabel
   - rdkit
   - openeye-toolkits # TODO: consider making this optional?
 
@@ -45,6 +47,5 @@ dependencies:
   # Chemical database queries
   - cirpy
   - pubchempy
-  - chemspipy
   - pip:
       - espaloma-charge ==0.0.8

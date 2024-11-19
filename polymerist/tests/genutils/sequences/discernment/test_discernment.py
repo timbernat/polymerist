@@ -1,5 +1,8 @@
 '''Unit tests for DISCERNMENT-related functionality'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import pytest
 from polymerist.genutils.importutils.pkginspect import get_file_path_within_package
 from polymerist.tests import data as testdata

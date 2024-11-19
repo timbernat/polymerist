@@ -1,5 +1,8 @@
 '''Reference for LAMMPS unit styles, as listed in https://docs.lammps.org/units.html'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import ClassVar, Optional
 from dataclasses import dataclass, field
 from ...genutils.decorators.classmod import register_subclasses

@@ -1,5 +1,8 @@
 '''Core tools for manipulating integer lattices in D-dimensions'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Iterable
 from numbers import Number
 from ...genutils.typetools.numpytypes import Shape, D, N

@@ -1,5 +1,8 @@
 '''For fragmenting molecules by reaction and residue information'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Generator
 from abc import ABC, abstractmethod
 from itertools import combinations
