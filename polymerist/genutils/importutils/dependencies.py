@@ -9,7 +9,8 @@ Params = ParamSpec('Params')
 ReturnType = TypeVar('ReturnType')
 TCall = Callable[Params, ReturnType] # generic function of callable class
 
-import importlib
+# from importlib import import_module
+from importlib.util import find_spec
 from functools import wraps
 
 
@@ -29,12 +30,17 @@ def module_installed(module_name : str) -> bool:
     module_found : bool
         Whether or not the module was found to be installed in the current working environment
     '''
-    try:
-        package = importlib.import_module(module_name)
-    except ModuleNotFoundError:
+    # try:
+    #     package = import_module(module_name)
+    # except ModuleNotFoundError:
+    #     return False
+    # else:
+    #     return True
+    
+    try: # NOTE: opted for this implementation, as it never actually imports the package in question (faster and fewer side-effects)
+        return find_spec(module_name) is not None
+    except (ValueError, AttributeError, ModuleNotFoundError): # these could all be raised by 
         return False
-    else:
-        return True
     
 def modules_installed(*module_names : list[str]) -> bool:
     '''
