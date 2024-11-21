@@ -16,7 +16,7 @@ from openff.toolkit.utils.exceptions import ToolkitUnavailableException # TODO :
 
 from .. import TKREGS, _OE_TKWRAPPER_IS_AVAILABLE, OEUnavailableException
 from .chargemethods import NAGL_MODEL
-from ....genutils.decorators.classmod import register_subclasses
+from ....genutils.decorators.classmod import register_subclasses, register_abstract_class_attrs
 from ....genutils.decorators.functional import optional_in_place
 
 
@@ -32,14 +32,9 @@ def has_partial_charges(mol : Union[Molecule, Chem.Mol]) -> bool:
     
 # ABSTRACT AND CONCRETE CLASSES FOR CHARGING MOLECULES
 @register_subclasses(key_attr='CHARGING_METHOD')
+@register_abstract_class_attrs('CHARGING_METHOD')
 class MolCharger(ABC):
     '''Base interface for defining various methods of generating and storing atomic partial charges'''
-    @abstractproperty
-    @classmethod
-    def CHARGING_METHOD(cls):
-        '''For setting the name of the method as a class attribute in child classes'''
-        pass
-
     @abstractmethod
     @optional_in_place
     def _charge_molecule(self, uncharged_mol : Molecule) -> None: 
@@ -55,28 +50,22 @@ class MolCharger(ABC):
         LOGGER.info(f'Successfully assigned "{self.CHARGING_METHOD}" charges')
 
 # CONCRETE IMPLEMENTATIONS OF DIFFERENT CHARGING METHODS
-class ABE10Charger(MolCharger):
+class ABE10Charger(MolCharger, CHARGING_METHOD= 'AM1-BCC-ELF10'):
     '''Charger class for AM1-BCC-ELF10 exact charging'''
-    CHARGING_METHOD : ClassVar[str] = 'AM1-BCC-ELF10'
-
     @optional_in_place
     def _charge_molecule(self, uncharged_mol : Molecule) -> None:
         if not _OE_TKWRAPPER_IS_AVAILABLE:
             raise OEUnavailableException # AM1-BCC-ELF10 is exclusively available thru OpenEye; if it is not present, then, must err
         uncharged_mol.assign_partial_charges(partial_charge_method='am1bccelf10', toolkit_registry=TKREGS['OpenEye Toolkit']) # TODO : provide support for AMBER / RDKit if OE license is unavailable
 
-class EspalomaCharger(MolCharger):
+class EspalomaCharger(MolCharger, CHARGING_METHOD='Espaloma-AM1-BCC'):
     '''Charger class for EspalomaCharge charging'''
-    CHARGING_METHOD : ClassVar[str] = 'Espaloma-AM1-BCC'
-
     @optional_in_place
     def _charge_molecule(self, uncharged_mol : Molecule) -> None:
         uncharged_mol.assign_partial_charges(partial_charge_method='espaloma-am1bcc', toolkit_registry=TKREGS['Espaloma Charge Toolkit'])
 
-class NAGLCharger(MolCharger):
+class NAGLCharger(MolCharger, CHARGING_METHOD='NAGL'):
     '''Charger class for NAGL charging'''
-    CHARGING_METHOD : ClassVar[str] = 'NAGL'
-
     @optional_in_place
     def _charge_molecule(self, uncharged_mol : Molecule) -> None:
         nagl_charges = NAGL_MODEL.compute_property(uncharged_mol, check_domains=True, error_if_unsupported=True)

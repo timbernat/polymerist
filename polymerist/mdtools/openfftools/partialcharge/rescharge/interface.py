@@ -3,7 +3,6 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import ClassVar
 from dataclasses import dataclass
 
 from openff.toolkit import Molecule
@@ -15,10 +14,9 @@ from .....genutils.decorators.functional import optional_in_place
 
 
 @dataclass
-class LibraryCharger(MolCharger):
+class LibraryCharger(MolCharger, CHARGING_METHOD='RCT'):
     '''Charger class for applying library charges onto residue-mapped Molecules'''
     charges_by_residue : ChargesByResidue
-    CHARGING_METHOD : ClassVar[str] = 'RCT'
 
     @optional_in_place
     def _charge_molecule(self, uncharged_mol : Molecule) -> None:
