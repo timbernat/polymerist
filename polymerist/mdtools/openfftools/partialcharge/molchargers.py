@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 
 from rdkit import Chem
 from openff.toolkit.topology.molecule import Molecule
+from openff.toolkit.utils.exceptions import ToolkitUnavailableException
 
 from ....genutils.importutils.dependencies import requires_modules
 from ....genutils.decorators.functional import optional_in_place
@@ -49,7 +50,7 @@ class MolCharger(ABC):
 # CONCRETE IMPLEMENTATIONS OF DIFFERENT CHARGING METHODS
 class ABE10Charger(MolCharger, CHARGING_METHOD= 'AM1-BCC-ELF10'):
     '''Charger class for AM1-BCC-ELF10 exact charging'''
-    @requires_modules('openeye.oechem', 'openeye.oeomega') # NOTE: just checking "openeye" doesn't work, as for whatever weird reason the toplevel openeye package has no module spec
+    @requires_modules('openeye.oechem', 'openeye.oeomega', missing_module_error=ToolkitUnavailableException) # for whatever weird reason the toplevel openeye package has no module spec, so just checking "openeye" isn't enough
     @optional_in_place
     def _charge_molecule(self, uncharged_mol : Molecule) -> None:
         from openff.toolkit.utils.openeye_wrapper import OpenEyeToolkitWrapper
@@ -61,19 +62,19 @@ class ABE10Charger(MolCharger, CHARGING_METHOD= 'AM1-BCC-ELF10'):
 
 class EspalomaCharger(MolCharger, CHARGING_METHOD='Espaloma-AM1-BCC'):
     '''Charger class for EspalomaCharge charging'''
-    @requires_modules('espaloma_charge')
+    @requires_modules('espaloma_charge', missing_module_error=ToolkitUnavailableException)
     @optional_in_place
     def _charge_molecule(self, uncharged_mol : Molecule) -> None:
         from espaloma_charge.openff_wrapper import EspalomaChargeToolkitWrapper
         
         uncharged_mol.assign_partial_charges(
-            partial_charge_method='espaloma-am1bcc', # NOTE: this is actually the ONLY charge method the EspalomaChargeToolkitWrapper supports
+            partial_charge_method='espaloma-am1bcc', # this is actually the ONLY charge method the EspalomaChargeToolkitWrapper supports
             toolkit_registry=EspalomaChargeToolkitWrapper(),
         )
 
 class NAGLCharger(MolCharger, CHARGING_METHOD='NAGL'):
     '''Charger class for NAGL charging'''
-    @requires_modules('openff.nagl', 'openff.nagl_models')
+    @requires_modules('openff.nagl', 'openff.nagl_models', missing_module_error=ToolkitUnavailableException)
     @optional_in_place
     def _charge_molecule(self, uncharged_mol : Molecule) -> None:
         from openff.toolkit.utils.nagl_wrapper import NAGLToolkitWrapper
