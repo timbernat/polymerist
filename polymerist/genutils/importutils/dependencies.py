@@ -59,7 +59,10 @@ def modules_installed(*module_names : list[str]) -> bool:
     '''
     return all(module_installed(module_name) for module_name in module_names)
 
-def requires_modules(*required_module_names : list[str]) -> Callable[[TCall[..., ReturnType]], TCall[..., ReturnType]]:
+def requires_modules(
+        *required_module_names : list[str],
+        missing_module_error : type[Exception]=ImportError,
+    ) -> Callable[[TCall[..., ReturnType]], TCall[..., ReturnType]]:
     '''
     Decorator which enforces optional module dependencies prior to function execution
     
@@ -67,6 +70,9 @@ def requires_modules(*required_module_names : list[str]) -> Callable[[TCall[...,
     ----------
     module_names : *str
         Any number of module names, passed as a comma-separated sequence of strings
+    missing_module_error : type[Exception], default ImportError
+        The type of Exception to raise if a module is not found installed
+        Defaults to ImportError
         
     Raises
     ------
@@ -79,7 +85,7 @@ def requires_modules(*required_module_names : list[str]) -> Callable[[TCall[...,
         def req_wrapper(*args : Params.args, **kwargs : Params.kwargs) -> ReturnType:
             for module_name in required_module_names:
                 if not module_installed(module_name):
-                    raise ImportError(f'No installation found for module "{module_name}"')
+                    raise missing_module_error(f'No installation found for module "{module_name}"')
             else:
                 return func(*args, **kwargs)
             
