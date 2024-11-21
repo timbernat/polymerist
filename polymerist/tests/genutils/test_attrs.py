@@ -1,4 +1,4 @@
-'''Unit test for attribute inspection'''
+'''Unit tests for `attrs` package'''
 
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'

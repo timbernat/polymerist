@@ -1,4 +1,4 @@
-'''Unit tests for trees'''
+'''Unit tests for tree-related functionality'''
 
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'

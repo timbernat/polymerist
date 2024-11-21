@@ -1,4 +1,4 @@
-'''Unit tests for package inspection utilities'''
+'''Unit tests for `pkginspect` package`'''
 
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
