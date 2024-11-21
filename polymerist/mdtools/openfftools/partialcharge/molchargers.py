@@ -73,7 +73,7 @@ class EspalomaCharger(MolCharger, CHARGING_METHOD='Espaloma-AM1-BCC'):
 
 class NAGLCharger(MolCharger, CHARGING_METHOD='NAGL'):
     '''Charger class for NAGL charging'''
-    @requires_modules('openff.nagl')
+    @requires_modules('openff.nagl', 'openff.nagl_models')
     @optional_in_place
     def _charge_molecule(self, uncharged_mol : Molecule) -> None:
         from openff.toolkit.utils.nagl_wrapper import NAGLToolkitWrapper
