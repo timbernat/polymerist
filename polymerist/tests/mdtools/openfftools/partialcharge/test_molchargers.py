@@ -6,9 +6,10 @@ __email__ = 'timotej.bernat@colorado.edu'
 import pytest
 
 from openff.toolkit import Molecule
+from openff.toolkit.utils.toolkits import OPENEYE_AVAILABLE
 
-from polymerist.polymers.monomers.specification import expanded_SMILES
-from polymerist.mdtools.openfftools.partialcharge.molchargers import MolCharger
+from polymerist.genutils.importutils.dependencies import modules_installed
+from polymerist.mdtools.openfftools.partialcharge.molchargers import MolCharger, ABE10Charger, EspalomaCharger, NAGLCharger
 from polymerist.mdtools.openfftools.partialcharge.rescharge.interface import LibraryCharger
 
 
@@ -30,11 +31,17 @@ def offmol() -> Molecule:
     # DEV: worthing double-checking that partial charges are initially empty??
     return Molecule.from_smiles('c1ccccc1C(=O)O') # benzoic acid - nice and small, but with some non-trivial structure
     
-MOLCHARGER_TYPES_TO_TEST = [
-    molcharger_subclass
-        for molcharger_subclass in MolCharger.subclass_registry.values() # LibraryCharger behave differently to other MolCharger and are kind of a pain in the ass generally...
-            if molcharger_subclass != LibraryCharger                     # ...intend to deprecate and revamp them eventually, so will just exclude them from testing for now
-]
+## selectively register test to avoid failures due to missing optional dependencies
+MOLCHARGER_TYPES_TO_TEST : list[type[MolCharger]] = [] 
+if modules_installed('openeye.oechem', 'openeye.oeomega') and OPENEYE_AVAILABLE: # extra check needed block check when missing license (as is the case for the open-source polymerist repo)
+    MOLCHARGER_TYPES_TO_TEST.append(ABE10Charger)
+if modules_installed('espaloma_charge'):
+    MOLCHARGER_TYPES_TO_TEST.append(EspalomaCharger)
+if modules_installed('openff.nagl', 'openff.nagl_models'):
+    MOLCHARGER_TYPES_TO_TEST.append(NAGLCharger)
+# MOLCHARGER_TYPES_TO_TEST.append(
+    # LibraryCharger  # LibraryCharger behave differently to other MolCharger and are kind of a pain in the ass generally...
+# )                   # ...intend to deprecate and revamp them eventually, so will just exclude them from testing for now
     
 @pytest.mark.parametrize('molcharger_subclass', MOLCHARGER_TYPES_TO_TEST)
 def test_molchargers_assign_charges(offmol : Molecule, molcharger_subclass : type[MolCharger]) -> None:
