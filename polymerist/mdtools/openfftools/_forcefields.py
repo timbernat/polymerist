@@ -8,14 +8,16 @@ from ...genutils.importutils.dependencies import modules_installed
 
 # Force field and ToolkitWrapper reference
 FFDIR : Optional[Path] = None
-FF_DIR_REGISTRY  : dict[Path, Path] = {}
-FF_PATH_REGISTRY : dict[Path, Path] = {}
-
-if modules_installed('openff.toolkit', 'openforcefields'):
-    import openforcefields
+if modules_installed('openff.toolkit'):
     from openff.toolkit.typing.engines.smirnoff.forcefield import _get_installed_offxml_dir_paths
     
-    FFDIR = Path(openforcefields.get_forcefield_dirs_paths()[0]) # Locate path where OpenFF forcefields are installed
+    FFDIR = Path(get_forcefield_dirs_paths()[0]) # Locate path where OpenFF forcefields are installed
+
+FF_DIR_REGISTRY  : dict[Path, Path] = {}
+FF_PATH_REGISTRY : dict[Path, Path] = {}
+if modules_installed('openforcefields'):
+    from openforcefields import get_forcefield_dirs_paths
+    
     for ffdir_str in _get_installed_offxml_dir_paths():
         ffdir = Path(ffdir_str)
         ffdir_name = ffdir.parent.stem
