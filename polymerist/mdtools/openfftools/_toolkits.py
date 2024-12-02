@@ -3,24 +3,11 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-# Subpackage-wide precheck to see if OpenFF is even usable in the first place
-from ...genutils.importutils.dependencies import modules_installed
-if not modules_installed('openff', 'openff.toolkit'):
-    raise ModuleNotFoundError(
-        f'''
-        OpenFF packages which are required to utilitize {__name__} not found in current environment
-        Please follow installation instructions at https://docs.openforcefield.org/projects/toolkit/en/stable/installation.html, then retry import
-        '''
-    )
-
 # Core OpenFF toolkit component registration
 from typing import Union
 from collections import defaultdict
 
 from openff.toolkit.utils.utils import all_subclasses
-from openff.toolkit.utils.exceptions import LicenseError, ToolkitUnavailableException
-from openff.toolkit.typing.engines.smirnoff.forcefield import _get_installed_offxml_dir_paths
-
 from openff.toolkit.utils.base_wrapper import ToolkitWrapper
 from openff.toolkit.utils.toolkit_registry import ToolkitRegistry 
 from openff.toolkit.utils.toolkits import (
@@ -31,9 +18,11 @@ from openff.toolkit.utils.toolkits import (
 )
 GTR = GLOBAL_TOOLKIT_REGISTRY # alias for brevity
 
-
-# Config and utility functions
+from ...genutils.importutils.dependencies import modules_installed
 _REGISTER_TOOLKITS_TO_GLOBAL : bool = True # TODO: find way to avoid setting this config parameter directly in code
+
+
+# Helper functions
 def toolkit_wrapper_is_registered(toolkit_wrapper : Union[ToolkitWrapper, type[ToolkitWrapper]], toolkit_registry : ToolkitRegistry=GTR) -> bool:
     '''Check whether a ToolkitRegistry instance has already registered a given ToolkitWrapper subclass'''
     if not isinstance(toolkit_wrapper, type):   # ToolkitWrapper TYPES are needed for this check; any instances therefore...
