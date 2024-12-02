@@ -11,8 +11,6 @@ if not modules_installed('openff', 'openff.toolkit'):
     )
 
 # Core OpenFF toolkit component registration
-_REGISTER_TOOLKITS_TO_GLOBAL : bool = True # TODO: find way to avoid setting this config parameter directly in code
-
 from typing import Union
 from collections import defaultdict
 
@@ -29,6 +27,7 @@ from openff.toolkit.utils.toolkits import (
     GLOBAL_TOOLKIT_REGISTRY as GTR,
 )
 
+_REGISTER_TOOLKITS_TO_GLOBAL : bool = True # TODO: find way to avoid setting this config parameter directly in code
 def toolkit_wrapper_is_registered(toolkit_wrapper : Union[ToolkitWrapper, type[ToolkitWrapper]], toolkit_registry : ToolkitRegistry=GTR) -> bool:
     '''Check whether a ToolkitRegistry instance has already registered a given ToolkitWrapper subclass'''
     if not isinstance(toolkit_wrapper, type):   # ToolkitWrapper TYPES are needed for this check; any instances therefore...
@@ -71,7 +70,7 @@ if modules_installed('rdkit') and RDKIT_AVAILABLE:
     CHARGE_METHODS_BY_TOOLKIT[RDKitToolkitWrapper] = [charge_method for charge_method in RDKitToolkitWrapper._supported_charge_methods]
     
 ## Ambertools
-if modules_installed('ambertools') and AMBERTOOLS_AVAILABLE:
+if modules_installed('pdb4amber') and AMBERTOOLS_AVAILABLE: # turns out "ambertools" can't actually be imported as a module, need to check for peripheral modules which are better behaved instead
     from openff.toolkit.utils.ambertools_wrapper import AmberToolsToolkitWrapper
     
     ALL_AVAILABLE_TKWRAPPERS.append(AmberToolsToolkitWrapper)
@@ -104,7 +103,7 @@ if modules_installed('espaloma_charge'):
     
 # Post-registration info compilation
 ## Compiling registry of which partial charge methods are supported by which toolkits
-for tkwrapper_type, supported_methods in TOOLKITS_BY_CHARGE_METHOD.items():
+for tkwrapper_type, supported_methods in CHARGE_METHODS_BY_TOOLKIT.items():
     if (tkwrapper_type in ALL_AVAILABLE_TKWRAPPERS): # exclude non-registered toolkits to avoid confusion
         for method in supported_methods:
             TOOLKITS_BY_CHARGE_METHOD[method].append(tkwrapper_type)
