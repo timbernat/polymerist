@@ -1,5 +1,8 @@
 '''For dynamically determining and cataloging which ToolkitWrappers (and accompanying functionality) are available'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 # Subpackage-wide precheck to see if OpenFF is even usable in the first place
 from ...genutils.importutils.dependencies import modules_installed
 if not modules_installed('openff', 'openff.toolkit'):

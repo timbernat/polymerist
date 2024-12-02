@@ -1,5 +1,8 @@
 '''For dynamically determining and cataloging which SMIRNOFF-copatible force fields are installed (and accompanying functionality) are available'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Optional
 from pathlib import Path
 
