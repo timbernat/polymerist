@@ -25,6 +25,7 @@ dependencies:
     - openmm
     - lammps
     - mdtraj
+    - pint # for units in case OpenFF is not installed
 
     # Molecule building
     - mbuild
