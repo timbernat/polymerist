@@ -50,6 +50,7 @@ def number_density(density : Quantity, MW : Quantity) -> Quantity:
     return (density / MW) * AVOGADRO_CONSTANT_NA
 
 # NUMBER
+@allow_openff_units
 def num_mols_in_box(mol : Union[Mol, Molecule, Topology], box_vol : Quantity, density : Quantity) -> int:
     '''Return the number of particles/molecules needed to fill a box of given volume to the specified density'''
     assert(is_volume(box_vol.unit))

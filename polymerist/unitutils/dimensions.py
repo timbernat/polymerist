@@ -5,9 +5,11 @@ __email__ = 'timotej.bernat@colorado.edu'
 
 from typing import Any, Union
 
-from pint import Quantity as PintQuantity # this is also the base class for all OpenFF-style units
 from openmm.unit import Quantity, Unit, length_dimension
-from .interop import allow_openmm_units, allow_openff_units
+from pint import ( # this is also the base classes for all OpenFF-style units
+    Unit as PintUnit,
+    Quantity as PintQuantity, 
+)
 
 
 # CHECKING FOR AND REMOVING UNITS
@@ -31,7 +33,6 @@ def strip_units(coords : Union[tuple, PintQuantity, Quantity]) -> tuple[float]:
     return coords
 
 # CHECKING DIMENSIONALITY
-@allow_openff_units
 def is_volume(unit_val : Union[Unit, Quantity]) -> bool:
     '''Return whether a unit corresponds to a volume'''
     if isinstance(unit_val, Quantity):
