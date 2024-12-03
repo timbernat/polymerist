@@ -5,12 +5,14 @@ __email__ = 'timotej.bernat@colorado.edu'
 
 import pytest
 
-from openff.toolkit import Molecule
-from openff.toolkit.utils.toolkits import OPENEYE_AVAILABLE
-
+# NOTE: inverted custom imports here to get polymerist.openfftools import first, 
+# Done so that if OpenFF is not found, a helpful installation error with be raised prior to attempting direct openff.toolkit imports below
 from polymerist.genutils.importutils.dependencies import modules_installed
 from polymerist.mdtools.openfftools.partialcharge.molchargers import MolCharger, ABE10Charger, EspalomaCharger, NAGLCharger
 from polymerist.mdtools.openfftools.partialcharge.rescharge.interface import LibraryCharger
+
+from openff.toolkit import Molecule
+from openff.toolkit.utils.toolkits import OPENEYE_AVAILABLE
 
 
 # Test MolCharger subclass registration
