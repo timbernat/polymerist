@@ -15,7 +15,7 @@ from openff.toolkit import Molecule, Topology
 from openff.units import Quantity as OFFQuantity
 
 from ....unitutils.dimensions import is_volume
-from ....unitutils.interop import allow_openff_units, openff_to_openmm
+from ..omminter.unitsys import allow_openff_units, openff_to_openmm
 
 
 # MASS

@@ -1,4 +1,4 @@
-'''Decorators for handling interconversion between the OpenMM and OpenFF (Pint) unit engines'''
+'''For handling interconversion between the OpenMM and OpenFF (Pint) unit engines'''
 
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'

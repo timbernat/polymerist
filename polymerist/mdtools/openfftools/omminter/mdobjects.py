@@ -1,4 +1,4 @@
-'''For interfacing between OpenFF and OpenMM representations, along with the file analogues'''
+'''For interfacing between OpenFF and OpenMM representations of Topologies and other MD primitives'''
 
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
@@ -6,7 +6,6 @@ __email__ = 'timotej.bernat@colorado.edu'
 from typing import Optional, Union
 
 from pathlib import Path
-from numpy import ndarray
 
 from openff.toolkit import ForceField
 from openff.interchange import Interchange
@@ -16,12 +15,12 @@ from openmm import System
 from openmm.app import Topology as OMMTopology
 from openmm.unit import Quantity
 
-from . import FFDIR
-from .boxvectors import box_vectors_flexible, VectorQuantity, BoxVectorsQuantity
-from ...unitutils.interop import openff_to_openmm
+from .unitsys import openff_to_openmm
+from .. import FFDIR
+from ..boxvectors import box_vectors_flexible, VectorQuantity, BoxVectorsQuantity
 
 
-def forcefield_flexible(forcefield : Union[ForceField, str, Path]) -> ForceField:
+def forcefield_flexible(forcefield : Union[ForceField, str, Path]) -> ForceField: # DEV: consider deprecating
     '''For making forcefield input to other functions more flexible (can accept a literal ForceField, a string name, or a Path to the forcefield)'''
     if isinstance(forcefield, ForceField): 
         return forcefield
