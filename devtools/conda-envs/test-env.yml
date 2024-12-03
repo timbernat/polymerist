@@ -3,12 +3,12 @@ channels:
   - conda-forge
   - openeye
 dependencies:
-    # Basic Python dependencies
+  # Basic Python dependencies
   - python
   - pip
   - jupyterlab
 
-    # Testing and docs
+  # Testing and docs
   - pytest
   - pytest-cov
   - codecov
