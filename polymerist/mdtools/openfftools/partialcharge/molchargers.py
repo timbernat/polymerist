@@ -6,18 +6,16 @@ __email__ = 'timotej.bernat@colorado.edu'
 import logging
 LOGGER = logging.getLogger(__name__)
 
-from typing import Any, ClassVar, Union
-from abc import ABC, abstractmethod, abstractproperty
+from typing import Union
+from abc import ABC, abstractmethod
 
 from rdkit import Chem
-from openff.units import unit as offunit
 from openff.toolkit.topology.molecule import Molecule
-from openff.toolkit.utils.exceptions import ToolkitUnavailableException # TODO : use chargemethods.TOOLKITS_BY_CHARGE_METHOD to automatically determine whether/which toolkits are available for each method
+from openff.toolkit.utils.exceptions import ToolkitUnavailableException
 
-from .. import TKREGS, _OE_TKWRAPPER_IS_AVAILABLE, OEUnavailableException
-from .chargemethods import NAGL_MODEL
-from ....genutils.decorators.classmod import register_subclasses
+from ....genutils.importutils.dependencies import requires_modules
 from ....genutils.decorators.functional import optional_in_place
+from ....genutils.decorators.classmod import register_subclasses, register_abstract_class_attrs
 
 
 def has_partial_charges(mol : Union[Molecule, Chem.Mol]) -> bool:
@@ -32,14 +30,9 @@ def has_partial_charges(mol : Union[Molecule, Chem.Mol]) -> bool:
     
 # ABSTRACT AND CONCRETE CLASSES FOR CHARGING MOLECULES
 @register_subclasses(key_attr='CHARGING_METHOD')
+@register_abstract_class_attrs('CHARGING_METHOD')
 class MolCharger(ABC):
     '''Base interface for defining various methods of generating and storing atomic partial charges'''
-    @abstractproperty
-    @classmethod
-    def CHARGING_METHOD(cls):
-        '''For setting the name of the method as a class attribute in child classes'''
-        pass
-
     @abstractmethod
     @optional_in_place
     def _charge_molecule(self, uncharged_mol : Molecule) -> None: 
@@ -55,29 +48,38 @@ class MolCharger(ABC):
         LOGGER.info(f'Successfully assigned "{self.CHARGING_METHOD}" charges')
 
 # CONCRETE IMPLEMENTATIONS OF DIFFERENT CHARGING METHODS
-class ABE10Charger(MolCharger):
+class ABE10Charger(MolCharger, CHARGING_METHOD= 'AM1-BCC-ELF10'):
     '''Charger class for AM1-BCC-ELF10 exact charging'''
-    CHARGING_METHOD : ClassVar[str] = 'AM1-BCC-ELF10'
-
+    @requires_modules('openeye.oechem', 'openeye.oeomega', missing_module_error=ToolkitUnavailableException) # for whatever weird reason the toplevel openeye package has no module spec, so just checking "openeye" isn't enough
     @optional_in_place
     def _charge_molecule(self, uncharged_mol : Molecule) -> None:
-        if not _OE_TKWRAPPER_IS_AVAILABLE:
-            raise OEUnavailableException # AM1-BCC-ELF10 is exclusively available thru OpenEye; if it is not present, then, must err
-        uncharged_mol.assign_partial_charges(partial_charge_method='am1bccelf10', toolkit_registry=TKREGS['OpenEye Toolkit']) # TODO : provide support for AMBER / RDKit if OE license is unavailable
+        from openff.toolkit.utils.openeye_wrapper import OpenEyeToolkitWrapper
+        
+        uncharged_mol.assign_partial_charges(
+            partial_charge_method='am1bccelf10',
+            toolkit_registry=OpenEyeToolkitWrapper(), # instance init will raise exception if license or OpenEye packages are missing
+        ) # TODO : find decent alternative if OpenEye license is missing (AmberTools doesn't do ELF10 and doesn't work on Windows)
 
-class EspalomaCharger(MolCharger):
+class EspalomaCharger(MolCharger, CHARGING_METHOD='Espaloma-AM1-BCC'):
     '''Charger class for EspalomaCharge charging'''
-    CHARGING_METHOD : ClassVar[str] = 'Espaloma-AM1-BCC'
-
+    @requires_modules('espaloma_charge', missing_module_error=ToolkitUnavailableException)
     @optional_in_place
     def _charge_molecule(self, uncharged_mol : Molecule) -> None:
-        uncharged_mol.assign_partial_charges(partial_charge_method='espaloma-am1bcc', toolkit_registry=TKREGS['Espaloma Charge Toolkit'])
+        from espaloma_charge.openff_wrapper import EspalomaChargeToolkitWrapper
+        
+        uncharged_mol.assign_partial_charges(
+            partial_charge_method='espaloma-am1bcc', # this is actually the ONLY charge method the EspalomaChargeToolkitWrapper supports
+            toolkit_registry=EspalomaChargeToolkitWrapper(),
+        )
 
-class NAGLCharger(MolCharger):
+class NAGLCharger(MolCharger, CHARGING_METHOD='NAGL'):
     '''Charger class for NAGL charging'''
-    CHARGING_METHOD : ClassVar[str] = 'NAGL'
-
+    @requires_modules('openff.nagl', 'openff.nagl_models', missing_module_error=ToolkitUnavailableException)
     @optional_in_place
     def _charge_molecule(self, uncharged_mol : Molecule) -> None:
-        nagl_charges = NAGL_MODEL.compute_property(uncharged_mol, check_domains=True, error_if_unsupported=True)
-        uncharged_mol.partial_charges = nagl_charges * offunit.elementary_charge # need to have OpenFF-style units attached to set "partial_charges" property
+        from openff.toolkit.utils.nagl_wrapper import NAGLToolkitWrapper
+        
+        uncharged_mol.assign_partial_charges(
+            partial_charge_method='openff-gnn-am1bcc-0.1.0-rc.3.pt', # 'openff-gnn-am1bcc-0.1.0-rc.2.pt',
+            toolkit_registry=NAGLToolkitWrapper(),
+        )
