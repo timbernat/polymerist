@@ -43,7 +43,7 @@ def shortest_repeating_substring(string : str) -> str:
     i = (2*string).find(string, 1, -1) # check if string matches itself in a cycle in non-trivial way (i.e more than just the two repeats)
     return string if (i == -1) else string[:i]
 
-def repeat_string_to_length(string : str, target_length : int, join_indicator : str='') -> str:
+def repeat_string_to_length(string : str, target_length : int, joiner : str='') -> str:
     '''
     Takes a string and repeats it cyclically to produce another string of a given length
     The number of times the original string occurs in the new string may be fractional
@@ -73,5 +73,5 @@ def repeat_string_to_length(string : str, target_length : int, join_indicator : 
     num_str_reps, num_extra_chars = divmod(target_length, len(string))
     remainder = (string[:num_extra_chars]) if num_extra_chars else () # empty container avoids extra joiner at end when remainder string is empty
     
-    return join_indicator.join(num_str_reps*(string,) + remainder) # tuples here are ~2 OOM faster than moral equivalent with lists
+    return joiner.join(num_str_reps*(string,) + remainder) # tuples here are ~2 OOM faster than moral equivalent with lists
     
