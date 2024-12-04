@@ -71,7 +71,7 @@ def repeat_string_to_length(string : str, target_length : int, joiner : str='') 
         raise ValueError(f'Cannot generate nonempty string from any amount of repeats of the empty string')
     
     num_str_reps, num_extra_chars = divmod(target_length, len(string))
-    remainder = (string[:num_extra_chars]) if num_extra_chars else () # empty container avoids extra joiner at end when remainder string is empty
+    remainder = (string[:num_extra_chars],) if num_extra_chars else () # empty container avoids extra joiner at end when remainder string is empty
     
     return joiner.join(num_str_reps*(string,) + remainder) # tuples here are ~2 OOM faster than moral equivalent with lists
     
