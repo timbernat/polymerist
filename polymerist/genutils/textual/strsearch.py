@@ -6,8 +6,39 @@ __email__ = 'timotej.bernat@colorado.edu'
 from typing import Callable, Optional
 from pathlib import Path
 
-from ..fileutils.extensions import FileTypeError
 
+def uniquify_str(string : str, preserve_order : bool=True) -> str:
+    '''
+    Accepts a string and returns another string containing
+    only the UNIQUE characters in the origin string
+    
+    Can specify whether order is important with the "preserve_order" keyword
+    
+    Parameters
+    ----------
+    string : str
+        An arbitrary string on wants the unique characters from
+    preserve_order : bool, default True
+        Whether or not to keep the unique characters in the order they are found
+        For example: 
+            uniquify_str("balaclava", preserve_order=False) -> "bcavl"
+            uniquify_str("balaclava", preserve_order=True) -> "balcv"
+        
+    Returns
+    -------
+    uniquified_str : str
+        Another string containing only the unique characters in "string"
+        Order depends on the value of the "preserve_order" parameter
+    '''
+    if not preserve_order:
+        unique_chars = set(string)
+    else:
+        unique_chars = []
+        for char in string:
+            if char not in unique_chars:
+                unique_chars.append(char)
+    
+    return ''.join(unique_chars)
 
 def shortest_repeating_substring(string : str) -> str:
     '''Return the shortest substring such that the passed string can be written as some number of repeats (including 1) of the substring
@@ -29,7 +60,7 @@ def filter_text_by_condition(in_text_path : Path, condition : Callable[[str], bo
         raise PermissionError(f'Attempting to overwrite {in_text_path} with regex filter') # prevent write clash
     
     if (out_text_path.suffix != in_text_path.suffix):  # prevent file type conversion during transfer
-        raise FileTypeError(f'Input and output file must have same extension (not {in_text_path.suffix} and {out_text_path.suffix})')
+        raise ValueError(f'Input and output file must have same extension (not {in_text_path.suffix} and {out_text_path.suffix})')
 
     with out_text_path.open('w') as outfile: 
         with in_text_path.open('r') as infile: # readfile is innermost in case error occurs during file read (caught by handler one level up)
