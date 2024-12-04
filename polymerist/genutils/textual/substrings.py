@@ -43,7 +43,7 @@ def shortest_repeating_substring(string : str) -> str:
     i = (2*string).find(string, 1, -1) # check if string matches itself in a cycle in non-trivial way (i.e more than just the two repeats)
     return string if (i == -1) else string[:i]
 
-def repeat_string_to_length(string : str, target_length : int) -> str:
+def repeat_string_to_length(string : str, target_length : int, join_indicator : str='') -> str:
     '''
     Takes a string and repeats it cyclically to produce another string of a given length
     The number of times the original string occurs in the new string may be fractional
@@ -69,12 +69,9 @@ def repeat_string_to_length(string : str, target_length : int) -> str:
     '''
     if not string:
         raise ValueError(f'Cannot generate nonempty string from any amount of repeats of the empty string')
-    return (string*(target_length//len(string) + 1))[:target_length] # repeat to smallest # time
     
-    # Implementation 2) more readable, but slightly slower in benchmark
-    # whole_reps, fract_reps = divmod(target_length, len(string))
-    # return whole_reps*string + string[fract_reps:]
+    num_str_reps, num_extra_chars = divmod(target_length, len(string))
+    remainder = (string[:num_extra_chars]) if num_extra_chars else () # empty container avoids extra joiner at end when remainder string is empty
     
-    # Implementation 3) most compact, but introduces itertools dependency
-    # Interestingly, this yields empty string instead of division-by-zero error w/ empty string as input
-    # return ''.join(islice(cycle(string), target_length)) 
+    return join_indicator.join(num_str_reps*(string,) + remainder) # tuples here are ~2 OOM faster than moral equivalent with lists
+    
