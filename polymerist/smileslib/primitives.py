@@ -3,9 +3,23 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
+from typing import TypeAlias
+
 from rdkit import Chem
 from rdkit.Chem.rdchem import BondType
 
+
+# VALIDATION
+Smiles : TypeAlias = str # purely for improving self-documentation of functions, no benefit to static type-checkers
+Smarts : TypeAlias = str # purely for improving self-documentation of functions, no benefit to static type-checkers
+
+def is_valid_SMARTS(smarts : str) -> bool:
+    '''Check if SMARTS string is valid (according to RDKit)'''
+    return (Chem.MolFromSmarts(smarts) is not None)
+
+def is_valid_SMILES(smiles : str) -> bool:
+    '''Check if SMARTS string is valid (according to RDKit)'''
+    return (Chem.MolFromSmiles(smiles) is not None)
 
 # BOND PRIMITIVES AND RELATED OBJECTS
 BOND_PRIMITIVES = '~-=#$:'
@@ -36,13 +50,3 @@ for in_line_fmt, (rd_type, rd_initializer) in BOND_INITIALIZERS.items():
             bonds_by_order[order]     = prim_str
             rdbonds_by_type[bondtype] = rd_bond
             rdbonds_by_order[order]   = rd_bond
-
-
-# VALIDATION
-def is_valid_SMARTS(smarts : str) -> bool:
-    '''Check if SMARTS string is valid (according to RDKit)'''
-    return (Chem.MolFromSmarts(smarts) is not None)
-
-def is_valid_SMILES(smiles : str) -> bool:
-    '''Check if SMARTS string is valid (according to RDKit)'''
-    return (Chem.MolFromSmiles(smiles) is not None)
