@@ -1,4 +1,4 @@
-'''For searching and replacing through strings and text files'''
+'''For identifying and concatenating substrings of other strings with unique properties'''
 
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'

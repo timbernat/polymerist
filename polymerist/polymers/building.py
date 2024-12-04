@@ -20,7 +20,7 @@ from .exceptions import InsufficientChainLengthError, MorphologyError
 from .estimation import estimate_n_atoms_linear
 
 from ..genutils.decorators.functional import allow_string_paths
-from ..genutils.textual.strsearch import uniquify_str
+from ..genutils.textual.substrings import uniquify_str
 
 from ..rdutils.bonding.portlib import get_linker_ids
 from ..rdutils.bonding.substitution import saturate_ports, hydrogenate_rdmol_ports
