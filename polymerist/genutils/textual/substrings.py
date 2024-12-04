@@ -42,3 +42,39 @@ def shortest_repeating_substring(string : str) -> str:
     Will return the original string if no simpler decomposition exists'''
     i = (2*string).find(string, 1, -1) # check if string matches itself in a cycle in non-trivial way (i.e more than just the two repeats)
     return string if (i == -1) else string[:i]
+
+def repeat_string_to_length(string : str, target_length : int) -> str:
+    '''
+    Takes a string and repeats it cyclically to produce another string of a given length
+    The number of times the original string occurs in the new string may be fractional
+    for example:
+    >> repeat_string_to_length("CAT", 6) -> "CATCAT"
+    >> repeat_string_to_length("BACA", 10) -> "BACABACABA"
+    
+    Parameters
+    ----------
+    string : str
+        An arbitrary string to repeat
+    target_length : int
+        The length of the final desired string
+        This does NOT have to be an integer multiple of the length of "string"
+            E.g. repeat_string_to_length("BACA", 10) -> "BACABACABA"
+        Nor does it have to be greater than the length of "string"
+            E.g. repeat_string_to_length("BACA", 3) -> "BAC"
+            
+    Returns
+    -------
+    rep_string : str
+        A new string which has the desired target length and consists of cycles of the initial string
+    '''
+    if not string:
+        raise ValueError(f'Cannot generate nonempty string from any amount of repeats of the empty string')
+    return (string*(target_length//len(string) + 1))[:target_length] # repeat to smallest # time
+    
+    # Implementation 2) more readable, but slightly slower in benchmark
+    # whole_reps, fract_reps = divmod(target_length, len(string))
+    # return whole_reps*string + string[fract_reps:]
+    
+    # Implementation 3) most compact, but introduces itertools dependency
+    # Interestingly, this yields empty string instead of division-by-zero error w/ empty string as input
+    # return ''.join(islice(cycle(string), target_length)) 
