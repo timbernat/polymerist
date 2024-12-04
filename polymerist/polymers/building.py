@@ -17,7 +17,7 @@ from pathlib import Path
 from rdkit import Chem
 
 from .exceptions import InsufficientChainLengthError, MorphologyError
-from .estimation import estimate_chain_len_linear
+from .estimation import estimate_n_atoms_linear
 
 from ..genutils.decorators.functional import allow_string_paths
 from ..genutils.textual.strsearch import uniquify_str
@@ -63,7 +63,7 @@ def mbmol_to_openmm_pdb(pdb_path : Path, mbmol : Compound, num_atom_digits : int
 
 
 # LINEAR POLYMER BUILDING
-def build_linear_polymer(monomers : MonomerGroup, DOP : int, sequence : str='A', add_Hs : bool=False, energy_minimize : bool=False) -> MBPolymer:
+def build_linear_polymer(monomers : MonomerGroup, n_monomers : int, sequence : str='A', add_Hs : bool=False, energy_minimize : bool=False) -> MBPolymer:
     '''Accepts a dict of monomer residue names and SMARTS (as one might find in a monomer JSON)
     and a degree of polymerization (i.e. chain length in number of monomers)) and returns an mbuild Polymer object'''
     # 0) VERIFY THAT CHAIN ACTUAL CAN DEFINE LINEAR POLYMER
@@ -84,15 +84,15 @@ def build_linear_polymer(monomers : MonomerGroup, DOP : int, sequence : str='A',
     n_terminal = len(term_orient) # determine how many terminal monomers are actually present and well-defined
     block_size = len(sequence)
     
-    if ((DOP - n_terminal) % block_size) != 0:
-        raise ValueError(f'Cannot build a(n) {DOP}-monomer chain from any number of {block_size}-monomer blocks and {n_terminal} end groups')
+    if ((n_monomers - n_terminal) % block_size) != 0:
+        raise ValueError(f'Cannot build a(n) {n_monomers}-monomer chain from any number of {block_size}-monomer blocks and {n_terminal} end groups')
     # NOTE: not explicitly forcing n_seq_reps to catch lingering float input / inexact division errors
-    n_seq_reps = (DOP - n_terminal) // block_size # number of times to repeat the block sequence between end groups to reach the target chain length
+    n_seq_reps = (n_monomers - n_terminal) // block_size # number of times to repeat the block sequence between end groups to reach the target chain length
     if n_seq_reps < 1: # NOTE: if it were up to me, this would be < 0 to allow dimers, but mBuild has forced by hand
-        raise InsufficientChainLengthError(f'{DOP}-monomer chain has few total monomers to accomodate {n_terminal} end groups AND at least 1 middle monomer sequence')
+        raise InsufficientChainLengthError(f'{n_monomers}-monomer chain has few total monomers to accomodate {n_terminal} end groups AND at least 1 middle monomer sequence')
     # TODO: consider adding support for fractional sequence lengths IFF that fraction is a rational number whose denominator divides the sequence length...
     # ...for example, could allow 5/2 * 'BACA' to be interpreted as 'BACA|BACA|BA'; 5/3 * 'BACA' would still be invalid though
-    LOGGER.info(f'Target chain length achievable with {n_seq_reps} block sequence repeat(s) ({n_seq_reps}*{block_size} [{sequence}] middle monomers + {n_terminal} terminal monomers = {DOP} total monomers)')
+    LOGGER.info(f'Target chain length achievable with {n_seq_reps} block sequence repeat(s) ({n_seq_reps}*{block_size} [{sequence}] middle monomers + {n_terminal} terminal monomers = {n_monomers} total monomers)')
 
     # 2) REGISTERING MONOMERS TO BE USED FOR CHAIN ASSEMBLY
     monomers_used = MonomerGroup() # used to track and estimate sized of the monomers being used
@@ -121,12 +121,12 @@ def build_linear_polymer(monomers : MonomerGroup, DOP : int, sequence : str='A',
         monomers_used.monomers[resname] = monomers.monomers[resname]
 
     # 3) ASSEMBLE AND RETURN CHAIN
-    n_atoms_est = estimate_chain_len_linear(monomers_used, DOP) # TODO: create new MonomerGroup with ONLY the registered monomers to guarantee accuracy
-    LOGGER.info(f'Assembling linear {DOP}-mer chain (estimated {n_atoms_est} atoms)')
+    n_atoms_est = estimate_n_atoms_linear(monomers_used, n_monomers) # TODO: create new MonomerGroup with ONLY the registered monomers to guarantee accuracy
+    LOGGER.info(f'Assembling linear {n_monomers}-mer chain (estimated {n_atoms_est} atoms)')
     chain.build(n_seq_reps, sequence=sequence, add_hydrogens=add_Hs) # "-2" is to account for term groups (in mbuild, "n" is the number of times to replicate just the middle monomers)
     for atom in chain.particles():
         atom.charge = 0.0 # initialize all atoms as being uncharged (gets rid of pesky blocks of warnings)
-    LOGGER.info(f'Successfully assembled linear {DOP}-mer chain (exactly {chain.n_particles} atoms)')
+    LOGGER.info(f'Successfully assembled linear {n_monomers}-mer chain (exactly {chain.n_particles} atoms)')
     
     if energy_minimize:
         LOGGER.info('Energy-minimizing chain to find more stable conformer')
