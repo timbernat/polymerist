@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 import openmm.unit
 
-from ...decorators.classmod import register_subclasses
+from ...decorators.classmod import register_subclasses, register_abstract_class_attrs
 
 
 # CHECKING IF AN OBJECT IS SERIALIZABLE TO JSON BY DEFAULT
@@ -20,9 +20,10 @@ JSONSerializable = Union[str, bool, int, float, tuple, list, dict]
 
 # ABSTRACT INTERFACE FOR DEFINING CUSTOM SERIALIZERS (ENCODER + DECODER)
 @register_subclasses(key_attr='python_type')
+@register_abstract_class_attrs('python_type')
 class TypeSerializer(ABC):
     '''Interface for defining how types which are not JSON serializable by default should be encoded and decoded'''
-    python_type : ClassVar[Type[T]]
+    python_type : ClassVar[Type[T]] # NOTE: this is kept here purely for static typehinting purposes
 
     @abstractstaticmethod
     def encode(python_obj : T) -> JSONSerializable:
@@ -100,10 +101,8 @@ class MultiTypeSerializer:
 
 
 # CONCRETE IMPLEMENTATIONS
-class PathSerializer(TypeSerializer):
+class PathSerializer(TypeSerializer, python_type=Path):
     '''For JSON-serializing OpenMM Quantities'''
-    python_type = Path
-
     @staticmethod
     def encode(python_obj : Path) -> str:
         '''Separate openmm.unit.Quantity's value and units to serialize as a single dict'''
@@ -114,10 +113,8 @@ class PathSerializer(TypeSerializer):
         '''Unpack a value-unit string dict back into a usable openmm.unit.Quantity'''
         return Path(json_obj)
         
-class QuantitySerializer(TypeSerializer):
+class QuantitySerializer(TypeSerializer, python_type=openmm.unit.Quantity):
     '''For JSON-serializing OpenMM Quantities'''
-    python_type = openmm.unit.Quantity
-
     @staticmethod
     def encode(python_obj : openmm.unit.Quantity) -> dict[str, Union[str, float]]:
         '''Separate openmm.unit.Quantity's value and units to serialize as a single dict'''

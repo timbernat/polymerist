@@ -163,10 +163,8 @@ class MonomerGraph(nx.Graph):
             return True, None
 MonoGraph = MonomerGraph # alias for convenience
 
-class MonomerGraphSerializer(TypeSerializer):
+class MonomerGraphSerializer(TypeSerializer, python_type=MonomerGraph):
     '''JSON serializer for storing MonomerGraphs as SMIDGE strings '''
-    python_type = MonomerGraph
-
     @staticmethod
     def encode(python_obj : MonomerGraph) -> str:
         return python_obj.to_smidge_string()

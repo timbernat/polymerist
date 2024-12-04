@@ -14,9 +14,9 @@ from openmm import Integrator, VerletIntegrator, LangevinMiddleIntegrator
 from openmm.openmm import Force, MonteCarloBarostat
 from openmm.unit import Quantity, kelvin, atmosphere, picosecond
 
+from ...genutils.decorators.classmod import register_subclasses, register_abstract_class_attrs
 from ...genutils.fileutils.jsonio.jsonify import make_jsonifiable
 from ...genutils.fileutils.jsonio.serialize import QuantitySerializer
-from ...genutils.decorators.classmod import register_subclasses
 
 
 # PARAMETER CLASSES
@@ -38,6 +38,7 @@ class ThermoParameters:
 # ABSTRACT BASE FOR CREATING ENSEMBLE-SPECIFIC SIMULATION
 @dataclass
 @register_subclasses(key_attr='ensemble')
+@register_abstract_class_attrs('ensemble', 'ensemble_name')
 class EnsembleFactory(ABC):
     '''Base class for implementing interface for generating ensemble-specific simulations'''
     thermo_params : ThermoParameters
@@ -48,18 +49,6 @@ class EnsembleFactory(ABC):
         return EnsembleFactory.subclass_registry[thermo_params.ensemble](thermo_params)
 
     # ENSEMBLE NAMING ATTRIBUTES
-    @abstractproperty
-    @classmethod
-    def ensemble(cls) -> str: # to be implemented for each particular ensemble
-        '''Specify state variables of ensemble'''
-        pass
-
-    @abstractproperty
-    @classmethod
-    def ensemble_name(cls) -> str: # to be implemented for each particular ensemble
-        '''Specify name of ensemble'''
-        pass
-
     @property
     def desc(self) -> str:
         '''Verbal description of ensemble'''
@@ -99,38 +88,23 @@ class EnsembleFactory(ABC):
 
 # CONCRETE IMPLEMENTATIONS OF ENSEMBLES
 @dataclass
-class NVESimulationFactory(EnsembleFactory):
-    thermo_params : ThermoParameters
-
-    ensemble : ClassVar[str] = 'NVE'
-    ensemble_name : ClassVar[str] = 'microcanonical'
-
+class NVESimulationFactory(EnsembleFactory, ensemble='NVE', ensemble_name='microcanonical'):
     def _integrator(self, time_step : Quantity) -> Integrator:
-        return VerletIntegrator(stepSize=time_step)
+        return VerletIntegrator(time_step)
     
     def _forces(self) -> Optional[Iterable[Force]]:
         return None
     
 @dataclass
-class NVTSimulationFactory(EnsembleFactory): # TODO : add implementation support for Andersen and Nose-Hoover thermostats (added to forces instead)
-    thermo_params : ThermoParameters
-
-    ensemble : ClassVar[str] = 'NVT'
-    ensemble_name : ClassVar[str] = 'canonical'
-
+class NVTSimulationFactory(EnsembleFactory, ensemble='NVT', ensemble_name='canonical'): 
     def _integrator(self, time_step : Quantity) -> Integrator:
         return LangevinMiddleIntegrator(self.thermo_params.temperature, self.thermo_params.friction_coeff, time_step)
     
     def _forces(self) -> Optional[Iterable[Force]]:
-        return None
+        return None # TODO : add implementation support for Andersen and Nose-Hoover thermostats (added to forces instead)
     
 @dataclass
-class NPTSimulationFactory(EnsembleFactory):
-    thermo_params : ThermoParameters
-
-    ensemble : ClassVar[str] = 'NPT'
-    ensemble_name : ClassVar[str] = 'isothermal-isobaric'
-
+class NPTSimulationFactory(EnsembleFactory, ensemble='NPT', ensemble_name='isothermal-isobaric'):
     def _integrator(self, time_step : Quantity) -> Integrator:
         return LangevinMiddleIntegrator(self.thermo_params.temperature, self.thermo_params.friction_coeff, time_step)
     
