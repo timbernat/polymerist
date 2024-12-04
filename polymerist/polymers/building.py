@@ -94,7 +94,10 @@ def build_linear_polymer(monomers : MonomerGroup, DOP : int, sequence : str='A',
     # ...for example, could allow 5/2 * 'BACA' to be interpreted as 'BACA|BACA|BA'; 5/3 * 'BACA' would still be invalid though
     LOGGER.info(f'Target chain length achievable with {n_seq_reps} block sequence repeat(s) ({n_seq_reps}*{block_size} [{sequence}] middle monomers + {n_terminal} terminal monomers = {DOP} total monomers)')
 
-    # 2) ADD MIDDLE MONOMERS TO CHAIN
+    # 2) REGISTERING MONOMERS TO BE USED FOR CHAIN ASSEMBLY
+    monomers_used = MonomerGroup() # used to track and estimate sized of the monomers being used
+    
+    ## 2A) ADD MIDDLE MONOMERS TO CHAIN
     chain = MBPolymer() 
     for (resname, middle_monomer), sequence_key in zip(
             monomers.iter_rdmols(term_only=False),
@@ -103,8 +106,9 @@ def build_linear_polymer(monomers : MonomerGroup, DOP : int, sequence : str='A',
         LOGGER.info(f'Registering middle monomer {resname} (block identifier "{sequence_key}")')
         mb_monomer, linker_ids = mbmol_from_mono_rdmol(middle_monomer)
         chain.add_monomer(compound=mb_monomer, indices=linker_ids)
+        monomers_used.monomers[resname] = monomers.monomers[resname]
 
-    # 3) ADD TERMINAL MONOMERS TO CHAIN
+    ## 2B) ADD TERMINAL MONOMERS TO CHAIN
     term_iters = { # need to convert to iterators to allow for generator-like advancement (required for term group selection to behave as expected)
         resname : iter(rdmol_list)   # made necessary by annoying list-bound structure of current substructure spec
             for resname, rdmol_list in monomers.rdmols(term_only=True).items() 
@@ -114,9 +118,10 @@ def build_linear_polymer(monomers : MonomerGroup, DOP : int, sequence : str='A',
         term_monomer = next(term_iters[resname])
         mb_monomer, linker_ids = mbmol_from_mono_rdmol(term_monomer)
         chain.add_end_groups(compound=mb_monomer, index=linker_ids.pop(), label=head_or_tail, duplicate=False) # use single linker ID and provided head-tail orientation
+        monomers_used.monomers[resname] = monomers.monomers[resname]
 
-    # 4) ASSEMBLE AND RETURN CHAIN
-    n_atoms_est = estimate_chain_len_linear(monomers, DOP) # TODO: create new MonomerGroup with ONLY the registered monomers to guarantee accuracy
+    # 3) ASSEMBLE AND RETURN CHAIN
+    n_atoms_est = estimate_chain_len_linear(monomers_used, DOP) # TODO: create new MonomerGroup with ONLY the registered monomers to guarantee accuracy
     LOGGER.info(f'Assembling linear {DOP}-mer chain (estimated {n_atoms_est} atoms)')
     chain.build(n_seq_reps, sequence=sequence, add_hydrogens=add_Hs) # "-2" is to account for term groups (in mbuild, "n" is the number of times to replicate just the middle monomers)
     for atom in chain.particles():
