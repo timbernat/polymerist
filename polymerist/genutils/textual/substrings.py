@@ -4,7 +4,7 @@ __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
 
-def uniquify_str(string : str, preserve_order : bool=True) -> str:
+def unique_string(string : str, preserve_order : bool=True) -> str:
     '''
     Accepts a string and returns another string containing
     only the UNIQUE characters in the origin string
@@ -18,8 +18,8 @@ def uniquify_str(string : str, preserve_order : bool=True) -> str:
     preserve_order : bool, default True
         Whether or not to keep the unique characters in the order they are found
         For example: 
-            uniquify_str("balaclava", preserve_order=False) -> "bcavl"
-            uniquify_str("balaclava", preserve_order=True) -> "balcv"
+            unique_string("balaclava", preserve_order=False) -> "bcavl"
+            unique_string("balaclava", preserve_order=True) -> "balcv"
         
     Returns
     -------
