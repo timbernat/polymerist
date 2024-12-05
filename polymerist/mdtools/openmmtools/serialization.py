@@ -120,11 +120,11 @@ def serialize_system(sys_path : Path, system : System) -> None:
 
 @allow_string_paths
 def serialize_openmm_pdb(pdb_path : Path, topology : OpenMMTopology, positions : Union[NDArray, list[Vec3]], keep_chain_and_res_ids : bool=True,
-                         uniquify_atom_ids : bool=True, num_atom_id_digits : int=2, resname_repl : Optional[dict[str, str]]=None) -> None:
+                         uniquify_atom_ids : bool=True, num_atom_id_digits : int=2, resname_map : Optional[dict[str, str]]=None) -> None:
     '''Configure and write an Protein DataBank File from an OpenMM Topology and array of positions
     Provides options to configure atom ID numbering, residue numbering, and residue naming'''
-    if resname_repl is None:
-        resname_repl = {} # avoids mutable default
+    if resname_map is None:
+        resname_map = {} # avoids mutable default
 
     # chain config
     for chain in topology.chains():
@@ -133,7 +133,7 @@ def serialize_openmm_pdb(pdb_path : Path, topology : OpenMMTopology, positions :
     # residue config
     for residue in topology.residues():
         residue.id = str(residue.id) # avoids TypeError when specifying keepIds during PDB write
-        repl_res_name = resname_repl.get(residue.name, None) # lookup current residue name to see if a replacement is called for
+        repl_res_name = resname_map.get(residue.name, None) # lookup current residue name to see if a replacement is called for
         if repl_res_name is not None:
             residue.name = repl_res_name
 

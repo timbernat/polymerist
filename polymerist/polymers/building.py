@@ -52,10 +52,10 @@ def mbmol_from_mono_rdmol(rdmol : Chem.Mol, resname : Optional[str]=None) -> tup
     return mb_compound, linker_ids
 
 @allow_string_paths
-def mbmol_to_openmm_pdb(pdb_path : Path, mbmol : Compound, num_atom_digits : int=2, resname_repl : dict[str, str]=None) -> None:
+def mbmol_to_openmm_pdb(pdb_path : Path, mbmol : Compound, num_atom_digits : int=2, resname_map : dict[str, str]=None) -> None:
     '''Save an MBuild Compound into an OpenMM-compatible PDB file'''
-    if resname_repl is None: # avoid mutable default
-        resname_repl = {'RES' : 'Pol'} 
+    if resname_map is None: # avoid mutable default
+        resname_map = {'RES' : 'Pol'} 
 
     traj = mbmol.to_trajectory() # first convert to MDTraj representation (much more infor-rich format)
     omm_top, omm_pos = traj.top.to_openmm(), traj.openmm_positions(0) # extract OpenMM representations of trajectory
@@ -66,7 +66,7 @@ def mbmol_to_openmm_pdb(pdb_path : Path, mbmol : Compound, num_atom_digits : int
         positions=omm_pos,
         uniquify_atom_ids=True,
         num_atom_id_digits=num_atom_digits,
-        resname_repl=resname_repl
+        resname_map=resname_map
     )
 
 
