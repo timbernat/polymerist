@@ -3,6 +3,9 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
+import logging
+LOGGER = logging.getLogger(__name__)
+
 from typing import Generator, Optional, TypeAlias, Union
 from dataclasses import dataclass, field
 
@@ -31,6 +34,7 @@ class MonomerGroup:
             if isinstance(smarts_seq, list):
                 smarts_list = smarts_seq # no modification needed
             elif isinstance(smarts_seq, str):
+                LOGGER.warning(f'Wrapping bare monomer SMARTS in list to comply with spec (storing as ["{smarts_seq}"])')
                 smarts_list = [smarts_seq] # wrap lone SMARTS string in list
                 self.monomers[resname] = smarts_list # update value internally (doesn't change size of dict)
             else:
