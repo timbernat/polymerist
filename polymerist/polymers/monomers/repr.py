@@ -12,19 +12,36 @@ from rdkit.Chem.rdchem import Mol
 
 from ...genutils.iteration import iter_len
 from ...genutils.fileutils.jsonio.jsonify import make_jsonifiable
+
+from ...smileslib.primitives import Smarts, is_valid_SMARTS
 from ...rdutils.bonding.portlib import get_num_ports
 
-
-ResidueSmarts : TypeAlias = dict[str, list[str]] # monomer SMARTS strings keyed by residue name
 
 # MAIN REPRESENTATION CLASS
 @make_jsonifiable
 @dataclass
 class MonomerGroup:
     '''Stores collections of residue-labelled monomer SMARTS'''
-    monomers : ResidueSmarts = field(default_factory=dict)
+    monomers : dict[str, Union[Smarts, list[Smarts]]] = field(default_factory=dict)
     term_orient : dict[str, str] = field(default_factory=dict) # keys are either "head" or "tail", values are the names of residues in "monomers"
 
+    def __post_init__(self) -> None:
+        # Encase bare SMARTS into lists and check that all monomer SMARTS are valid
+        for resname, smarts_seq in self.monomers.items():
+            if isinstance(smarts_seq, list):
+                smarts_list = smarts_seq # no modification needed
+            elif isinstance(smarts_seq, str):
+                smarts_list = [smarts_seq] # wrap lone SMARTS string in list
+                self.monomers[resname] = smarts_list # update value internally (doesn't change size of dict)
+            else:
+                raise TypeError(f'Values of monomers must be either SMARTS strings or lists of SMARTS strings, not "{type(smarts_seq).__name__}"')
+            
+            # check that all SMARTS are valid
+            for i, smarts in enumerate(smarts_list): # we can now be sure that this is a list of SMARTS strings
+                if not is_valid_SMARTS(smarts):
+                    raise ValueError(f'Provided invalid monomer SMARTS string for {resname}[{i}]: "{smarts}"')               
+        # DEV: opted to forgo term_orient check for now, as modifying this violates the read-only data model aimed for here
+                
     @staticmethod
     def is_terminal(monomer : Mol) -> bool:
         '''Determine whether or not a monomer is terminal'''
@@ -32,7 +49,7 @@ class MonomerGroup:
 
     # ATTRIBUTE PROPERTIES AND ALIASES
     @property
-    def SMARTS(self) -> ResidueSmarts:
+    def SMARTS(self) -> dict[str, list[Smarts]]:
         '''Alias of legacy "monomers" attribute'''
         return self.monomers # alias of legacy name for convenience
     
@@ -69,42 +86,40 @@ class MonomerGroup:
     
     @property
     def n_monomers(self) -> int:
-        '''Returns number of present monomers
-        Multiple monomers with the same residue name are considered distinct'''
+        '''Returns number of present monomers; multiple monomers under the same residue name are considered distinct'''
         return iter_len(self.iter_rdmols(term_only=None))
     
-    # VALIDATION AND PROPERTY CHECKS
+    # END GROUP DETERMINATION      
     @property
-    def _is_valid(self) -> bool:
-        '''Check that types and formatting are correct'''
-        for resname, SMARTS_list in self.monomers.items():
-            if not (isinstance(resname, str) and isinstance(SMARTS_list, list)):
-                return False
-        else:
-            return True # valid only if none of the SMARTS lists fail
-        
-    @property
-    def has_valid_linear_term_orient(self) -> bool:
+    def _has_valid_linear_term_orient(self) -> bool:
         '''Check whether terminal group orientations are sufficient to define a linear polymer'''
         return (
             bool(self.term_orient)                                         # check that: 1) term group orientations are non-empty...
             and set(self.term_orient.keys()) == {'head', 'tail'}                       # 2) ...orientation labels are only "head" and "tail" (in any order)...
             and all(resname in self.monomers for resname in self.term_orient.values()) # 3) ... and all term group keys match a present monomer
         )
+        
+    @property
+    def linear_end_groups(self) -> dict[str, Mol]:
+        '''
+        Returns head-and-tail end groups as defined by term_orient
+        If term orient is undefined, will 
+        '''
+        ...
     
-    # COMPOSITION AND I/O METHODS
+    # COMPOSITION METHODS
     def __add__(self, other : 'MonomerGroup') -> 'MonomerGroup':
         '''Content-aware method of merging multiple sets of monomer info via the addition operator'''
         cls = self.__class__
         if not isinstance(other, cls):
             raise NotImplementedError(f'Can only merge {cls.__name__} with another {cls.__name__}, not object of type {type(other)}')
-
+        # TODO: figure out how to handle combination of term group orientation gracefully (ignoring for now)
         return MonomerGroup(monomers={**self.monomers, **other.monomers})
 
     __radd__ = __add__ # support reverse addition
 
     # CHEMICAL INFORMATION
-    def unique(self, cap_group : Union[str, Mol]=Chem.MolFromSmarts('[H]-[*]')) -> 'MonomerGroup':
+    def unique(self, cap_group : Union[Smarts, Mol]=Chem.MolFromSmarts('[H]-[*]')) -> 'MonomerGroup':
         '''Return a MonomerGroup containing only the unique monomers present, given a particular port saturating group (by default just a hydrogen)'''
         raise NotImplementedError
         # unique_mono = set()
