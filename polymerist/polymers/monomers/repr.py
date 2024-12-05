@@ -106,7 +106,6 @@ class MonomerGroup:
             and all(resname in self.monomers for resname in self.term_orient.values()) # 3) ... and all term group keys match a present monomer
         )
         
-    @property
     def linear_end_groups(self) -> dict[str, Chem.Mol]:
         '''
         Returns head-and-tail end groups as defined by term_orient
