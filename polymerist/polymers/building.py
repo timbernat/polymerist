@@ -17,6 +17,7 @@ with warnings.catch_warnings(record=True): # suppress numerous and irritating mb
 
 from pathlib import Path
 from rdkit import Chem
+from collections import Counter
 
 from .exceptions import InsufficientChainLengthError, MorphologyError
 from .estimation import estimate_n_atoms_linear
@@ -68,6 +69,52 @@ def mbmol_to_openmm_pdb(pdb_path : Path, mbmol : Compound, num_atom_digits : int
         num_atom_id_digits=num_atom_digits,
         resname_map=resname_map
     )
+    
+# TODO: deduplify PDB atom anme and residue numbering code against serialize_openmm_pdb()
+def mbmol_to_rdmol(
+        mbmol : Compound,
+        uniquify_atom_ids : bool=False,
+        num_atom_id_digits : int=2,
+        resname_map : Optional[dict[str, str]]=None
+    ) -> Chem.Mol:
+    '''Convert an mBuild Compound into an RDKit Mol, with correct atom coordinates and PDB residue info'''
+    if resname_map is None:
+        resname_map = {}
+    
+    rdmol = mbmol.to_rdkit()
+    conformer = Chem.Conformer()
+    conformer.Set3D(True)
+
+    atom_id : int = 0
+    element_counter = Counter()
+    for resnum, mb_monomer in enumerate(mbmol.children, start=1):
+        resname = resname_map.get(mb_monomer.name, mb_monomer.name[:3]) # if no remapping is found, just take first 3 chars
+        # NOTE: the order of monomers and atoms within those monomers were added in the same order as iterated over here...
+        #... so the atom indices **SHOULD** be in the correct order (hate that this even might be uncertain)
+        for mbatom in mb_monomer.particles(): 
+            conformer.SetAtomPosition(atom_id, 10*mbatom.pos.astype(float)) # conveert from nm to angstrom
+
+            # set PDB residue info if monomer hierarchy is present
+            if mbatom != mb_monomer: # for Compounds with a flat hierarchy, the children and particles of children will coincide
+                symbol = mbatom.element.symbol
+                atom_ser_id = element_counter[symbol]
+                atom_ser_str = f'{atom_ser_id:0{num_atom_id_digits}d}' if uniquify_atom_ids else '  ' # double space keeps column justification correct when non-unique
+                atom_name = f' {symbol}{atom_ser_str}' # need a leading space to get column alignment in PDB compliant with spec
+                
+                pdb_info = Chem.AtomPDBResidueInfo(
+                    atomName=atom_name, 
+                    residueName=resname,
+                    residueNumber=resnum,
+                    chainId='1',
+                    isHeteroAtom=True,
+                )
+                element_counter[symbol] += 1 # only increment AFTER prior value has been assigned to the current atom
+                rdmol.GetAtomWithIdx(atom_id).SetPDBResidueInfo(pdb_info)
+            
+            atom_id += 1 # TODO: this is an awful waay of keeping track of atom indices, see if there's a more secure way to do this
+    conf_id = rdmol.AddConformer(conformer)
+    
+    return rdmol
 
 
 # LINEAR POLYMER BUILDING
