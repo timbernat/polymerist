@@ -21,7 +21,7 @@ from collections import Counter
 
 from rdkit import Chem
 
-from .exceptions import InsufficientChainLength, PartialBlockSequence, MorphologyError
+from .exceptions import EndGroupDominatedChain, InsufficientChainLength, PartialBlockSequence, MorphologyError
 from .estimation import estimate_n_atoms_linear
 
 from ..genutils.decorators.functional import allow_string_paths
@@ -124,6 +124,92 @@ def mbmol_to_rdmol(
     return rdmol
 
 # LINEAR POLYMER BUILDING
+def procrustean_polymer_sequence_alignment(
+        sequence : str,
+        n_monomers_target : int,
+        n_monomers_terminal : int,
+        allow_partial_sequences : bool=False
+    ) -> tuple[str, int]:
+    '''
+    For a given polymer block sequence "S", target linear chain length, and number of terminal monomers,
+    Returns a sequence "P" and number of repeats "r" which, taken together, satisfy the following:
+    - The number of monomers in r repeats of P plus the number of terminal monomers is precisely equal to the target number of monomers
+    - The symbols in sequence P cycle through the symbols in S, in the order they appear in S
+    - The number of times S is cycles through in P is always a rational multiple of the length of S
+    If no satisfiable sequence-count pair can be found, raises an appropriate informative exception
+    
+    Named to reflect the fact that the original sequence S will be stretched or truncated to fit the given target sequence length
+    
+    Parameters
+    ----------
+    sequence : str
+        A sequence indicating a periodic ordering of monomers in a linear polymer block (e.g. "A", "ABAC", etc)
+        Each unique symbol in the sequence corresponds to a distinct monomer in the block
+    n_monomers_target : int
+        The desired number of monomers (including terminal monomers) in a polymer chain
+    n_monomers_terminal : int
+        The number of terminal monomers ("end groups") which are to be included in the chain
+        in addition to the middle monomers described by "sequence"
+    allow_partial_sequences : bool, default False
+        Whether to allow fractional repeats of the original sequence in order to meet the target number of monomers
+        
+        For example, to construct a 12-mer chain with 2 end groups from the sequence "BACA", one would require 10 middle monomers
+        which can only be achieved with 2.5 (10/4) sequence repeats, namely as "BACA|BACA|BA"; 
+
+        This behavior may or may not be desired, depending on the use case, and can be controlled by this flag
+    
+    Returns
+    -------
+    sequence_procrustean : str
+        A possibly modified version of the original polymer block sequence
+    n_seq_repeats : int
+        The number of times "sequence_procrustean" must be repeated to achieve the target sequence length
+    
+    Raises
+    ------
+    End GroupDominatedChain
+        The number of terminal monomers exceed the number of total monomers
+    PartialBlockSequence
+        If a partial sequence repeat is required but disallowed (by setting allow_partial_sequences=False)
+    InsufficientChainLength
+        If 
+    '''
+    block_size = len(sequence)
+    n_mono_middle = n_monomers_target - n_monomers_terminal # number of terminal monomers needed to reach target; in a linear chain, all monomers are either middle or terminal
+    if n_mono_middle < 0:
+        raise EndGroupDominatedChain(f'Registered number of terminal monomers exceeds requested chain length ({n_monomers_target}-mer chain can\'t possibly contain {n_monomers_terminal} terminal monomers)')
+    
+    n_seq_whole : int         # number of full sequence repeats to reach a number of monomers less than or equal to the target
+    n_symbols_remaining : int # number of any remaining symbols in sequence (i.e. monomers) needed to close the gap to the target (allowed to be 0 if target is a multiple of the sequence length)
+    n_seq_whole, n_symbols_remaining = divmod(n_mono_middle, block_size) 
+    print(n_seq_whole, n_symbols_remaining)
+    
+    if n_symbols_remaining != 0: # a whole number of sequence repeats (including possibly 0) plus some fraction of a full block sequence
+        if not allow_partial_sequences:
+            raise PartialBlockSequence(
+                f'Partial polymer block sequence required to meet target number of monomers ("{sequence[:n_symbols_remaining]}" prefix of sequence "{sequence}"). ' \
+                'If this is acceptable, set "allow_partial_sequences=True" and try calling build routine again'
+            )    
+        sequence_procrustean = repeat_string_to_length(sequence, target_length=n_mono_middle, joiner='')
+        n_seq_repeats = 1 # just repeat the entire mixed-fraction length sequence (no full sequence repeats to exploit)
+        LOGGER.warning(
+            f'Target number of monomers is achievable WITH a partial {n_symbols_remaining}/{block_size} sequence repeat; ' \
+            f'({n_seq_whole}*{block_size} [{sequence}] + {n_symbols_remaining} [{sequence[:n_symbols_remaining]}]) middle monomers + {n_monomers_terminal} terminal monomers = {n_monomers} total monomers'
+        )
+    else: # for a purely-whole number of block sequence repeats
+        if n_seq_whole < 1: # NOTE: if it were up to me, this would be < 0 to allow dimers, but mBuild has forced my hand
+            raise InsufficientChainLength(
+                f'{n_monomers_target}-monomer chain cannot accomodate both {n_monomers_terminal} end groups AND at least 1 middle monomer sequence'
+            )
+        sequence_procrustean = sequence # NOTE: rename here is for clarity, and for consistency with partial sequence case
+        n_seq_repeats = n_seq_whole
+        LOGGER.info(
+            f'Target chain length achievable with {n_seq_repeats} whole block(s) of the sequence "{sequence_procrustean}"; ' \
+            f'({n_seq_repeats}*{block_size} [{sequence_procrustean}]) middle monomers + {n_monomers_terminal} terminal monomers = {n_monomers_target} total monomers'
+        )
+    return sequence_procrustean, n_seq_repeats
+
+
 def build_linear_polymer(
         monomers : MonomerGroup,
         n_monomers : int,
@@ -140,56 +226,25 @@ def build_linear_polymer(
         LOGGER.info(f'Using pre-defined terminal group orientation {term_orient}')
     else:
         term_orient = {
-            resname : orient
+            orient : resname
                 for (resname, rdmol), orient in zip(monomers.iter_rdmols(term_only=True), ['head', 'tail'])
         }
         LOGGER.warning(f'No valid terminal monomer orientations defined; autogenerated orientations "{term_orient}"; USER SHOULD VERIFY THIS YIELDS A CHEMICALLY-VALID POLYMER!')
 
     # 1) DETERMINE NUMBER OF SEQUENCE REPEATS NEEDED TO MEET TARGET NUMBER OF MONOMER UNITS (IF POSSIBLE) - DEV: consider making a separate function
-    block_size = len(sequence)
-    n_mono_term = len(term_orient)           # number of terminal monomers are actually present and well-defined
-    n_mono_middle = n_monomers - n_mono_term # number of terminal monomers needed to reach target; in a linear chain, all monomers are either middle or terminal
-    if n_mono_middle < 0:
-        raise InsufficientChainLength(f'Registered number of terminal monomers exceeds requested chain length ({n_monomers}-mer chain can\'t possibly contain {n_mono_term} terminal monomers)')
-    
-    n_seq_whole : int     # number of full sequence repeats to reach a number of monomers less than or equal to the target
-    n_symbols_remaining : int # number of any remaining symbols in sequence (i.e. monomers) needed to close the gap to the target (allowed to be 0 if target is a multiple of the sequence length)
-    n_seq_whole, n_symbols_remaining = divmod(n_mono_middle, block_size) 
-    print(n_seq_whole, n_symbols_remaining)
-    
-    if n_symbols_remaining != 0: # a whole number of sequence repeats (including possibly 0) plus some fraction of a full block sequence
-        if not allow_partial_sequences:
-            raise PartialBlockSequence(
-                f'Partial polymer block sequence required to meet target number of monomers ("{sequence[:n_symbols_remaining]}" prefix of sequence "{sequence}"). ' \
-                'If this is acceptable, set "allow_partial_sequences=True" and try calling build routine again'
-            )    
-        sequence_selected = repeat_string_to_length(sequence, target_length=n_mono_middle, joiner='')
-        n_seq_repeats = 1 # just repeat the entire mixed-fraction length sequence (no full sequence repeats to exploit)
-        LOGGER.warning(
-            f'Target number of monomers is achievable WITH a partial {n_symbols_remaining}/{block_size} sequence repeat; ' \
-            f'({n_seq_whole}*{block_size} [{sequence}] + {n_symbols_remaining} [{sequence[:n_symbols_remaining]}]) middle monomers + {n_mono_term} terminal monomers = {n_monomers} total monomers'
-        )
-    else: # for a purely-whole number of block sequence repeats
-        if n_seq_whole < 1: # NOTE: if it were up to me, this would be < 0 to allow dimers, but mBuild has forced by hand
-            raise InsufficientChainLength(
-                f'{n_monomers}-monomer chain cannot accomodate both {n_mono_term} end groups AND at least 1 middle monomer sequence'
-            )
-        sequence_selected = sequence # NOTE: rename here is for clarity, and for consistency with partial sequence case
-        n_seq_repeats = n_seq_whole
-        LOGGER.info(
-            f'Target chain length achievable with {n_seq_repeats} whole block(s) of the sequence "{sequence_selected}"; ' \
-            f'({n_seq_repeats}*{block_size} [{sequence_selected}]) middle monomers + {n_mono_term} terminal monomers = {n_monomers} total monomers'
-        )
-    print(sequence_selected, n_seq_repeats)
+    sequence_compliant, n_seq_repeats = procrustean_polymer_sequence_alignment(
+        sequence,
+        n_monomers_target=n_monomers,
+        n_monomers_terminal=len(term_orient), # number of terminal monomers are actually present and well-defined
+        allow_partial_sequences=allow_partial_sequences,
+    )
+    sequence_unique = unique_string(sequence_compliant, preserve_order=True) # only register a new monomer for each appearance of a new, unique symbol in the sequence
     
     # 2) REGISTERING MONOMERS TO BE USED FOR CHAIN ASSEMBLY
     monomers_selected = MonomerGroup() # used to track and estimate sized of the monomers being used for building
     ## 2A) ADD MIDDLE MONOMERS TO CHAIN
     chain = MBPolymer() 
-    for (resname, middle_monomer), symbol in zip(
-            monomers.iter_rdmols(term_only=False),
-            unique_string(sequence_selected, preserve_order=True), # only register a new monomer for each appearance of a new indicator in the sequence
-        ): # zip with sequence limits number of middle monomers to length of block sequence
+    for (resname, middle_monomer), symbol in zip(monomers.iter_rdmols(term_only=False), sequence_unique): # zip with sequence limits number of middle monomers to length of block sequence
         LOGGER.info(f'Registering middle monomer {resname} (block identifier "{symbol}")')
         mb_monomer, linker_ids = mbmol_from_mono_rdmol(middle_monomer, resname=resname)
         chain.add_monomer(compound=mb_monomer, indices=linker_ids)
@@ -200,7 +255,7 @@ def build_linear_polymer(
         resname : iter(rdmol_list)   # made necessary by annoying list-bound structure of current substructure spec
             for resname, rdmol_list in monomers.rdmols(term_only=True).items() 
     }
-    for resname, head_or_tail in term_orient.items():
+    for head_or_tail, resname in term_orient.items():
         term_monomer = next(term_iters[resname]) # will raise StopIteration if the terminal monomer in question is empty
         LOGGER.info(f'Registering terminal monomer {resname} (orientation "{head_or_tail}")')
         mb_monomer, linker_ids = mbmol_from_mono_rdmol(term_monomer, resname=resname)
@@ -213,7 +268,7 @@ def build_linear_polymer(
     
     n_atoms_est = estimate_n_atoms_linear(monomers_selected, n_monomers) # TODO: create new MonomerGroup with ONLY the registered monomers to guarantee accuracy
     LOGGER.info(f'Assembling linear {n_monomers}-mer chain (estimated {n_atoms_est} atoms)')
-    chain.build(n_seq_repeats, sequence=sequence_selected, add_hydrogens=add_Hs) # "-2" is to account for term groups (in mbuild, "n" is the number of times to replicate just the middle monomers)
+    chain.build(n_seq_repeats, sequence=sequence_compliant, add_hydrogens=add_Hs) # "-2" is to account for term groups (in mbuild, "n" is the number of times to replicate just the middle monomers)
     for atom in chain.particles():
         atom.charge = 0.0 # initialize all atoms as being uncharged (gets rid of pesky blocks of warnings)
     LOGGER.info(f'Successfully assembled linear {n_monomers}-mer chain (exactly {chain.n_particles} atoms)')
