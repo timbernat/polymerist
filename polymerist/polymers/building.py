@@ -6,6 +6,8 @@ __email__ = 'timotej.bernat@colorado.edu'
 import logging
 LOGGER = logging.getLogger(__name__)
 
+from typing import Optional
+
 import warnings
 with warnings.catch_warnings(record=True): # suppress numerous and irritating mbuild deprecation warnings
     warnings.filterwarnings('ignore',  category=DeprecationWarning)
@@ -31,23 +33,29 @@ from ..polymers.monomers.specification import SANITIZE_AS_KEKULE
 
 
 # CONVERSION
-def mbmol_from_mono_rdmol(rdmol : Chem.Mol) -> tuple[Compound, list[int]]:
-    '''Accepts a monomer-spec-compliant SMARTS string and returns an mbuild Compound and a list of the indices of atom ports'''
+def mbmol_from_mono_rdmol(rdmol : Chem.Mol, resname : Optional[str]=None) -> tuple[Compound, list[int]]:
+    '''
+    Accepts a monomer-spec-compliant SMARTS string and returns an mbuild Compound and a list of the indices of atom ports
+    If "resname" is provided, will assign that name to the mBuild Compound returned
+    '''
     linker_ids = [i for i in get_linker_ids(rdmol)] # record indices of ports - MUST unpack generator for mbuild compatibility
     
     # create port-free version of molecule which RDKit can embed without errors
     prot_mol = hydrogenate_rdmol_ports(rdmol, in_place=False)
     # prot_mol = saturate_ports(rdmol) # TOSELF : custom, port-based saturation methods are not yet ready for deployment - yield issues in RDKit representation under-the-hood 
     Chem.SanitizeMol(prot_mol, sanitizeOps=SANITIZE_AS_KEKULE) # ensure Mol is valid (avoids implicitValence issues)
+    
     mb_compound = mb.conversion.from_rdkit(prot_mol) # native from_rdkit() method actually appears to preserve atom ordering
+    if resname is not None:
+        mb_compound.name = resname
 
     return mb_compound, linker_ids
 
 @allow_string_paths
-def mbmol_to_openmm_pdb(pdb_path : Path, mbmol : Compound, num_atom_digits : int=2, res_repl : dict[str, str]=None) -> None:
+def mbmol_to_openmm_pdb(pdb_path : Path, mbmol : Compound, num_atom_digits : int=2, resname_repl : dict[str, str]=None) -> None:
     '''Save an MBuild Compound into an OpenMM-compatible PDB file'''
-    if res_repl is None: # avoid mutable default
-        res_repl = {'RES' : 'Pol'} 
+    if resname_repl is None: # avoid mutable default
+        resname_repl = {'RES' : 'Pol'} 
 
     traj = mbmol.to_trajectory() # first convert to MDTraj representation (much more infor-rich format)
     omm_top, omm_pos = traj.top.to_openmm(), traj.openmm_positions(0) # extract OpenMM representations of trajectory
@@ -58,7 +66,7 @@ def mbmol_to_openmm_pdb(pdb_path : Path, mbmol : Compound, num_atom_digits : int
         positions=omm_pos,
         uniquify_atom_ids=True,
         num_atom_id_digits=num_atom_digits,
-        resname_repl=res_repl
+        resname_repl=resname_repl
     )
 
 
@@ -108,7 +116,7 @@ def build_linear_polymer(
             unique_string(sequence, preserve_order=True), # only register a new monomer for each appearance of a new indicator in the sequence
         ): # zip with sequence limits number of middle monomers to length of block sequence
         LOGGER.info(f'Registering middle monomer {resname} (block identifier "{sequence_key}")')
-        mb_monomer, linker_ids = mbmol_from_mono_rdmol(middle_monomer)
+        mb_monomer, linker_ids = mbmol_from_mono_rdmol(middle_monomer, resname=resname)
         chain.add_monomer(compound=mb_monomer, indices=linker_ids)
         monomers_selected.monomers[resname] = monomers.monomers[resname]
 
@@ -118,9 +126,9 @@ def build_linear_polymer(
             for resname, rdmol_list in monomers.rdmols(term_only=True).items() 
     }
     for resname, head_or_tail in term_orient.items():
-        LOGGER.info(f'Registering terminal monomer {resname} (orientation "{head_or_tail}")')
         term_monomer = next(term_iters[resname])
-        mb_monomer, linker_ids = mbmol_from_mono_rdmol(term_monomer)
+        LOGGER.info(f'Registering terminal monomer {resname} (orientation "{head_or_tail}")')
+        mb_monomer, linker_ids = mbmol_from_mono_rdmol(term_monomer, resname=resname)
         chain.add_end_groups(compound=mb_monomer, index=linker_ids.pop(), label=head_or_tail, duplicate=False) # use single linker ID and provided head-tail orientation
         monomers_selected.monomers[resname] = monomers.monomers[resname]
 
