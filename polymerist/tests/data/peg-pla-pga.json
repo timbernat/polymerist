@@ -31,8 +31,8 @@
             ]
         },
         "term_orient": {
-            "PEG-1A": "head",
-            "PEG_1B": "tail"
+            "head": "PEG-1A",
+            "tail": "PEG_1B"
         }
     }
 }

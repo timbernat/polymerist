@@ -23,7 +23,7 @@ ResidueSmarts : TypeAlias = dict[str, list[str]] # monomer SMARTS strings keyed 
 class MonomerGroup:
     '''Stores collections of residue-labelled monomer SMARTS'''
     monomers : ResidueSmarts = field(default_factory=dict)
-    term_orient : dict[str, str] = field(default_factory=dict)
+    term_orient : dict[str, str] = field(default_factory=dict) # keys are either "head" or "tail", values are the names of residues in "monomers"
 
     @staticmethod
     def is_terminal(monomer : Mol) -> bool:
@@ -87,9 +87,9 @@ class MonomerGroup:
     def has_valid_linear_term_orient(self) -> bool:
         '''Check whether terminal group orientations are sufficient to define a linear polymer'''
         return (
-            bool(self.term_orient)                                       # check that: 1) the term group orientations are non-empty / non-null...
-            and all(resname in self.monomers for resname in self.term_orient.keys()) # 2) all term group keys match a present monomer...
-            and sorted(self.term_orient.values()) == ['head', 'tail']                # 3) orientation labels are only "head" and "tail" (in either order)
+            bool(self.term_orient)                                         # check that: 1) term group orientations are non-empty...
+            and set(self.term_orient.keys()) == {'head', 'tail'}                       # 2) ...orientation labels are only "head" and "tail" (in any order)...
+            and all(resname in self.monomers for resname in self.term_orient.values()) # 3) ... and all term group keys match a present monomer
         )
     
     # COMPOSITION AND I/O METHODS
