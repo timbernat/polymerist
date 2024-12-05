@@ -56,7 +56,9 @@ def test_shortest_repeating_substring(string : str, expected_output : str) -> No
         ('BACA', 4, '|', 'BACA'),            # test no joiners are added when exactly one string repeat occurs
         ('BACA', 12, '|', 'BACA|BACA|BACA'), # test no extraneous joiners are included for purely-whole number of repeats
         ('CAT', 5, '', 'CATCA'), # test with triads (and different base string)
-        pytest.param('', 7, '', None, marks=pytest.mark.xfail(raises=ValueError, reason='Empty string can\'t be repeated into nonempty string', strict=True)),
+        pytest.param(''   ,   7, '', None, marks=pytest.mark.xfail(raises=ValueError, reason='Empty string can\'t be repeated into nonempty string', strict=True)),
+        pytest.param('CAT', 4.2, '', None, marks=pytest.mark.xfail(raises=TypeError , reason='Non-integer string length doesn\'t make sense', strict=True)),
+        pytest.param('CAT',  -1, '', None, marks=pytest.mark.xfail(raises=IndexError, reason='Can\'t have string with fewer than 0 characters', strict=True)),
     ]
 )
 def test_repeat_string_to_length(string : str, target_length : int, joiner : str, expected_output : str) -> None:

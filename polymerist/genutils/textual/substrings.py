@@ -69,6 +69,10 @@ def repeat_string_to_length(string : str, target_length : int, joiner : str='') 
     '''
     if not string:
         raise ValueError(f'Cannot generate nonempty string from any amount of repeats of the empty string')
+    if not isinstance(target_length, int):
+        raise TypeError(f'Only integer target string lengths are allowed, not non-integer type "{type(target_length).__name__}"')
+    if target_length < 0:
+        raise IndexError(f'Cannot generate a string of negative length (requested length of {target_length} character(s))')
     
     num_str_reps, num_extra_chars = divmod(target_length, len(string))
     remainder = (string[:num_extra_chars],) if num_extra_chars else () # empty container avoids extra joiner at end when remainder string is empty
