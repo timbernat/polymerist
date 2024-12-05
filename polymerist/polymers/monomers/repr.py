@@ -6,12 +6,13 @@ __email__ = 'timotej.bernat@colorado.edu'
 import logging
 LOGGER = logging.getLogger(__name__)
 
-from typing import Generator, Optional, TypeAlias, Union
+from typing import Generator, Optional, Union
 from dataclasses import dataclass, field
 
+from itertools import cycle
 from collections import defaultdict
+
 from rdkit import Chem
-from rdkit.Chem.rdchem import Mol
 
 from ...genutils.iteration import iter_len
 from ...genutils.fileutils.jsonio.jsonify import make_jsonifiable
@@ -32,6 +33,8 @@ class MonomerGroup:
         # Encase bare SMARTS into lists and check that all monomer SMARTS are valid
         for resname, smarts_seq in self.monomers.items():
             if isinstance(smarts_seq, list):
+                if not smarts_seq:
+                    raise IndexError(f'Empty monomer declaration for "{resname}"') # catch case where empty list if provided (would slip through subsequent checks otherwise)
                 smarts_list = smarts_seq # no modification needed
             elif isinstance(smarts_seq, str):
                 LOGGER.warning(f'Wrapping bare monomer SMARTS in list to comply with spec (storing as ["{smarts_seq}"])')
@@ -47,7 +50,7 @@ class MonomerGroup:
         # DEV: opted to forgo term_orient check for now, as modifying this violates the read-only data model aimed for here
                 
     @staticmethod
-    def is_terminal(monomer : Mol) -> bool:
+    def is_terminal(monomer : Chem.Mol) -> bool:
         '''Determine whether or not a monomer is terminal'''
         return get_num_ports(monomer) == 1
 
@@ -57,7 +60,7 @@ class MonomerGroup:
         '''Alias of legacy "monomers" attribute'''
         return self.monomers # alias of legacy name for convenience
     
-    def iter_rdmols(self, term_only : Optional[bool]=None) -> Generator[tuple[str, Mol], None, None]:
+    def iter_rdmols(self, term_only : Optional[bool]=None) -> Generator[tuple[str, Chem.Mol], None, None]:
         '''
         Generate (residue name, RDKit Mol) pairs of all monomers present
         Simplifies iteration over internal lists of monomer Mols
@@ -73,7 +76,7 @@ class MonomerGroup:
                 if (term_only is None) or (MonomerGroup.is_terminal(monomer) == term_only):
                     yield (resname, monomer)
 
-    def rdmols(self, term_only : Optional[bool]=None) -> dict[str, list[Mol]]:
+    def rdmols(self, term_only : Optional[bool]=None) -> dict[str, list[Chem.Mol]]:
         '''
         Returns dict of RDKit Mol lists keyed by residue name
 
@@ -104,12 +107,33 @@ class MonomerGroup:
         )
         
     @property
-    def linear_end_groups(self) -> dict[str, Mol]:
+    def linear_end_groups(self) -> dict[str, Chem.Mol]:
         '''
         Returns head-and-tail end groups as defined by term_orient
-        If term orient is undefined, will 
+        
+        If term orient is undefined, will automatically take then first 
+        <= 2 terminal groups available to be the end groups
         '''
-        ...
+        if self._has_valid_linear_term_orient: 
+            LOGGER.info(f'Using user-defined terminal group orientation {self.term_orient}')
+            monomer_iters = {
+                resname : cycle(smarts_list) 
+                    for resname, smarts_list in self.rdmols(term_only=True).items()
+            } # cycle handles degenerate end group case correctly
+            
+            return {
+                head_or_tail : next(monomer_iters[resname])
+                    for head_or_tail, resname in self.term_orient.items()
+            }
+        else:
+            term_orient_auto : dict[str, Smarts] = {}
+            end_groups_auto  : dict[str, Chem.Mol] = {}
+            for head_or_tail, (resname, rdmol) in zip(['head', 'tail'], self.iter_rdmols(term_only=True)): # zip will bottom out early if fewer than 2 terminal monomers are present
+                term_orient_auto[head_or_tail] = resname
+                end_groups_auto[head_or_tail]  = rdmol
+            LOGGER.warning(f'No valid terminal monomer orientations defined; auto-assigned orientations "{term_orient_auto}"; USER SHOULD VERIFY THIS YIELDS A CHEMICALLY-VALID POLYMER!')
+                
+            return end_groups_auto
     
     # COMPOSITION METHODS
     def __add__(self, other : 'MonomerGroup') -> 'MonomerGroup':
@@ -123,7 +147,7 @@ class MonomerGroup:
     __radd__ = __add__ # support reverse addition
 
     # CHEMICAL INFORMATION
-    def unique(self, cap_group : Union[Smarts, Mol]=Chem.MolFromSmarts('[H]-[*]')) -> 'MonomerGroup':
+    def unique(self, cap_group : Union[Smarts, Chem.Mol]=Chem.MolFromSmarts('[H]-[*]')) -> 'MonomerGroup':
         '''Return a MonomerGroup containing only the unique monomers present, given a particular port saturating group (by default just a hydrogen)'''
         raise NotImplementedError
         # unique_mono = set()
