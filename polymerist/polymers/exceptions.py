@@ -12,6 +12,9 @@ class ExcessiveChainLength(Exception):
     '''Raised when the polymer molecule being built is too long'''
     pass
 
+class EndGroupDominatedChain(Exception):
+    '''Raised to indicate there are more end groups present in a chain than are monomer possibly allowed'''
+
 class PartialBlockSequence(Exception):
     '''Raised when an non-whole number of copolymer blocks is needed to reach a target chain length (and is not allowed)'''
     pass
