@@ -6,7 +6,7 @@ __email__ = 'timotej.bernat@colorado.edu'
 import numpy as np
 from rdkit import Chem
 
-from .exceptions import InsufficientChainLengthError
+from .exceptions import InsufficientChainLength
 from ..genutils.iteration import iter_len
 from ..polymers.monomers.repr import MonomerGroup
 from ..rdutils.bonding.portlib import get_num_ports
@@ -45,7 +45,7 @@ def estimate_n_monomers_infimum(monomers : MonomerGroup, n_atoms_max : int, n_mo
     '''
     n_atoms_base = estimate_n_atoms_linear(monomers, n_monomers_min)
     if n_atoms_base > n_atoms_max: # pre-check when optimization is impossible
-        raise InsufficientChainLengthError(f'Even shortest possible chain ({n_monomers_min} monomers, with {n_atoms_base} atoms) is longer than the specified max length of {n_atoms_max} atoms')
+        raise InsufficientChainLength(f'Even shortest possible chain ({n_monomers_min} monomers, with {n_atoms_base} atoms) is longer than the specified max length of {n_atoms_max} atoms')
 
     n_monomers = n_monomers_min 
     while estimate_n_atoms_linear(monomers, n_monomers + 1) < n_atoms_max: # check if adding 1 more monomer keeps the length below the threshold
