@@ -4,10 +4,8 @@ __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
 import numpy as np
-from rdkit import Chem
 
 from .exceptions import InsufficientChainLength
-from ..genutils.iteration import iter_len
 from ..polymers.monomers.repr import MonomerGroup
 from ..rdutils.bonding.portlib import get_num_ports
 
