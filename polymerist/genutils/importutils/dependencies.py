@@ -28,7 +28,8 @@ class MissingPrerequisitePackage(Exception):
         
         message = f'''
         {use_case.capitalize()} require(s) {dependency_name_formal}, which was not found in the current environment
-        Please install `{dependency_name}` by following the installation instructions at {install_link}; then try importing from "{importing_package_name}" again'''
+        Please install `{dependency_name}` by following the installation instructions at {install_link}
+        Then try importing from "{importing_package_name}" again'''
         
         super().__init__(message)
         
