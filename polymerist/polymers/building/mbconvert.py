@@ -8,8 +8,8 @@ __email__ = 'timotej.bernat@colorado.edu'
 
 from ...genutils.importutils.dependencies import modules_installed, MissingPrerequisitePackage
 
-if not modules_installed('mbuild'):
-    MissingPrerequisitePackage(
+if not modules_installed('openbabel'):
+    raise MissingPrerequisitePackage(
         importing_package_name=__spec__.name,
         use_case='Translation between chemical representations of polymers',
         install_link='https://libraries.io/conda/openbabel',

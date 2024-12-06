@@ -6,7 +6,7 @@ Currently restricted to building linear homopolymers and periodic block copolyme
 from ...genutils.importutils.dependencies import modules_installed, MissingPrerequisitePackage
 
 if not modules_installed('mbuild'):
-    MissingPrerequisitePackage(
+    raise MissingPrerequisitePackage(
         importing_package_name=__spec__.name,
         use_case='Polymer building',
         install_link='https://mbuild.mosdef.org/en/stable/getting_started/installation/installation.html',
