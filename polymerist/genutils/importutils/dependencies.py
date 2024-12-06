@@ -3,7 +3,7 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import Callable, ParamSpec, TypeVar
+from typing import Callable, Optional, ParamSpec, TypeVar
 
 Params = ParamSpec('Params')
 ReturnType = TypeVar('ReturnType')
@@ -14,6 +14,24 @@ from importlib.util import find_spec
 from functools import wraps
 
 
+class MissingPrerequisitePackage(Exception):
+    '''Raised when a package dependency cannot be found and the user should be alerted with install instructions'''
+    def __init__(self,
+            importing_package_name : str,
+            use_case : str,
+            install_link : str,
+            dependency_name : str,
+            dependency_name_formal : Optional[str]=None
+        ):
+        if dependency_name_formal is None:
+            dependency_name_formal = dependency_name
+        
+        message = f'''
+        {use_case.capitalize()} require(s) {dependency_name_formal}, which was not found in the current environment
+        Please install `{dependency_name}` by following the installation instructions at {install_link}; then try importing from "{importing_package_name}" again'''
+        
+        super().__init__(message)
+        
 def module_installed(module_name : str) -> bool:
     '''
     Check whether a module of the given name is present on the system
