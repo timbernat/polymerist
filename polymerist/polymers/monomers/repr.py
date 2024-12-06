@@ -96,24 +96,21 @@ class MonomerGroup:
         '''Returns number of present monomers; multiple monomers under the same residue name are considered distinct'''
         return iter_len(self.iter_rdmols(term_only=None))
     
-    # END GROUP DETERMINATION      
-    @property
-    def _has_valid_linear_term_orient(self) -> bool:
-        '''Check whether terminal group orientations are sufficient to define a linear polymer'''
-        return (
-            bool(self.term_orient)                                         # check that: 1) term group orientations are non-empty...
-            and set(self.term_orient.keys()) == {'head', 'tail'}                       # 2) ...orientation labels are only "head" and "tail" (in any order)...
-            and all(resname in self.monomers for resname in self.term_orient.values()) # 3) ... and all term group keys match a present monomer
-        )
-        
-    def linear_end_groups(self) -> dict[str, Chem.Mol]:
+    # END GROUP DETERMINATION 
+    def linear_end_groups(self) -> dict[str, tuple[str, Chem.Mol]]:
         '''
-        Returns head-and-tail end groups as defined by term_orient
+        Returns head-and-tail end group residue names and Mol objects as defined by term_orient
         
         If term orient is undefined, will automatically take then first 
         <= 2 terminal groups available to be the end groups
+        
+        Returns
+        -------
+        end_groups : dict[str, tuple[str, Chem.Mol]]
+            A dict whose keys are any of {'head', 'tail'} and whose
+            values are 2-tuples of residue names and Mols for the corresponding monomer
         '''
-        if self._has_valid_linear_term_orient: 
+        if self.term_orient and set(self.term_orient.keys()) == {'head', 'tail'}:
             LOGGER.info(f'Using user-defined terminal group orientation {self.term_orient}')
             monomer_iters = {
                 resname : cycle(smarts_list) 
@@ -121,15 +118,15 @@ class MonomerGroup:
             } # cycle handles degenerate end group case correctly
             
             return {
-                head_or_tail : next(monomer_iters[resname])
+                head_or_tail : (resname, next(monomer_iters[resname])) # will raise KeyError if any of the resnames are not present
                     for head_or_tail, resname in self.term_orient.items()
             }
         else:
             term_orient_auto : dict[str, Smarts] = {}
             end_groups_auto  : dict[str, Chem.Mol] = {}
             for head_or_tail, (resname, rdmol) in zip(['head', 'tail'], self.iter_rdmols(term_only=True)): # zip will bottom out early if fewer than 2 terminal monomers are present
-                term_orient_auto[head_or_tail] = resname
-                end_groups_auto[head_or_tail]  = rdmol
+                term_orient_auto[head_or_tail] = resname # populate purely for logging
+                end_groups_auto[head_or_tail]  = (resname, rdmol)
             LOGGER.warning(f'No valid terminal monomer orientations defined; auto-assigned orientations "{term_orient_auto}"; USER SHOULD VERIFY THIS YIELDS A CHEMICALLY-VALID POLYMER!')
                 
             return end_groups_auto
