@@ -174,6 +174,7 @@ def procrustean_polymer_sequence_alignment(
     InsufficientChainLength
         If the target number of monomers results in no middle monomers being included (i.e. neither full NOR partial sequence repeats)
     '''
+    # Evaluate sizes of missing components from given values
     block_size = len(sequence)
     n_mono_middle = n_monomers_target - n_monomers_terminal # number of terminal monomers needed to reach target; in a linear chain, all monomers are either middle or terminal
     if n_mono_middle < 0:
@@ -182,8 +183,8 @@ def procrustean_polymer_sequence_alignment(
     n_seq_whole : int         # number of full sequence repeats to reach a number of monomers less than or equal to the target
     n_symbols_remaining : int # number of any remaining symbols in sequence (i.e. monomers) needed to close the gap to the target (allowed to be 0 if target is a multiple of the sequence length)
     n_seq_whole, n_symbols_remaining = divmod(n_mono_middle, block_size) 
-    print(n_seq_whole, n_symbols_remaining)
-    
+
+    # Break down into cases by whether or not a whole number of sequence repeats is possible
     if n_symbols_remaining != 0: # a whole number of sequence repeats (including possibly 0) plus some fraction of a full block sequence
         if not allow_partial_sequences:
             raise PartialBlockSequence(
@@ -192,10 +193,6 @@ def procrustean_polymer_sequence_alignment(
             )    
         sequence_procrustean = repeat_string_to_length(sequence, target_length=n_mono_middle, joiner='')
         n_seq_repeats = 1 # just repeat the entire mixed-fraction length sequence (no full sequence repeats to exploit)
-        LOGGER.warning(
-            f'Target number of monomers is achievable WITH a partial {n_symbols_remaining}/{block_size} sequence repeat; ' \
-            f'({n_seq_whole}*{block_size} [{sequence}] + {n_symbols_remaining} [{sequence[:n_symbols_remaining]}]) middle monomers + {n_monomers_terminal} terminal monomers = {n_monomers} total monomers'
-        )
     else: # for a purely-whole number of block sequence repeats
         if n_seq_whole < 1: # NOTE: if it were up to me, this would be < 0 to allow dimers, but mBuild has forced my hand
             raise InsufficientChainLength(
@@ -203,10 +200,32 @@ def procrustean_polymer_sequence_alignment(
             )
         sequence_procrustean = sequence # NOTE: rename here is for clarity, and for consistency with partial sequence case
         n_seq_repeats = n_seq_whole
-        LOGGER.info(
-            f'Target chain length achievable with {n_seq_repeats} whole block(s) of the sequence "{sequence_procrustean}"; ' \
-            f'({n_seq_repeats}*{block_size} [{sequence_procrustean}]) middle monomers + {n_monomers_terminal} terminal monomers = {n_monomers_target} total monomers'
-        )
+        
+    # Generate descriptive log message to summarize sequence modifications
+    ## Determine info present for whole and partial sections
+    desc_seq_counts_parts = []
+    desc_seq_order_middle = []
+    
+    if n_seq_whole != 0: ## Whole sequence strings
+        desc_seq_counts_parts.append(f'{n_seq_whole} whole {block_size}-sequence repeats')
+        desc_seq_order_middle.append(f'{n_seq_whole}*[{sequence}]')
+        
+    if n_symbols_remaining != 0: ## Partial sequence strings
+        desc_seq_counts_parts.append(f'a partial {n_symbols_remaining}/{block_size} sequence repeat')
+        desc_seq_order_middle.append(f'[{sequence[:n_symbols_remaining]}]')
+        
+    ## Finalizing sequence counts descriptor parts
+    tally_str = f'({n_seq_whole}*{block_size} + {n_symbols_remaining}) middle monomers + {n_monomers_terminal} terminal monomers = {n_monomers_target} total monomers)'
+    if len(desc_seq_counts_parts) == 2:
+        desc_seq_counts_parts.insert(1, ' and ') # include conjunction if a mixed (i.e. both whole and fractional) solution was found
+    
+    ## Finalizing sequence order descriptor parts
+    desc_seq_order_parts = ['[END-GROUP]']*n_monomers_terminal # abut with correct amount of end group indicators
+    desc_seq_order_parts[1:-1] = desc_seq_order_middle # insert middle sections for whole and partial sequences
+    
+    ## putting everything together
+    LOGGER.info(f'Target chain length achievable with {"".join(desc_seq_counts_parts)};\n Namely, polymer will be sequenced as {" + ".join(desc_seq_order_parts)}, yielding {tally_str}')
+        
     return sequence_procrustean, n_seq_repeats
 
 def build_linear_polymer(
