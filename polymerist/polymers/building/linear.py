@@ -14,7 +14,7 @@ with warnings.catch_warnings(record=True): # suppress numerous and irritating mb
     from mbuild.lib.recipes.polymer import Polymer as MBPolymer
 
 from .mbconvert import mbmol_from_mono_rdmol
-from .sequencing import procrustean_polymer_sequence_alignment
+from .sequencing import LinearCopolymerSequencer
 from ..exceptions import MorphologyError
 from ..monomers.repr import MonomerGroup
 from ..estimation import estimate_n_atoms_linear
@@ -25,6 +25,7 @@ def build_linear_polymer(
         monomers : MonomerGroup,
         n_monomers : int,
         sequence : str='A',
+        minimize_sequence : bool=True,
         allow_partial_sequences : bool=False,
         add_Hs : bool=False,
         energy_minimize : bool=False,
@@ -33,11 +34,20 @@ def build_linear_polymer(
     and a degree of polymerization (i.e. chain length in number of monomers)) and returns an mbuild Polymer object'''
     # 1) DETERMINE NUMBER OF SEQUENCE REPEATS NEEDED TO MEET TARGET NUMBER OF MONOMER UNITS (IF POSSIBLE) - DEV: consider making a separate function
     end_groups = monomers.linear_end_groups() # cache end groups so they dont need to be recalculated when registering end groups
-    sequence_compliant, n_seq_repeats = procrustean_polymer_sequence_alignment(
-        sequence,
-        n_monomers_target=n_monomers,
-        n_monomers_terminal=len(end_groups), # number of terminal monomers are actually present and well-defined
-        allow_partial_sequences=allow_partial_sequences,
+    end_group_names = [resname for (resname, _) in end_groups.values()]
+    
+    sequencer = LinearCopolymerSequencer(
+        sequence_kernel=sequence,
+        n_repeat_units=n_monomers,
+        n_repeat_units_terminal=len(end_groups)
+    )
+    if minimize_sequence:
+        sequencer.reduce() # identify minimal subsequences
+    
+    sequence_compliant, n_seq_repeats = sequencer.procrustean_alignment(allow_partial_sequences=allow_partial_sequences)
+    LOGGER.info(
+        f'Target chain length achievable with {sequencer.describe_tally()}, ' \
+        f'namely with the sequence {sequencer.describe_order(end_group_names=end_group_names)}'
     )
     sequence_unique = unique_string(sequence_compliant, preserve_order=True) # only register a new monomer for each appearance of a new, unique symbol in the sequence
     
@@ -46,7 +56,7 @@ def build_linear_polymer(
     monomers_selected = MonomerGroup() # used to track and estimate sized of the monomers being used for building
     
     ## 2A) ADD MIDDLE MONOMERS TO CHAIN
-    for (resname, middle_monomer), symbol in zip(monomers.iter_rdmols(term_only=False), sequence_unique): # zip with sequence limits number of middle monomers to length of block sequence
+    for symbol, (resname, middle_monomer) in zip(sequence_unique, monomers.iter_rdmols(term_only=False)): # zip with sequence limits number of middle monomers to length of block sequence
         LOGGER.info(f'Registering middle monomer {resname} (block identifier "{symbol}")')
         mb_monomer, linker_ids = mbmol_from_mono_rdmol(middle_monomer, resname=resname)
         chain.add_monomer(compound=mb_monomer, indices=linker_ids)

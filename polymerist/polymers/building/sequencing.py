@@ -6,113 +6,192 @@ __email__ = 'timotej.bernat@colorado.edu'
 import logging
 LOGGER = logging.getLogger(__name__)
 
-from ..exceptions import EndGroupDominatedChain, InsufficientChainLength, EmptyBlockSequence, PartialBlockSequence
-from ...genutils.textual.substrings import repeat_string_to_length
+from typing import Iterable, Optional
+from dataclasses import dataclass, field, asdict
+
+from polymerist.polymers.exceptions import EndGroupDominatedChain, InsufficientChainLength, EmptyBlockSequence, PartialBlockSequence
+from polymerist.genutils.textual.substrings import shortest_repeating_substring, repeat_string_to_length
 
 
-def procrustean_polymer_sequence_alignment(
-        sequence : str,
-        n_monomers_target : int,
-        n_monomers_terminal : int,
-        allow_partial_sequences : bool=False
-    ) -> tuple[str, int]:
+@dataclass
+class LinearCopolymerSequencer:
     '''
-    For a given polymer block sequence "S", target linear chain length, and number of terminal monomers,
-    Returns a sequence "P" and number of repeats "r" which, taken together, satisfy the following:
-    - The number of monomers in r repeats of P plus the number of terminal monomers is precisely equal to the target number of monomers
-    - The symbols in sequence P cycle through the symbols in S, in the order they appear in S
-    - The number of times S is cycles through in P is always a rational multiple of the length of S
-    If no satisfiable sequence-count pair can be found, raises an appropriate informative exception
-    
-    Named to reflect the fact that the original sequence S will be stretched or truncated to fit the given target sequence length
+    For encapsulating information about the sequence of repeat units in a periodic, linear copolymer
+    Also covers, as trivial special cases, homopolymers and alternating copolymers
     
     Parameters
     ----------
-    sequence : str
+    sequence_kernel : str
         A sequence indicating a periodic ordering of monomers in a linear polymer block (e.g. "A", "ABAC", etc)
         Each unique symbol in the sequence corresponds to a distinct monomer in the block
-    n_monomers_target : int
-        The desired number of monomers (including terminal monomers) in a polymer chain
+    n_repeat_units : int
+        The desired total number of monomers (including terminal monomers) in a polymer chain
     n_monomers_terminal : int
         The number of terminal monomers ("end groups") which are to be included in the chain
         in addition to the middle monomers described by "sequence"
-    allow_partial_sequences : bool, default False
-        Whether to allow fractional repeats of the original sequence in order to meet the target number of monomers
         
-        For example, to construct a 12-mer chain with 2 end groups from the sequence "BACA", one would require 10 middle monomers
-        which can only be achieved with 2.5 (10/4) sequence repeats, namely as "BACA|BACA|BA"; 
-
-        This behavior may or may not be desired, depending on the use case, and can be controlled by this flag
-    
-    Returns
-    -------
-    sequence_procrustean : str
-        A possibly modified version of the original polymer block sequence
-    n_seq_repeats : int
-        The number of times "sequence_procrustean" must be repeated to achieve the target sequence length
-    
     Raises
     ------
+    EmpyBlockSequence
+        The sequence provided is empty (can't be used to define nonzero-length chain)
     End GroupDominatedChain
         The number of terminal monomers exceed the number of total monomers
-    PartialBlockSequence
-        If a partial sequence repeat is required but disallowed (by setting allow_partial_sequences=False)
-    InsufficientChainLength
-        If the target number of monomers results in no middle monomers being included (i.e. neither full NOR partial sequence repeats)
     '''
-    # Evaluate sizes of missing components from given values
-    if not sequence:
+    sequence_kernel : str
+    n_repeat_units : int
+    n_repeat_units_terminal : int = 0
+    
+    # Attribute checks and modifications
+    def __post_init__(self) -> None:
+        if not self.sequence_kernel:
             raise EmptyBlockSequence('Must provide non-empty sequence kernel to yield a valid (co)polymer sequence')
     
-    block_size = len(sequence)
-    n_mono_middle = n_monomers_target - n_monomers_terminal # number of terminal monomers needed to reach target; in a linear chain, all monomers are either middle or terminal
-    if n_mono_middle < 0:
-        raise EndGroupDominatedChain(f'Registered number of terminal monomers exceeds requested chain length ({n_monomers_target}-mer chain can\'t possibly contain {n_monomers_terminal} terminal monomers)')
-    
-    n_seq_whole : int         # number of full sequence repeats to reach a number of monomers less than or equal to the target
-    n_symbols_remaining : int # number of any remaining symbols in sequence (i.e. monomers) needed to close the gap to the target (allowed to be 0 if target is a multiple of the sequence length)
-    n_seq_whole, n_symbols_remaining = divmod(n_mono_middle, block_size) 
-
-    # Break down into cases by whether or not a whole number of sequence repeats is possible
-    if n_symbols_remaining != 0: # a whole number of sequence repeats (including possibly 0) plus some fraction of a full block sequence
-        if not allow_partial_sequences:
-            raise PartialBlockSequence(
-                f'Partial polymer block sequence required to meet target number of monomers ("{sequence[:n_symbols_remaining]}" prefix of sequence "{sequence}"). ' \
-                'If this is acceptable, set "allow_partial_sequences=True" and try calling build routine again'
-            )    
-        sequence_procrustean = repeat_string_to_length(sequence, target_length=n_mono_middle, joiner='')
-        n_seq_repeats = 1 # just repeat the entire mixed-fraction length sequence (no full sequence repeats to exploit)
-    else: # for a purely-whole number of block sequence repeats
-        if n_seq_whole < 1: # NOTE: if it were up to me, this would be < 0 to allow dimers, but mBuild has forced my hand
-            raise InsufficientChainLength(
-                f'{n_monomers_target}-monomer chain cannot accomodate both {n_monomers_terminal} end groups AND at least 1 middle monomer sequence'
+        if self.n_repeat_units_middle < 0:
+            raise EndGroupDominatedChain(
+                f'Number of terminal monomers exceeds requested chain length; ({self.n_repeat_units}-mer ' \
+                f'chain can\'t possibly contain {self.n_repeat_units_terminal} terminal monomers)'
             )
-        sequence_procrustean = sequence # NOTE: rename here is for clarity, and for consistency with partial sequence case
-        n_seq_repeats = n_seq_whole
+            
+    def copy(self) -> 'LinearCopolymerSequencer':
+        '''Returns another equivalent instance of the current sequence info more efficiently than a complete deepcopy'''
+        return self.__class__(**asdict(self))
+            
+    def reduce(self) -> None:
+        '''
+        Determines if there is a shorter repeating subsequence making up the current sequence kernel
+        If there is, adjusts the sequence kernel to that minimal sequence; does nothing otherwise
         
-    # Generate descriptive log message to summarize sequence modifications
-    ## Determine info present for whole and partial sections
-    desc_seq_counts_parts = []
-    desc_seq_order_middle = []
+        Reduction is idempotent, and guarantees that the smallest possible kernel is used when sequencing
+        '''
+        minimal_subsequence = shortest_repeating_substring(self.sequence_kernel)
+        kernel_period = self.block_size // len(minimal_subsequence) # account for any periodic shortening WITHIN the kernel
+        
+        if kernel_period == 1:
+            LOGGER.info(f'Sequence kernel "{self.sequence_kernel}" is already fully reduced; no changes made')
+            return
+        else:
+            LOGGER.info(
+                f'Sequence kernel "{self.sequence_kernel}" can be further decomposed as {kernel_period}*"{minimal_subsequence}"; ' \
+                f'Setting kernel to minimal subsequence "{minimal_subsequence}"'
+            )
+            self.sequence_kernel = minimal_subsequence
     
-    if n_seq_whole != 0: ## Whole sequence strings
-        desc_seq_counts_parts.append(f'{n_seq_whole} whole {block_size}-sequence repeats')
-        desc_seq_order_middle.append(f'{n_seq_whole}*[{sequence}]')
+    def reduced(self) -> 'LinearCopolymerSequencer':
+        '''Return a sequence-reduced version of the current sequence info'''
+        clone = self.copy()
+        clone.reduce()
         
-    if n_symbols_remaining != 0: ## Partial sequence strings
-        desc_seq_counts_parts.append(f'a partial {n_symbols_remaining}/{block_size} sequence repeat')
-        desc_seq_order_middle.append(f'[{sequence[:n_symbols_remaining]}]')
+        return clone
         
-    ## Finalizing sequence counts descriptor parts
-    tally_str = f'({n_seq_whole}*{block_size} + {n_symbols_remaining}) middle monomers + {n_monomers_terminal} terminal monomers = {n_monomers_target} total monomers)'
-    if len(desc_seq_counts_parts) == 2:
-        desc_seq_counts_parts.insert(1, ' and ') # include conjunction if a mixed (i.e. both whole and fractional) solution was found
+    # Properties derived from sequence kernel and target chain lengths
+   
+    @property
+    def n_repeat_units_middle(self) -> int:
+        '''Number of middle (i.e. non-terminal) repeat units'''
+        return self.n_repeat_units - self.n_repeat_units_terminal
+
+    # Whole sequence periods
+    @property
+    def block_size(self) -> int:
+        '''Number of repeat units units in one whole iteration of the kernel block'''
+        return len(self.sequence_kernel)
+    period = block_size
     
-    ## Finalizing sequence order descriptor parts
-    desc_seq_order_parts = ['[END-GROUP]']*n_monomers_terminal # abut with correct amount of end group indicators
-    desc_seq_order_parts[1:-1] = desc_seq_order_middle # insert middle sections for whole and partial sequences
+    @property
+    def n_full_periods(self) -> int:
+        '''
+        Largest number of complete repetitions of the sequence kernel which, when taken
+        together, contain no more repeats units than the specified number of middle units
+        '''
+        return self.n_repeat_units_middle // self.block_size
     
-    ## putting everything together
-    LOGGER.info(f'Target chain length achievable with {"".join(desc_seq_counts_parts)};\n Namely, polymer will be sequenced as {" + ".join(desc_seq_order_parts)}, yielding {tally_str}')
+    # Partial sequence residues
+    @property
+    def n_residual_repeat_units(self) -> int:
+        '''
+        Difference between number of middle repeat units and units which
+        would occur in maximal full periods of the kernel
         
-    return sequence_procrustean, n_seq_repeats
+        By construction, is no greater than the block size and is
+        identically zero exactly when a whole number of kernel repeats
+        '''
+        return self.n_repeat_units_middle % self.block_size
+    n_residual_symbols = n_res = n_residual_repeat_units
+    
+    @property
+    def has_residual(self) -> bool:
+        '''
+        Whether or not the target number of middle repeat units
+        can be attained by a whole number of kernel repeats
+        '''
+        return bool(self.n_residual_repeat_units)
+    
+    @property
+    def sequence_residual(self) -> str:
+        '''Partial repeat of the kernel sequence needed to attain the speficied number of middle units'''
+        return self.sequence_kernel[:self.n_residual_repeat_units]
+    residual = sequence_residual
+    
+    ## PROCRUSTEAN sequence alignment
+    def procrustean_alignment(self, allow_partial_sequences : bool=False) -> tuple[str, int]:
+        '''
+        PROCRUSTEAN: Periodic Repetition Of Cyclic Repeat Unit Sequences, Truncated to an Exact and Arbitrary Number
+        Stretches or truncates the sequence kernel to achieve a target sequence length
+        
+        Algorithm produces a sequence string "P" and number of repeats "r" which, taken together, satisfy the following:
+        - The number of units in r repeats of P plus the number of terminal monomers is precisely equal to the target number of monomers
+        - The units in P cycle through the units in S, in the order they appear in S
+        - The number of times S is cycled through in P is always a rational multiple of the length of S
+        If no satisfiable sequence-count pair can be found, raises an appropriate informative exception
+        '''
+        if not self.has_residual: # the case where the target length happens to consist of a whole-number of repeats of the kernel
+            if self.n_full_periods < 1: # NOTE: if it were up to me, this would be < 0 to allow dimers, but mBuild has forced my hand
+                raise InsufficientChainLength(
+                    f'{self.n_repeat_units}-monomer chain cannot accomodate both {self.n_repeat_units_terminal} end groups AND at least 1 middle monomer sequence'
+                )
+            sequence_procrustean = self.sequence_kernel
+            n_seq_repeats = self.n_full_periods
+        else:
+            if not allow_partial_sequences:
+                raise PartialBlockSequence(
+                    f'Partial polymer block sequence required to meet target number of monomers ("{self.residual}" prefix of sequence "{self.sequence_kernel}");\n' \
+                    'If this is acceptable, set "allow_partial_sequences=True" and try calling build routine again'
+                )    
+            sequence_procrustean = repeat_string_to_length(self.sequence_kernel, target_length=self.n_repeat_units_middle, joiner='')
+            n_seq_repeats = 1 # just repeat the entire mixed-fraction length sequence (no full sequence repeats to exploit)
+            
+        return sequence_procrustean, n_seq_repeats
+    
+    def describe_order(self, end_group_names : Optional[Iterable[str]]=None, default_end_group_name : str='END-GROUP') -> str:
+        '''Descriptive string presenting a condensed view of the order of repeat units in the final sequence'''
+        # Assign names for end groups
+        if end_group_names is None:
+            end_group_names = [f'[{default_end_group_name}]']*self.n_repeat_units_terminal 
+        else:
+            end_group_names = [f'[{end_group_name}]' for end_group_name in end_group_names] # unpack into list and enforce correct number of names
+        if (num_names_provided := len(end_group_names)) != self.n_repeat_units_terminal: # DEV: consider supporting filling in missing names with default in future
+            raise IndexError(f'Defined sequence info with {self.n_repeat_units_terminal} end groups, but only provided names for {num_names_provided}')
+        
+        # Insert middle omnomer parts as necessary
+        sequence_middle = []
+        if self.n_full_periods != 0: ## Whole sequence strings
+            sequence_middle.append(f'{self.n_full_periods}*[{self.sequence_kernel}]')
+        if self.has_residual: ## Partial sequence strings
+            sequence_middle.append(f'[{self.residual}]')
+            
+        # Abut with correct amount of end group indicators
+        sequence_parts = end_group_names[:] 
+        sequence_parts[1:-1] = sequence_middle
+        
+        return ' + '.join(sequence_parts)
+    
+    def describe_tally(self) -> str:
+        '''Descriptive string indicating how all parts of the overall sequence contribute to the target number of repeat units'''
+        desc_seq_counts_parts = []
+        if self.n_full_periods != 0: ## Whole sequence strings
+            desc_seq_counts_parts.append(f'{self.n_full_periods} whole {self.block_size}-sequence repeat(s)')
+        if self.has_residual: ## Partial sequence strings
+            desc_seq_counts_parts.append(f'a partial {self.n_residual_repeat_units}/{self.block_size} sequence repeat')
+            
+        return ' and '.join(desc_seq_counts_parts)
+        
