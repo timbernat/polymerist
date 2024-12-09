@@ -9,8 +9,6 @@ LOGGER = logging.getLogger(__name__)
 import warnings
 with warnings.catch_warnings(record=True): # suppress numerous and irritating mbuild deprecation warnings
     warnings.filterwarnings('ignore',  category=DeprecationWarning)
-    import mbuild as mb
-    from mbuild import Compound
     from mbuild.lib.recipes.polymer import Polymer as MBPolymer
 
 from .mbconvert import mbmol_from_mono_rdmol
