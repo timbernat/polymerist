@@ -6,7 +6,7 @@ __email__ = 'timotej.bernat@colorado.edu'
 import logging
 LOGGER = logging.getLogger(__name__)
 
-from ..exceptions import EndGroupDominatedChain, InsufficientChainLength, PartialBlockSequence
+from ..exceptions import EndGroupDominatedChain, InsufficientChainLength, EmptyBlockSequence, PartialBlockSequence
 from ...genutils.textual.substrings import repeat_string_to_length
 
 
@@ -61,6 +61,9 @@ def procrustean_polymer_sequence_alignment(
         If the target number of monomers results in no middle monomers being included (i.e. neither full NOR partial sequence repeats)
     '''
     # Evaluate sizes of missing components from given values
+    if not sequence:
+            raise EmptyBlockSequence('Must provide non-empty sequence kernel to yield a valid (co)polymer sequence')
+    
     block_size = len(sequence)
     n_mono_middle = n_monomers_target - n_monomers_terminal # number of terminal monomers needed to reach target; in a linear chain, all monomers are either middle or terminal
     if n_mono_middle < 0:
