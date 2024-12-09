@@ -13,11 +13,11 @@ from rdkit.Chem.rdchem import BondType
 Smiles : TypeAlias = str # purely for improving self-documentation of functions, no benefit to static type-checkers
 Smarts : TypeAlias = str # purely for improving self-documentation of functions, no benefit to static type-checkers
 
-def is_valid_SMARTS(smarts : str) -> bool:
+def is_valid_SMARTS(smarts : Smarts) -> bool:
     '''Check if SMARTS string is valid (according to RDKit)'''
     return (Chem.MolFromSmarts(smarts) is not None)
 
-def is_valid_SMILES(smiles : str) -> bool:
+def is_valid_SMILES(smiles : Smiles) -> bool:
     '''Check if SMARTS string is valid (according to RDKit)'''
     return (Chem.MolFromSmiles(smiles) is not None)
 
