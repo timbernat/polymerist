@@ -15,4 +15,7 @@ if not modules_installed('mbuild'):
     )
     
 from .linear import build_linear_polymer
-from .mbconvert import mbmol_to_openmm_pdb, mbmol_from_mono_rdmol, mbmol_to_rdmol
+from .mbconvert import (
+    mbmol_from_mono_rdmol, mbmol_to_rdmol,
+    mbmol_to_openmm_pdb, mbmol_to_rdkit_pdb,
+)
