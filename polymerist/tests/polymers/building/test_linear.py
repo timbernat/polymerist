@@ -1,4 +1,4 @@
-'''Unit tests for `attrs` package'''
+'''Tests construction of structures for linear copolymers (and relevant subfamilies, e.g. homopolymers)'''
 
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
@@ -13,6 +13,4 @@ from polymerist.polymers import building
 
 @pytest.fixture
 def fragments_path() -> Path:
-    return get_file_path_within_package('peg=pla-pga.json', testdata)
-
-# Also add separate tests module for polymers.estimation
+    return get_file_path_within_package('peg-pla-pga.json', testdata)
