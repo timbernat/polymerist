@@ -46,7 +46,8 @@ class MonomerGroup:
             # check that all SMARTS are valid
             for i, smarts in enumerate(smarts_list): # we can now be sure that this is a list of SMARTS strings
                 if not is_valid_SMARTS(smarts):
-                    raise ValueError(f'Provided invalid monomer SMARTS string for {resname}[{i}]: "{smarts}"')               
+                    raise ValueError(f'Provided invalid monomer SMARTS string for {resname}[{i}]: "{smarts}"')      
+                # DEV: decide whether or not SMILES expansion and spec-compliance should be enforced here or shunted off to the user 
         # DEV: opted to forgo term_orient check for now, as modifying this violates the read-only data model aimed for here
                 
     @staticmethod
