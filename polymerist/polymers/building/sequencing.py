@@ -137,8 +137,8 @@ class LinearCopolymerSequencer:
     ## PROCRUSTEAN sequence alignment
     def procrustean_alignment(self, allow_partial_sequences : bool=False) -> tuple[str, int]:
         '''
-        PROCRUSTEAN: Periodic Repetition Of Cyclic Repeat Unit Sequences, Truncated to an Exact and Arbitrary Number
-        Stretches or truncates the sequence kernel to achieve a target sequence length
+        PROCRUSTEAN: Periodic Recurrence Of Cyclic Repeat Unit Sequences, Truncated to an Exact and Arbitrary Number
+        Stretches or truncates the sequence kernel to achieve a target sequence length, cycling through the kernel's period as many times as needed
         
         Algorithm produces a sequence string "P" and number of repeats "r" which, taken together, satisfy the following:
         - The number of units in r repeats of P plus the number of terminal monomers is precisely equal to the target number of monomers
