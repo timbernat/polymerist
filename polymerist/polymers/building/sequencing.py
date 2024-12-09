@@ -9,10 +9,12 @@ LOGGER = logging.getLogger(__name__)
 from typing import Iterable, Optional
 from dataclasses import dataclass, field, asdict
 
-from polymerist.polymers.exceptions import EndGroupDominatedChain, InsufficientChainLength, EmptyBlockSequence, PartialBlockSequence
-from polymerist.genutils.textual.substrings import shortest_repeating_substring, repeat_string_to_length
+from ...genutils.textual.substrings import shortest_repeating_substring, repeat_string_to_length
+from ...genutils.fileutils.jsonio.jsonify import make_jsonifiable
+from ..exceptions import EndGroupDominatedChain, InsufficientChainLength, EmptyBlockSequence, PartialBlockSequence
 
 
+@make_jsonifiable
 @dataclass
 class LinearCopolymerSequencer:
     '''
