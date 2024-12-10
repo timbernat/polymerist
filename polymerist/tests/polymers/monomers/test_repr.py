@@ -70,17 +70,6 @@ def monogrp_peg_plga() ->  MonomerGroup:
             ),
         ),
         pytest.param(
-            { # ...2) empty lists
-                'PGA-1A': [],
-                'PGA-2' : [],
-            },
-            marks=pytest.mark.xfail(
-                raises=IndexError,
-                reason='At least one monomer fragment input is empty',
-                strict=True,
-            ),
-        ),
-        pytest.param(
             { # ...3) non-empty strings which are nevertheless invalid SMARTS 
              #- NOTE: empty strings, perhaps surprisingly, actually ARE valid as SMARTS and therefore aren't xfail tested here
                 'fake-1': ['this is a bogus SMARTS'],
@@ -93,7 +82,7 @@ def monogrp_peg_plga() ->  MonomerGroup:
             ),
         ),
         pytest.param(
-            { # ...3a) this one is very subtle, but SMARTS with slight errors which invalidate themas SMARTS should also fail
+            { # ...3a) this one is very subtle, but SMARTS with slight errors which invalidate them as SMARTS should also fail
                 'PGA-1A': ['[OH]CD(=O)*'], # fat-finger mistake, "D" should be "C"
                 'PGA-2': ['*OCC(+O)*'], # forgot to hit shift when typing double bond
             },

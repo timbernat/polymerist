@@ -6,7 +6,7 @@ __email__ = 'timotej.bernat@colorado.edu'
 import logging
 LOGGER = logging.getLogger(__name__)
 
-from typing import Generator, Optional, Union
+from typing import Generator, Optional, Iterable, Union
 from dataclasses import dataclass, field
 
 from itertools import cycle
@@ -31,36 +31,62 @@ class MonomerGroup:
 
     def __post_init__(self) -> None:
         # Encase bare SMARTS into lists and check that all monomer SMARTS are valid
-        for resname, smarts_seq in self.monomers.items():
-            if isinstance(smarts_seq, list):
-                if not smarts_seq:
-                    raise IndexError(f'Empty monomer declaration for "{resname}"') # catch case where empty list if provided (would slip through subsequent checks otherwise)
-                smarts_list = smarts_seq # no modification needed
-            elif isinstance(smarts_seq, str):
-                LOGGER.warning(f'Wrapping bare monomer SMARTS in list to comply with spec (storing as ["{smarts_seq}"])')
-                smarts_list = [smarts_seq] # wrap lone SMARTS string in list
-                self.monomers[resname] = smarts_list # update value internally (doesn't change size of dict)
-            else:
-                raise TypeError(f'Values of monomers must be either SMARTS strings or lists of SMARTS strings, not "{type(smarts_seq).__name__}"')
-            
-            # check that all SMARTS are valid
-            for i, smarts in enumerate(smarts_list): # we can now be sure that this is a list of SMARTS strings
-                if not is_valid_SMARTS(smarts):
-                    raise ValueError(f'Provided invalid monomer SMARTS string for {resname}[{i}]: "{smarts}"')      
-                # DEV: decide whether or not SMILES expansion and spec-compliance should be enforced here or shunted off to the user 
+        monomers_init = self.monomers # store inputted values
+        self.monomers = {} # clear monomers and re-add one-at-a-time
+        for resname, smarts in monomers_init.items():
+            self.add_monomer(resname, smarts)
         # DEV: opted to forgo term_orient check for now, as modifying this violates the read-only data model aimed for here
                 
+    # ATTRIBUTE PROPERTIES AND ALIASES
     @staticmethod
     def is_terminal(monomer : Chem.Mol) -> bool:
         '''Determine whether or not a monomer is terminal'''
         return get_num_ports(monomer) == 1
+    
+    def _add_monomer(self, resname : str, smarts : Smarts) -> None:
+        '''Add a new monomer to the templates already stored within, subject to validation checks'''
+        if not isinstance(smarts, str): 
+            raise TypeError(f'Values of monomers must be either SMARTS strings or lists of SMARTS strings, not "{type(smarts).__name__}"')
+        # DEV: include check for empty string? (technically still a valid SMARTS string, but a pretty pathological one at that)
+        if not is_valid_SMARTS(smarts):
+            raise ValueError(f'Provided invalid monomer SMARTS string for {resname}: "{smarts}"') 
+        # DEV: decide whether or not SMILES expansion and spec-compliance should be enforced here or shunted off to the user 
+        
+        if resname in self.monomers:
+            existing_resgroup = self.monomers[resname]
+            if isinstance(existing_resgroup, list) and (smarts not in existing_resgroup):
+                LOGGER.info(f'Extending existing residue category "{resname}" with SMARTS {smarts}')
+                self.monomers[resname].append(smarts)
+        else:
+            LOGGER.info(f'Creating new residue category "{resname}", containing singular SMARTS ["{smarts}"])')
+            self.monomers[resname] = [smarts]
+            
+    def _add_monomers(self, resname : str, smarts_container : Iterable[Smarts]) -> None:
+        '''Add new monomers to the templates already stored within, subject to validation checks, from an iterable container'''
+        for smarts in smarts_container:
+            self._add_monomer(resname, smarts)
+    
+    def add_monomer(self, resname : str, smarts : Union[Smarts, Iterable[Smarts]]) -> None:
+        '''Register new monomers, either directly from SMARTS or from a container of SMARTS'''
+        if isinstance(smarts, Iterable) and not isinstance(smarts, str): # don;t want to insert one character at a time if a string is in fact provided
+            self._add_monomers(resname, smarts)
+        else:
+            self._add_monomer(resname, smarts) # assume any other inputs are singular values or strings 
+    
+    def __getitem__(self, resname : str) -> str:
+        '''Convenience method to access .monomers directly from instance'''
+        return self.monomers[resname] # NOTE: deliberately avoid "get()" here to propagate KeyError
 
-    # ATTRIBUTE PROPERTIES AND ALIASES
+    def __setitem__(self, resname : str, smarts : Smarts) -> str:
+        '''Convenience method to access .monomers directly from instance'''
+        self.add_monomer(resname, smarts)
+    
     @property
     def SMARTS(self) -> dict[str, list[Smarts]]:
         '''Alias of legacy "monomers" attribute'''
         return self.monomers # alias of legacy name for convenience
     
+    # ITERATION OVER STORED MOLECULE FRAGMENTS
     def iter_rdmols(self, term_only : Optional[bool]=None) -> Generator[tuple[str, Chem.Mol], None, None]:
         '''
         Generate (residue name, RDKit Mol) pairs of all monomers present
@@ -91,6 +117,13 @@ class MonomerGroup:
             rdmol_dict[resname].append(rdmol)
 
         return rdmol_dict
+    
+    def contributions(self, term_only : Optional[bool]=None) -> dict[str, list[int]]:
+        '''Returns dict of the number of real (i.e. non-linker) atoms in each residue list'''
+        return {
+            resname : [mol.GetNumAtoms() - get_num_ports(mol) for mol in mol_list]
+                for resname, mol_list in self.rdmols(term_only=term_only).items()
+        }
     
     @property
     def n_monomers(self) -> int:
