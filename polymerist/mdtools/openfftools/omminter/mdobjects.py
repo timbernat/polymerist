@@ -15,7 +15,7 @@ from openmm import System
 from openmm.app import Topology as OMMTopology
 from openmm.unit import Quantity
 
-from .unitsys import openff_to_openmm
+from ..unitsys import openff_to_openmm
 from .. import FFDIR
 from ..boxvectors import box_vectors_flexible, VectorQuantity, BoxVectorsQuantity
 
