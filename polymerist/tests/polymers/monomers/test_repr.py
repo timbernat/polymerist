@@ -7,17 +7,27 @@ from typing import Any
 
 import pytest
 
-from ..import PEG_PLGA_FRAGMENTS, MPD_TMC_FRAGMENTS
+from ..import PE_FRAGMENTS, MPD_TMC_FRAGMENTS, PEG_PLGA_FRAGMENTS
 from polymerist.polymers.monomers.repr import MonomerGroup
 
 
+# Example fragments groups
 @pytest.fixture(scope='function') # want to re-initialize for each test function to avoid cross-contamination
+def monogrp_degenerate() ->  MonomerGroup:
+    return MonomerGroup(monomers={})
+
+@pytest.fixture(scope='function')
+def monogrp_polyethylene() ->  MonomerGroup:
+    return MonomerGroup(monomers=PE_FRAGMENTS)
+
+@pytest.fixture(scope='function')
+def monogrp_mpd_tmc() ->  MonomerGroup:
+    return MonomerGroup(monomers=MPD_TMC_FRAGMENTS)
+
+@pytest.fixture(scope='function')
 def monogrp_peg_plga() ->  MonomerGroup:
     return MonomerGroup(monomers=PEG_PLGA_FRAGMENTS)
 
-@pytest.fixture(scope='function') # want to re-initialize for each test function to avoid cross-contamination
-def monogrp_mpd_tmc() ->  MonomerGroup:
-    return MonomerGroup(monomers=MPD_TMC_FRAGMENTS)
 
 # Testing all routes to initialization
 @pytest.mark.parametrize(
