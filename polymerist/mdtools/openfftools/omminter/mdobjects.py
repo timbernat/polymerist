@@ -39,8 +39,13 @@ def forcefield_flexible(forcefield : Union[ForceField, str, Path]) -> ForceField
 
         return ForceField(ff_path)
 
-def openff_topology_to_openmm(offtop : OFFTopology, forcefield : Union[ForceField, str, Path], box_vecs : Optional[Union[VectorQuantity, BoxVectorsQuantity]]=None,
-                              combine_nonbonded_forces : bool=False, add_constrained_forces : bool=False) -> tuple[OMMTopology, System, Quantity]:
+def openff_topology_to_openmm(
+            offtop : OFFTopology,
+            forcefield : Union[ForceField, str, Path],
+            box_vecs : Optional[Union[VectorQuantity, BoxVectorsQuantity]]=None,
+            combine_nonbonded_forces : bool=False,
+            add_constrained_forces : bool=False
+        ) -> tuple[OMMTopology, System, Quantity]:
     '''Converts an OpenFF Topology to an OpenMM Topology, System, and Positions'''
     if box_vecs is not None:
         offtop.box_vectors = box_vectors_flexible(box_vecs)
