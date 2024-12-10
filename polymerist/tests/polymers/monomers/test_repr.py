@@ -138,6 +138,11 @@ def test_monogrp_mid_and_term_counts(monogrp : MonomerGroup, expected_counts : t
             {}, 
             {'head' : 'PE1'},
         ), 
+        ( # ...term orientation is unspecified and no end monomers are available for auto-assignment
+            'monogrp_degenerate',
+            {}, 
+            {},
+        ), 
         ( # ...term orientation is unspecified but can be completed for both ends (i.e. at least 2 terminal monomers are available)
             'monogrp_peg_plga',
             {}, 
