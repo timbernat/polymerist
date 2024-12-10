@@ -29,6 +29,7 @@ class MonomerGroup:
     monomers : dict[str, Union[Smarts, list[Smarts]]] = field(default_factory=dict)
     term_orient : dict[str, str] = field(default_factory=dict) # keys are either "head" or "tail", values are the names of residues in "monomers"
 
+    # MONOMER ADDITION AND VALIDATION
     def __post_init__(self) -> None:
         # Encase bare SMARTS into lists and check that all monomer SMARTS are valid
         monomers_init = self.monomers # store inputted values
@@ -37,12 +38,6 @@ class MonomerGroup:
             self.add_monomer(resname, smarts)
         # DEV: opted to forgo term_orient check for now, as modifying this violates the read-only data model aimed for here
                 
-    # ATTRIBUTE PROPERTIES AND ALIASES
-    @staticmethod
-    def is_terminal(monomer : Chem.Mol) -> bool:
-        '''Determine whether or not a monomer is terminal'''
-        return get_num_ports(monomer) == 1
-    
     def _add_monomer(self, resname : str, smarts : Smarts) -> None:
         '''Add a new monomer to the templates already stored within, subject to validation checks'''
         if not isinstance(smarts, str): 
@@ -73,6 +68,7 @@ class MonomerGroup:
         else:
             self._add_monomer(resname, smarts) # assume any other inputs are singular values or strings 
     
+    # DUNDER "MAGIC" METHODS
     def __getitem__(self, resname : str) -> str:
         '''Convenience method to access .monomers directly from instance'''
         return self.monomers[resname] # NOTE: deliberately avoid "get()" here to propagate KeyError
@@ -82,6 +78,17 @@ class MonomerGroup:
     def __setitem__(self, resname : str, smarts : Smarts) -> str:
         '''Convenience method to access .monomers directly from instance'''
         self.add_monomer(resname, smarts)
+        
+    def __hash__(self) -> int:
+        '''Hash based on monomer SMARTS and terminal orientation in a canonical order'''
+        # TOSELF: this is far from bulletproof, viz. canonicalzation of SMARTS, list value sorting, etc
+        return hash(f'{sorted(self.monomers.items())}{sorted(self.term_orient.items())}')
+    
+    # ATTRIBUTE PROPERTIES AND ALIASES
+    @staticmethod
+    def is_terminal(monomer : Chem.Mol) -> bool:
+        '''Determine whether or not a monomer is terminal'''
+        return get_num_ports(monomer) == 1
     
     @property
     def SMARTS(self) -> dict[str, list[Smarts]]:
