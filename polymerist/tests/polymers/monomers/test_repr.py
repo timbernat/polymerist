@@ -138,8 +138,49 @@ def test_monogrp_mid_and_term_counts(monogrp : MonomerGroup, expected_counts : t
 @pytest.mark.parametrize(
     'monogrp, term_orient, expected_end_groups',
     [
-        ('monogrp_peg_plga', {}, {'head' : 'PEG-1A', 'tail' : 'PEG-1B'}), # test autogeneration from first 2 when
-        ('monogrp_mpd_tmc', (3, 2)),
+        # 1) test autogeneration of orientations when...
+        ( # ...term orientation is unspecified but can be completed for both ends (i.e. at least 2 terminal monomers are available)
+            'monogrp_peg_plga',
+            {}, 
+            {'head' : 'PEG-1A', 'tail' : 'PEG-1B'},
+        ), 
+        ( # ...term orientation is unspecified and can only be partially completed (i.e. fewer than 2 terminal monomers are available)
+            'monogrp_polyethylene',
+            {}, 
+            {'head' : 'PE1'},
+        ), 
+        ( # ...term orientation is unspecified but can be completed for both ends (i.e. at least 2 terminal monomers are available)
+            'monogrp_peg_plga',
+            {}, 
+            {'head' : 'PEG-1A', 'tail' : 'PEG-1B'},
+        ), 
+        # 2) test end group identification for correctly-specified term orientation
+        ( # test nominal case
+            'monogrp_peg_plga',
+            {'head' : 'PGA-1A', 'tail' : 'PEG-1B'},
+            {'head' : 'PGA-1A', 'tail' : 'PEG-1B'},
+        ), 
+        ( # test that duplication works as expected
+            'monogrp_polyethylene',
+            {'head' : 'PE1', 'tail' : 'PE1'},
+            {'head' : 'PE1', 'tail' : 'PE1'},
+        ), 
+        # 3) test incorrect specifications
+        ( # specification without "head"/"tail" keys will not fail, but WILL default to auto-gen
+            'monogrp_peg_plga',
+            {'first' : 'PGA-1A', 'second' : 'PEG-1B'},
+            {'head' : 'PEG-1A', 'tail' : 'PEG-1B'},
+        ), 
+        pytest.param( # specification with invalid monomer names (i.e. keys not in the "monomers" dict) should raise outright error
+            'monogrp_peg_plga',
+            {'head' : 'PGG-2C', 'tail' : 'BOGUS'},
+            None,
+            marks=pytest.mark.xfail(
+                raises=KeyError,
+                reason='Term group names specified don;t existing within the monomer fragments defined',
+                strict=True,
+            )
+        ),
     ],
 )
 def test_monogrp_end_groups(monogrp : MonomerGroup, term_orient : dict[str, str], expected_end_groups : dict[str, str], request : pytest.FixtureRequest) -> None:
