@@ -76,6 +76,8 @@ class MonomerGroup:
     def __getitem__(self, resname : str) -> str:
         '''Convenience method to access .monomers directly from instance'''
         return self.monomers[resname] # NOTE: deliberately avoid "get()" here to propagate KeyError
+        # BUG: user can directly append to the returned value to forgo monomer validation checks;
+        # this is not unit to __getitem__ but rather a consequence of thinly-wrapping builtin types
 
     def __setitem__(self, resname : str, smarts : Smarts) -> str:
         '''Convenience method to access .monomers directly from instance'''
