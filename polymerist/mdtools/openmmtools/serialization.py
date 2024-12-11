@@ -119,8 +119,15 @@ def serialize_system(sys_path : Path, system : System) -> None:
         file.write(XmlSerializer.serialize(system))
 
 @allow_string_paths
-def serialize_openmm_pdb(pdb_path : Path, topology : OpenMMTopology, positions : Union[NDArray, list[Vec3]], keep_chain_and_res_ids : bool=True,
-                         uniquify_atom_ids : bool=True, num_atom_id_digits : int=2, resname_map : Optional[dict[str, str]]=None) -> None:
+def serialize_openmm_pdb(
+        pdb_path : Path,
+        topology : OpenMMTopology,
+        positions : Union[NDArray, list[Vec3]],
+        keep_chain_and_res_ids : bool=True,
+        uniquify_atom_ids : bool=True,
+        num_atom_id_digits : int=2,
+        resname_map : Optional[dict[str, str]]=None
+    ) -> None:
     '''Configure and write an Protein DataBank File from an OpenMM Topology and array of positions
     Provides options to configure atom ID numbering, residue numbering, and residue naming'''
     if resname_map is None:
