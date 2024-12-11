@@ -121,9 +121,10 @@ def mbmol_to_openmm_pdb(
     if resname_map is None: # avoid mutable default
         resname_map = _DEFAULT_RESNAME_MAP 
 
-    traj = mbmol.to_trajectory() # first convert to MDTraj representation (much more infor-rich format)
+     # NOTE: converting through MDTraj first before going to OpenMM preserves much
+     # of the necessary chemical info that is discarded when converting through other formats
+    traj = mbmol.to_trajectory(residues=[residue.name for residue in mbmol.children]) # extract names of repeat units
     omm_top, omm_pos = traj.top.to_openmm(), traj.openmm_positions(0) # extract OpenMM representations of trajectory
-    # TODO: add monomer name transfer to PDB residue names
 
     serialize_openmm_pdb(
         pdb_path,
