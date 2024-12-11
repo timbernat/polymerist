@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from collections import Counter
 
 
-@dataclass
+@dataclass(frozen=True)
 class SerialAtomLabeller:
     '''
     For assigning unique numbered atom names based on their
