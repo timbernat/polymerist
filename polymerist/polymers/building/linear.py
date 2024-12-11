@@ -50,21 +50,21 @@ def build_linear_polymer(
     sequence_unique = unique_string(sequence_compliant, preserve_order=True) # only register a new monomer for each appearance of a new, unique symbol in the sequence
     
     # 2) REGISTERING MONOMERS TO BE USED FOR CHAIN ASSEMBLY
-    chain = MBPolymer() 
+    polymer = MBPolymer() 
     monomers_selected = MonomerGroup() # used to track and estimate sized of the monomers being used for building
     
     ## 2A) ADD MIDDLE MONOMERS TO CHAIN
     for symbol, (resname, middle_monomer) in zip(sequence_unique, monomers.iter_rdmols(term_only=False)): # zip with sequence limits number of middle monomers to length of block sequence
         LOGGER.info(f'Registering middle monomer {resname} (block identifier "{symbol}")')
         mb_monomer, linker_ids = mbmol_from_mono_rdmol(middle_monomer, resname=resname)
-        chain.add_monomer(compound=mb_monomer, indices=linker_ids)
+        polymer.add_monomer(compound=mb_monomer, indices=linker_ids)
         monomers_selected.monomers[resname] = monomers.monomers[resname]
 
     ## 2B) ADD TERMINAL MONOMERS TO CHAIN
     for head_or_tail, (resname, term_monomer) in end_groups.items():
         LOGGER.info(f'Registering terminal monomer {resname} (orientation "{head_or_tail}")')
         mb_monomer, linker_ids = mbmol_from_mono_rdmol(term_monomer, resname=resname)
-        chain.add_end_groups(compound=mb_monomer, index=linker_ids.pop(), label=head_or_tail, duplicate=False) # use single linker ID and provided head-tail orientation
+        polymer.add_end_groups(compound=mb_monomer, index=linker_ids.pop(), label=head_or_tail, duplicate=False) # use single linker ID and provided head-tail orientation
         monomers_selected.monomers[resname] = monomers.monomers[resname]
 
     # 3) ASSEMBLE AND RETURN CHAIN
@@ -74,15 +74,15 @@ def build_linear_polymer(
     n_atoms_est = estimate_n_atoms_linear(monomers_selected, n_monomers) # TODO: create new MonomerGroup with ONLY the registered monomers to guarantee accuracy
     LOGGER.info(f'Assembling linear {n_monomers}-mer chain (estimated {n_atoms_est} atoms)')
     
-    chain.build(n_seq_repeats, sequence=sequence_compliant, add_hydrogens=add_Hs) # "-2" is to account for term groups (in mbuild, "n" is the number of times to replicate just the middle monomers)
-    for atom in chain.particles():
+    polymer.build(n_seq_repeats, sequence=sequence_compliant, add_hydrogens=add_Hs) # "-2" is to account for term groups (in mbuild, "n" is the number of times to replicate just the middle monomers)
+    for atom in polymer.particles():
         atom.charge = 0.0 # initialize all atoms as being uncharged (gets rid of pesky blocks of warnings)
-    LOGGER.info(f'Successfully assembled linear {n_monomers}-mer chain (exactly {chain.n_particles} atoms)')
+    LOGGER.info(f'Successfully assembled linear {n_monomers}-mer chain (exactly {polymer.n_particles} atoms)')
     
     # 4) OPTIONALLY, PERFORM FINAL UFF ENERGY MINIMIZATION
     if energy_minimize:
         LOGGER.info('Energy-minimizing chain to find more stable conformer')
-        chain.energy_minimize()
+        polymer.energy_minimize()
         LOGGER.info('Energy minimization completed')
 
-    return chain
+    return polymer
