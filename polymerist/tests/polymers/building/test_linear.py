@@ -62,7 +62,7 @@ def monogrp_peg_plga() ->  MonomerGroup:
             )
         ),
         pytest.param(
-            'monogrp_mpd_tmc', {'head':'MPD-1', 'tail' : 'TMC-1'}, 8, 'AB', True, True, False, # will fail due to 3-functional TMC middle monomer as B
+            'monogrp_mpd_tmc', {'head':'MPD-1', 'tail' : 'TMC-1'}, 12, 'ABC', True, True, False, # will fail due to 3-functional TMC middle monomer as C
             marks=pytest.mark.xfail(
                 raises=MorphologyError,
                 reason='One of the monomers requested is non-linear (3-functional)',
@@ -74,7 +74,7 @@ def monogrp_peg_plga() ->  MonomerGroup:
         ('monogrp_peg_plga', {}, 17, 'ABC', True, False, False), # test autogen with whole sequence
         ('monogrp_peg_plga', {'head':'PGA-1A', 'tail' : 'PGA-1B'}, 15, 'ABC', True, True, False), # test more complex sequence with non-default explicit end groups
         pytest.param(
-            'monogrp_peg_plga', {'head':'PGA-1A', 'tail' : 'PGA-1B'}, 15, 'ABC', True, False, False, # will fail due to partial
+            'monogrp_peg_plga', {'head':'PGA-1A', 'tail' : 'PGA-1B'}, 15, 'ABC', True, False, False, # will fail due to partial sequence
             marks=pytest.mark.xfail(
                 raises=PartialBlockSequence,
                 reason='Partial sequence repeat needed to get odd number block out of AB, but partial blocks are disabled',
