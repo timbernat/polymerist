@@ -7,8 +7,8 @@ from typing import Any
 
 import pytest
 
-from ..import PE_FRAGMENTS, MPD_TMC_FRAGMENTS, PEG_PLGA_FRAGMENTS
 from polymerist.polymers.monomers.repr import MonomerGroup
+from polymerist.polymers.monomers.fragments import PE_FRAGMENTS, MPD_TMC_FRAGMENTS, PEG_PLGA_FRAGMENTS
 
 
 # Example fragments groups

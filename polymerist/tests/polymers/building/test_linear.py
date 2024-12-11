@@ -4,14 +4,13 @@ __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
 import pytest
-from pathlib import Path
-
-from .. import PE_FRAGMENTS, MPD_TMC_FRAGMENTS, PEG_PLGA_FRAGMENTS
 
 from collections import Counter
 
-from polymerist.polymers.building import build_linear_polymer
 from polymerist.polymers.monomers.repr import MonomerGroup
+from polymerist.polymers.monomers.fragments import PE_FRAGMENTS, MPD_TMC_FRAGMENTS, PEG_PLGA_FRAGMENTS
+
+from polymerist.polymers.building import build_linear_polymer
 from polymerist.polymers.exceptions import MorphologyError, PartialBlockSequence, EmptyBlockSequence
 
 
