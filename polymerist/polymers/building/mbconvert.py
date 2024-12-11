@@ -18,11 +18,7 @@ if not modules_installed('openbabel'):
     )
 
 from typing import Optional
-
 from pathlib import Path
-from collections import Counter
-
-from rdkit import Chem
 
 import warnings
 with warnings.catch_warnings(record=True): # suppress numerous and irritating mbuild deprecation warnings
@@ -30,8 +26,11 @@ with warnings.catch_warnings(record=True): # suppress numerous and irritating mb
     from mbuild import Compound
     from mbuild.conversion import from_rdkit
     
-from ..monomers.specification import SANITIZE_AS_KEKULE
+from rdkit import Chem
+
 from ...genutils.decorators.functional import allow_string_paths, allow_pathlib_paths
+from ..monomers.specification import SANITIZE_AS_KEKULE
+from ...molfiles.pdb import SerialAtomLabeller
 from ...rdutils.bonding.portlib import get_linker_ids
 from ...rdutils.bonding.substitution import saturate_ports, hydrogenate_rdmol_ports
 from ...mdtools.openmmtools.serialization import serialize_openmm_pdb
@@ -57,22 +56,24 @@ def mbmol_from_mono_rdmol(rdmol : Chem.Mol, resname : Optional[str]=None) -> tup
     return mb_compound, linker_ids
    
 # Conversion from Compound to other formats
+_DEFAULT_RESNAME_MAP : dict[str, str] = { # module-wide config for default PDB residue name replacements for polymers
+    'RES' : 'Pol',
+}
+
 def mbmol_to_rdmol( # TODO: deduplify PDB atom name and residue numbering code against serialize_openmm_pdb()
         mbmol : Compound,
-        uniquify_atom_ids : bool=False,
-        num_atom_id_digits : int=2,
+        atom_labeller : Optional[SerialAtomLabeller]=SerialAtomLabeller(),
         resname_map : Optional[dict[str, str]]=None
     ) -> Chem.Mol:
     '''Convert an mBuild Compound into an RDKit Mol, with correct atom coordinates and PDB residue info'''
     if resname_map is None:
-        resname_map = {}
+        resname_map = _DEFAULT_RESNAME_MAP
     
     rdmol = mbmol.to_rdkit()
     conformer = Chem.Conformer()
     conformer.Set3D(True)
 
     atom_id : int = 0
-    element_counter = Counter()
     for resnum, mb_monomer in enumerate(mbmol.children, start=1):
         resname = resname_map.get(mb_monomer.name, mb_monomer.name[:3]) # if no remapping is found, just take first 3 chars
         # NOTE: the order of monomers and atoms within those monomers were added in the same order as iterated over here...
@@ -82,64 +83,52 @@ def mbmol_to_rdmol( # TODO: deduplify PDB atom name and residue numbering code a
 
             # set PDB residue info if monomer hierarchy is present
             if mbatom != mb_monomer: # for Compounds with a flat hierarchy, the children and particles of children will coincide
-                symbol = mbatom.element.symbol
-                atom_ser_id = element_counter[symbol]
-                atom_ser_str = f'{atom_ser_id:0{num_atom_id_digits}d}' if uniquify_atom_ids else '  ' # double space keeps column justification correct when non-unique
-                atom_name = f' {symbol}{atom_ser_str}' # need a leading space to get column alignment in PDB compliant with spec
-                
                 pdb_info = Chem.AtomPDBResidueInfo(
-                    atomName=atom_name, 
+                    atomName=4*' ' if not atom_labeller else atom_labeller.get_atom_label(mbatom.element.symbol), 
                     residueName=resname,
                     residueNumber=resnum,
                     chainId='1',
                     isHeteroAtom=True,
                 )
-                element_counter[symbol] += 1 # only increment AFTER prior value has been assigned to the current atom
                 rdmol.GetAtomWithIdx(atom_id).SetPDBResidueInfo(pdb_info)
-            
             atom_id += 1 # TODO: this is an awful waay of keeping track of atom indices, see if there's a more secure way to do this
-    conf_id = rdmol.AddConformer(conformer)
+    conf_id = rdmol.AddConformer(conformer) # NOTE: recording this to self-document return values (this is intentionally not used)
     
     return rdmol
 
 # Serialization of Compounds to files
+@allow_pathlib_paths
+def mbmol_to_rdkit_pdb(
+        pdb_path : str,
+        mbmol : Compound, 
+        atom_labeller : Optional[SerialAtomLabeller]=SerialAtomLabeller(),
+        resname_map : Optional[dict[str, str]]=None,
+    ) -> None:
+    '''Save an MBuild Compound into an RDKit-formatted PDB file'''
+    Chem.MolToPDBFile(
+        mbmol_to_rdmol(mbmol, atom_labeller=atom_labeller, resname_map=resname_map),
+        pdb_path,
+    )
+    
 @allow_string_paths
 def mbmol_to_openmm_pdb(
         pdb_path : Path,
         mbmol : Compound, 
-        num_atom_digits : int=2,
+        atom_labeller : Optional[SerialAtomLabeller]=SerialAtomLabeller(),
         resname_map : Optional[dict[str, str]]=None,
     ) -> None:
     '''Save an MBuild Compound into an OpenMM-formatted PDB file'''
     if resname_map is None: # avoid mutable default
-        resname_map = {'RES' : 'Pol'} 
+        resname_map = _DEFAULT_RESNAME_MAP 
 
     traj = mbmol.to_trajectory() # first convert to MDTraj representation (much more infor-rich format)
     omm_top, omm_pos = traj.top.to_openmm(), traj.openmm_positions(0) # extract OpenMM representations of trajectory
+    # TODO: add monomer name transfer to PDB residue names
 
     serialize_openmm_pdb(
         pdb_path,
         topology=omm_top,
         positions=omm_pos,
-        uniquify_atom_ids=True,
-        num_atom_id_digits=num_atom_digits,
-        resname_map=resname_map
-    )
-
-@allow_pathlib_paths
-def mbmol_to_rdkit_pdb(
-        pdb_path : str,
-        mbmol : Compound, 
-        num_atom_digits : int=2,
-        resname_map : Optional[dict[str, str]]=None,
-    ) -> None:
-    '''Save an MBuild Compound into an RDKit-formatted PDB file'''
-    Chem.MolToPDBFile(
-        mbmol_to_rdmol(
-            mbmol,
-            uniquify_atom_ids=True,
-            num_atom_id_digits=num_atom_digits,
-            resname_map=resname_map
-        ),
-        pdb_path,
+        atom_labeller=atom_labeller,
+        resname_map=resname_map,
     )

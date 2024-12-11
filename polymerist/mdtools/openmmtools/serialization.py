@@ -23,6 +23,7 @@ from ...genutils.decorators.functional import allow_string_paths
 from ...genutils.fileutils.pathutils import assemble_path
 from ...genutils.fileutils.jsonio.jsonify import make_jsonifiable
 from ...genutils.fileutils.jsonio.serialize import PathSerializer
+from ...molfiles.pdb import SerialAtomLabeller
 
 
 # DEFINING AND STORING SIMULATION PATHS
@@ -124,9 +125,8 @@ def serialize_openmm_pdb(
         topology : OpenMMTopology,
         positions : Union[NDArray, list[Vec3]],
         keep_chain_and_res_ids : bool=True,
-        uniquify_atom_ids : bool=True,
-        num_atom_id_digits : int=2,
-        resname_map : Optional[dict[str, str]]=None
+        atom_labeller : Optional[SerialAtomLabeller]=SerialAtomLabeller(),
+        resname_map : Optional[dict[str, str]]=None,
     ) -> None:
     '''Configure and write an Protein DataBank File from an OpenMM Topology and array of positions
     Provides options to configure atom ID numbering, residue numbering, and residue naming'''
@@ -145,13 +145,9 @@ def serialize_openmm_pdb(
             residue.name = repl_res_name
 
     # individual atom config
-    element_counter = Counter() # for keeping track of the running index of each distinct element - could be used to produce a Hill formula
-    for atom in topology.atoms():
-        symbol = atom.element.symbol
-        atom_id = element_counter[symbol]
-        if uniquify_atom_ids:
-            atom.name = f'{symbol}{atom_id:0{num_atom_id_digits}d}' # extend atom name with ordered integer with specified number of digits (including leading zeros)
-        element_counter[symbol] += 1
+    if atom_labeller: # implicitly, preserves extant atom names if a labeller is not given
+        for atom in topology.atoms():
+            atom.name = atom_labeller.get_atom_label(atom.element.symbol)
 
     # file write
     with pdb_path.open('w') as file:
