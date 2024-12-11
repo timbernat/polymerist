@@ -4,9 +4,3 @@ __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
 from .mdobjects import forcefield_flexible, openff_topology_to_openmm
-from .unitsys import (
-    openmm_to_openff,
-    openff_to_openmm, 
-    allow_openmm_units,
-    allow_openff_units,
-)

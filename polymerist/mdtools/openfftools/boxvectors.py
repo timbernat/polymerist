@@ -14,7 +14,7 @@ from pint import Quantity as PintQuantity
 from openff.toolkit import Topology
 from openff.interchange.components._packmol import _box_vectors_are_in_reduced_form
 
-from .omminter.unitsys import allow_openmm_units, openff_to_openmm
+from .unitsys import allow_openmm_units, openff_to_openmm
 
 
 # CUSTOM TYPES FOR CLARITY, ESPECIALLY WITH UNITS

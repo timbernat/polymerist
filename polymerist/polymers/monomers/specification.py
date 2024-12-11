@@ -98,6 +98,7 @@ def compliant_atom_query_from_re_match(match : re.Match) -> str:
 
 
 # CONVERSION METHODS
+## DEV: add function to check whether a given SMARTS is COMPLETELY spec-compliant
 def compliant_mol_SMARTS(smarts : str) -> str:
     '''Convert generic SMARTS string into a spec-compliant one'''
     # initial checks

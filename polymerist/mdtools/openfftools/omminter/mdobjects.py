@@ -15,7 +15,7 @@ from openmm import System
 from openmm.app import Topology as OMMTopology
 from openmm.unit import Quantity
 
-from .unitsys import openff_to_openmm
+from ..unitsys import openff_to_openmm
 from .. import FFDIR
 from ..boxvectors import box_vectors_flexible, VectorQuantity, BoxVectorsQuantity
 
@@ -39,8 +39,13 @@ def forcefield_flexible(forcefield : Union[ForceField, str, Path]) -> ForceField
 
         return ForceField(ff_path)
 
-def openff_topology_to_openmm(offtop : OFFTopology, forcefield : Union[ForceField, str, Path], box_vecs : Optional[Union[VectorQuantity, BoxVectorsQuantity]]=None,
-                              combine_nonbonded_forces : bool=False, add_constrained_forces : bool=False) -> tuple[OMMTopology, System, Quantity]:
+def openff_topology_to_openmm(
+            offtop : OFFTopology,
+            forcefield : Union[ForceField, str, Path],
+            box_vecs : Optional[Union[VectorQuantity, BoxVectorsQuantity]]=None,
+            combine_nonbonded_forces : bool=False,
+            add_constrained_forces : bool=False
+        ) -> tuple[OMMTopology, System, Quantity]:
     '''Converts an OpenFF Topology to an OpenMM Topology, System, and Positions'''
     if box_vecs is not None:
         offtop.box_vectors = box_vectors_flexible(box_vecs)

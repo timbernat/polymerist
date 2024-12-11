@@ -10,7 +10,6 @@ from openff.toolkit import Molecule
 from openff.units import unit as offunit
 
 from ... import topology
-from ... import TKREGS
 
 
 def generate_water_TIP3P() -> Molecule:

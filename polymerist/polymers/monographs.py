@@ -38,7 +38,6 @@ class MonomerGraph(nx.Graph):
     def num_monomers(self) -> int:
         '''Number of monomer units represented in the current polymer'''
         return self.number_of_nodes()
-    DOP = num_monomers
 
     @property
     def is_unbranched(self) -> bool:
