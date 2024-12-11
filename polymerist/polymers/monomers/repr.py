@@ -170,7 +170,7 @@ class MonomerGroup:
             for head_or_tail, (resname, rdmol) in zip(['head', 'tail'], self.iter_rdmols(term_only=True)): # zip will bottom out early if fewer than 2 terminal monomers are present
                 term_orient_auto[head_or_tail] = resname # populate purely for logging
                 end_groups_auto[head_or_tail]  = (resname, rdmol)
-            LOGGER.warning(f'No valid terminal monomer orientations defined; auto-assigned orientations "{term_orient_auto}"; USER SHOULD VERIFY THIS YIELDS A CHEMICALLY-VALID POLYMER!')
+            LOGGER.warning(f'No valid terminal monomer orientations defined, auto-assigned orientations "{term_orient_auto}"; USER SHOULD VERIFY THIS YIELDS A CHEMICALLY-VALID POLYMER!')
                 
             return end_groups_auto
     
