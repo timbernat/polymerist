@@ -43,7 +43,7 @@ class SerialAtomLabeller:
     def __post_init__(self) -> None:
         '''Check ranges on input values'''
         if self.atom_label_width < 0:
-            raise ValueError(f'Must provide a non-negative number of index digits to include (provided {self.num_idx_digits})')
+            raise ValueError(f'Must provide a non-negative number of index digits to include (provided {self.atom_label_width})')
 
         if self.default_elem_idx < 0:
             raise ValueError(f'Must provide a non-negative starting index for element indices (provided {self.default_elem_idx})')
