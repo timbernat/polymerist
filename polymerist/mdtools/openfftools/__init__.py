@@ -4,13 +4,14 @@ __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
 # Subpackage-wide precheck to see if OpenFF is even usable in the first place
-from ...genutils.importutils.dependencies import modules_installed
+from ...genutils.importutils.dependencies import modules_installed, MissingPrerequisitePackage
 if not modules_installed('openff', 'openff.toolkit'):
-    raise ModuleNotFoundError(
-        f'''
-        OpenFF packages which are required to utilitize {__name__} not found in current environment
-        Please follow installation instructions at https://docs.openforcefield.org/projects/toolkit/en/stable/installation.html, then retry import
-        '''
+    raise MissingPrerequisitePackage(
+        importing_package_name=__spec__.name,
+        use_case='OpenFF addons',
+        install_link='https://docs.openforcefield.org/projects/toolkit/en/stable/installation.html',
+        dependency_name='openff-toolkit',
+        dependency_name_formal='the OpenFF software stack',
     )
     
 # Import of toplevel OpenFF object registries
