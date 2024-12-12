@@ -53,6 +53,9 @@ class SerialAtomLabeller:
         Obtain a numbered atom label for an atom based on its element, 
         updating the underlying element context in the process
         '''
+        if not isinstance(elem_symbol, str):
+            raise TypeError(f'Must pass symbol of atom\'s element as str (not type {type(elem_symbol).__name__})')
+        
         if elem_symbol not in self.element_counter: # initialize first occurence to starting value
             self.element_counter[elem_symbol] = self.default_elem_idx
             
