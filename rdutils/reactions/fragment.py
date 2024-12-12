@@ -1,1 +1,0 @@
-'''For fragmenting molecules by reaction or residue information'''
