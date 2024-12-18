@@ -1,5 +1,8 @@
 '''For generating periodically-tiled topologies from RDKit Mols'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import numpy as np
 
 from rdkit import Chem

@@ -1,5 +1,8 @@
 '''Classes for representing information about reaction mechanisms and tracing bonds and atoms along a reaction'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import ClassVar, Iterable, Optional, Sequence, Union
 from dataclasses import dataclass, field
 

@@ -1,5 +1,8 @@
 '''Direct implementations of property calculations'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import numpy as np
 from ..maths.linearalg.decomposition import diagonalize
 

@@ -1,5 +1,8 @@
 '''Specialized cases of general positional numbering systems which are more common in usage'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Callable, Generator, Iterable
 from .positional import PositionalNumberingSystem
 

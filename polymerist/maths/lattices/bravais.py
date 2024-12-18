@@ -1,5 +1,8 @@
 '''Representations and calculation methods for crystallographic unit cells and lattice parameters'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Callable, ClassVar, Optional, Type
 from numbers import Number
 from ...genutils.typetools.numpytypes import Shape, D

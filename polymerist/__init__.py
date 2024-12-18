@@ -1,7 +1,11 @@
-"""A unified set of tools for setting up general organic polymer systems for MD within the OpenFF framework"""
+"""A unified set of tools for setting up general organic polymer systems for molecular dynamics"""
+
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
 
 # Add imports here
 from ._version import __version__
+from .genutils import importutils
 # from .genutils.importutils import register_submodules, module_by_pkg_str
 
 # _MODULE_SELF = module_by_pkg_str(__package__) # keep reference to own module

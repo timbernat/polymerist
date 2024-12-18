@@ -1,5 +1,8 @@
 '''For computing statistical measures and series' of structured data'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import numpy as np
 from dataclasses import dataclass
 

@@ -1,5 +1,8 @@
 '''For recording, storing, and organizing parameters associated wtih a Simulation'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from dataclasses import dataclass, field
 from typing import Any
 

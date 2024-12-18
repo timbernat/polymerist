@@ -1,5 +1,8 @@
 '''Tools for drawing and visulaizing RDKit molecules'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Optional, Type, Union
 
 import PIL

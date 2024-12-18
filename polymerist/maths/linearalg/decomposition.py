@@ -1,5 +1,8 @@
 '''Tools for matrix decomposition'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import numpy as np
 from ...genutils.typetools.numpytypes import Shape, DType, N, M
 

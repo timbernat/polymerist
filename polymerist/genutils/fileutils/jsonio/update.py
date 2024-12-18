@@ -1,5 +1,8 @@
 '''Tools for statically or dynamically updating JSON files'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import json
 from pathlib import Path
 

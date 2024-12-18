@@ -1,18 +1,19 @@
 '''For estimating properties of chains based on their constituent monomers and chain info'''
 
-import numpy as np
-from rdkit import Chem
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
 
-from .exceptions import InsufficientChainLengthError
-from ..genutils.iteration import iter_len
+import numpy as np
+
+from .exceptions import InsufficientChainLength
 from ..polymers.monomers.repr import MonomerGroup
 from ..rdutils.bonding.portlib import get_num_ports
 
 
-def estimate_chain_len_linear(monomers : MonomerGroup, DOP : int) -> int:
+def estimate_n_atoms_linear(monomers : MonomerGroup, n_monomers : int) -> int:
     '''Given a set of monomers and the desired degree of polymerization, estimate the length of the resulting chain
     !NOTE! : As-implemented, only works for linear homopolymers and block copolymers with equal an distribution of monomers'''
-    # TOSELF : omitted logging for now, as it gets repeated on EVERY cycle in when called estimate_DOP_lower
+    # TOSELF : omitted logging for now, as it gets repeated on EVERY cycle in when called estimate_n_monomers_supremum()
     num_mono = monomers.n_monomers
     mono_term    = np.zeros(num_mono, dtype=bool) # terminality of each monomer (i.e. whether or not it is a term group)
     mono_multip  = np.zeros(num_mono, dtype=int) # multiplicity of each polymer (i.e. how many times is occurs in a chain)
@@ -29,27 +30,30 @@ def estimate_chain_len_linear(monomers : MonomerGroup, DOP : int) -> int:
 
     num_term = sum(mono_term)
     num_mid  = num_mono - num_term # assumed that all monomers are either terminal or not
-    mono_multip[~mono_term] = (DOP - num_term) / num_mid # naive assumption that all middle monomers contribute rest of chain equally (for homopolymers, this is always true)
+    mono_multip[~mono_term] = (n_monomers - num_term) / num_mid # naive assumption that all middle monomers contribute rest of chain equally (for homopolymers, this is always true)
 
     N = mono_contrib @ mono_multip # compute dot product to yield final count
     
     return N
 
-def estimate_DOP_lower(monomers : MonomerGroup, max_chain_len : int, min_DOP : int=3) -> int:
-    '''Returns the largest DOP for a set of monomers which yields a chain no longer than the specified chain length'''
-    base_chain_len = estimate_chain_len_linear(monomers, min_DOP)
-    if base_chain_len > max_chain_len: # pre-check when optimization is impossible
-        raise InsufficientChainLengthError(f'Even shortest possible chain (DOP={min_DOP}, N={base_chain_len}) is longer than the specified max length of {max_chain_len} atoms')
+def estimate_n_monomers_infimum(monomers : MonomerGroup, n_atoms_max : int, n_monomers_min : int=3) -> int:
+    '''
+    For a given collection of monomer fragments, returns the largest number of monomers which guarantees that
+    a polymer chain made up of those monomers will have no more than the specified maximum number of atoms
+    '''
+    n_atoms_base = estimate_n_atoms_linear(monomers, n_monomers_min)
+    if n_atoms_base > n_atoms_max: # pre-check when optimization is impossible
+        raise InsufficientChainLength(f'Even shortest possible chain ({n_monomers_min} monomers, with {n_atoms_base} atoms) is longer than the specified max length of {n_atoms_max} atoms')
 
-    DOP = min_DOP 
-    while estimate_chain_len_linear(monomers, DOP + 1) < max_chain_len: # check if adding 1 more monomer keeps the length below the threshold
-        DOP += 1
+    n_monomers = n_monomers_min 
+    while estimate_n_atoms_linear(monomers, n_monomers + 1) < n_atoms_max: # check if adding 1 more monomer keeps the length below the threshold
+        n_monomers += 1
 
-    return DOP
+    return n_monomers
 
-def estimate_DOP_upper(monomers : MonomerGroup, min_chain_len : int, min_DOP : int=3) -> int: # NOTE : as currently defined, this also subsumes the case when the estimate and calculated length are exactly equal
-    '''Returns the smallest DOP for a set of monomers which yields a chain no shorter than the specified chain length'''
-    return estimate_DOP_lower(monomers, min_chain_len, min_DOP=min_DOP) + 1 # by definition, this is just 1 monomer longer than the lower bound
-
-estimate_DOP_infimum  = estimate_DOP_upper # more descriptive aliases to alleviate confusion (originals kept in for backwards compatibility)
-estimate_DOP_supremum = estimate_DOP_lower # more descriptive aliases to alleviate confusion (originals kept in for backwards compatibility)
+def estimate_n_monomers_supremum(monomers : MonomerGroup, n_atoms_min : int, n_monomers_min : int=3) -> int: # NOTE : as currently defined, this also subsumes the case when the estimate and calculated length are exactly equal
+    '''
+    For a given collection of monomer fragments, returns the smallest number of monomers which guarantees that
+    a polymer chain made up of those monomers will have no fewer than the specified minimum number of atoms
+    '''
+    return estimate_n_monomers_infimum(monomers, n_atoms_min, n_monomers_min=n_monomers_min) + 1 # by definition, a ny more monomers than the infimum guarantees the chain will surpass a given number of atoms

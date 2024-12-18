@@ -1,14 +1,20 @@
 '''Tools for simplifying logging from multiple sources'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import logging
 from logging import Logger
 from traceback import format_exception
 
-from pathlib import Path
+from types import ModuleType
 from typing import Iterable, Optional, Union
 
-from .timestamps import Timestamp, TIMESTAMP_LOG
+from pathlib import Path
 from datetime import datetime
+
+from .timestamps import Timestamp, TIMESTAMP_LOG
+from ..importutils.pkgiter import iter_submodules
 
 
 # DATE AND TIME FORMATTING
@@ -24,6 +30,40 @@ def get_active_loggers() -> list[Logger]:
             for possible_logger in get_logger_registry().values()
                 if isinstance(possible_logger, Logger) # omits PlaceHolder objects
     ]
+
+def submodule_loggers(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None, sparse : bool=True) -> dict[str, Optional[logging.Logger]]:
+    '''
+    Produce a dict of any Logger objects present in each submodule. Can optionally generate recursively and blacklist certain modules
+    
+    Parameters
+    ----------
+    module : ModuleType
+        The "root" module to begin importing from
+        Represented in the Node object returned by this function
+    recursive : bool, default=True
+        Whether or not to recursively import modules from subpackages and add them to the tree
+    blacklist : list[str] (optional), default None
+        List of module names to exclude from tree building
+        If provided, will exclude any modules whose names occur in this list
+    sparse : bool, default=True
+        Whether to only include modules which have a Logger defined (i.e. exclude all NoneType entries from returned dict)
+
+    Returns
+    -------
+    logger_registry : dict[str, Optional[logging.Logger]]
+        A dict keyed by module name whose values are the corresponding Logger bound to that module
+    '''
+    logger_registry = {}
+    for module in iter_submodules(module, recursive=recursive, blacklist=blacklist):
+        full_module_name = module.__name__
+        module_logger = get_logger_registry().get(full_module_name, None)
+        if isinstance(module, logging.PlaceHolder): 
+            continue # exclude dummy Placeholder loggers
+
+        if not (sparse and (module_logger is None)):
+            logger_registry[full_module_name] = module_logger
+
+    return logger_registry
 
 # FILE-STREAM HANDLING CLASSES
 class MultiStreamFileHandler(logging.FileHandler):

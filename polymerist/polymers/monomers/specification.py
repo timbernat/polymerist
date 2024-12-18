@@ -1,5 +1,8 @@
 '''Implementations of the canonical monomer substructure SMARTS specification defined in https://doi.org/10.26434/chemrxiv-2023-f2zxd-v2'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import logging
 LOGGER = logging.getLogger(__name__)
 
@@ -95,6 +98,7 @@ def compliant_atom_query_from_re_match(match : re.Match) -> str:
 
 
 # CONVERSION METHODS
+## DEV: add function to check whether a given SMARTS is COMPLETELY spec-compliant
 def compliant_mol_SMARTS(smarts : str) -> str:
     '''Convert generic SMARTS string into a spec-compliant one'''
     # initial checks

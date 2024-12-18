@@ -1,4 +1,7 @@
-'''Unit tests for package inspection utilities'''
+'''Unit tests for `pkginspect` package`'''
+
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
 
 from types import ModuleType
 
@@ -8,7 +11,8 @@ import math, json # use these as test cases, since they are pretty stable in std
 
 from polymerist import polymerist # this is a dummy toplevel module, and NOt the entire polymerist package
 from polymerist import genutils
-from polymerist.genutils import pkginspect
+from polymerist.genutils import importutils
+from polymerist.genutils.importutils import pkginspect
 from polymerist import tests
 
 
@@ -79,7 +83,7 @@ def test_is_module_fail_on_invalid_types(non_module_type : type) -> None:
         ('data', tests),
         ('data/sample.dat', tests),
         pytest.param('daata/simple.dat', tests, marks=pytest.mark.xfail(raises=ValueError, reason="This isn't a real file", strict=True)),
-        ('pkginspect.py', genutils),
+        ('pkginspect.py', importutils),
         pytest.param('fake/whatever.txt', pkginspect, marks=pytest.mark.xfail(raises=TypeError, reason="Module is not a package and therefore cannot contain resources", strict=True)),
     ]
 )
@@ -94,7 +98,7 @@ def test_get_resource_path(rel_path : str, module : ModuleType) -> None:
         pytest.param('data', tests, marks=pytest.mark.xfail(raises=FileNotFoundError, reason="This is a directory, NOT a file", strict=True)),
         ('data/sample.dat', tests),
         pytest.param('daata/simple.dat', tests, marks=pytest.mark.xfail(raises=ValueError, reason="This isn't a real file", strict=True)),
-        ('pkginspect.py', genutils),
+        ('pkginspect.py', importutils),
         pytest.param('fake/whatever.txt', pkginspect, marks=pytest.mark.xfail(raises=TypeError, reason="Module is not a package and therefore cannot contain resources", strict=True)),
     ]
 )
@@ -109,7 +113,7 @@ def test_get_file_path(rel_path : str, module : ModuleType) -> None:
         ('data', tests),
         pytest.param('data/sample.dat', tests, marks=pytest.mark.xfail(raises=NotADirectoryError, reason='This IS a real file, but not a directory', strict=True)),
         pytest.param('daata/simple.dat', tests, marks=pytest.mark.xfail(raises=ValueError, reason="This isn't a real file", strict=True)),
-        pytest.param('pkginspect.py', genutils, marks=pytest.mark.xfail(raises=NotADirectoryError, reason='This IS a real file, but not a directory', strict=True)),
+        pytest.param('pkginspect.py', importutils, marks=pytest.mark.xfail(raises=NotADirectoryError, reason='This IS a real file, but not a directory', strict=True)),
         pytest.param('fake/whatever.txt', pkginspect, marks=pytest.mark.xfail(raises=TypeError, reason="Module is not a package and therefore cannot contain resources", strict=True)),
     ]
 )

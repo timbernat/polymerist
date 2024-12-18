@@ -1,5 +1,8 @@
 '''Utilities related to handling SMARTS queries'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Generator, TypeVar
 T = TypeVar('T')
 

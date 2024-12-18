@@ -3,15 +3,16 @@ channels:
   - conda-forge
   - openeye
 dependencies:
-    # Basic Python dependencies
+  # Basic Python dependencies
   - python
   - pip
   - jupyterlab
 
-    # Testing
+  # Testing and docs
   - pytest
   - pytest-cov
   - codecov
+  - sphinx
 
   # Numerical libraries
   - numpy
@@ -24,9 +25,11 @@ dependencies:
   - openmm
   - lammps
   - mdtraj
+  - pint # for units in case OpenFF is not installed
 
   # Molecule building
   - mbuild
+  - openbabel
   - rdkit
   - openeye-toolkits # TODO: consider making this optional?
 
@@ -40,11 +43,11 @@ dependencies:
   # OpenFF stack
   - openff-toolkit ~=0.16
   - openff-interchange >=0.3.28
-  - openff-nagl
+  - openff-nagl >= 0.4
+  - openff-nagl-models >= 0.3
 
   # Chemical database queries
   - cirpy
   - pubchempy
-  - chemspipy
   - pip:
       - espaloma-charge ==0.0.8

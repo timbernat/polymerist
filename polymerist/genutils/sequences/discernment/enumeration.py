@@ -1,5 +1,8 @@
 '''Front-facing solver facade for the DISCERNMENT Problem'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Generator, Iterable, Mapping, Sequence, Union
 
 from .inventory import SymbolInventory, T, L

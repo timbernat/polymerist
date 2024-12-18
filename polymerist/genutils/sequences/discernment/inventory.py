@@ -1,6 +1,9 @@
 '''Utilities and type-hinting for creating symbol inventories, which map symbols and bin labels to occurences
 Useful concrete data structure for representing ordered sequences of symbol multisets for generalized ransom note enumeration'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import logging
 LOGGER = logging.getLogger(__name__)
 

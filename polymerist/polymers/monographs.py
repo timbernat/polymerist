@@ -1,5 +1,8 @@
 '''Tools for generating and manipulating monomer connectivity graphs'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Any, ClassVar, Generator, Optional, Sequence, Union
 
 import networkx as nx
@@ -35,7 +38,6 @@ class MonomerGraph(nx.Graph):
     def num_monomers(self) -> int:
         '''Number of monomer units represented in the current polymer'''
         return self.number_of_nodes()
-    DOP = num_monomers
 
     @property
     def is_unbranched(self) -> bool:
@@ -160,10 +162,8 @@ class MonomerGraph(nx.Graph):
             return True, None
 MonoGraph = MonomerGraph # alias for convenience
 
-class MonomerGraphSerializer(TypeSerializer):
+class MonomerGraphSerializer(TypeSerializer, python_type=MonomerGraph):
     '''JSON serializer for storing MonomerGraphs as SMIDGE strings '''
-    python_type = MonomerGraph
-
     @staticmethod
     def encode(python_obj : MonomerGraph) -> str:
         return python_obj.to_smidge_string()

@@ -1,5 +1,8 @@
 '''For converting macroscopic parameters (such as concentration, bulk density, etc) into microscopic parameters for simulations'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Union
 
 from math import ceil
@@ -12,7 +15,7 @@ from openff.toolkit import Molecule, Topology
 from openff.units import Quantity as OFFQuantity
 
 from ....unitutils.dimensions import is_volume
-from ....unitutils.interop import allow_openff_units, openff_to_openmm
+from ..unitsys import allow_openff_units, openff_to_openmm
 
 
 # MASS
@@ -47,6 +50,7 @@ def number_density(density : Quantity, MW : Quantity) -> Quantity:
     return (density / MW) * AVOGADRO_CONSTANT_NA
 
 # NUMBER
+@allow_openff_units
 def num_mols_in_box(mol : Union[Mol, Molecule, Topology], box_vol : Quantity, density : Quantity) -> int:
     '''Return the number of particles/molecules needed to fill a box of given volume to the specified density'''
     assert(is_volume(box_vol.unit))

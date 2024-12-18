@@ -1,5 +1,8 @@
 '''Unit-aware compendium of useful physical constants'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from scipy.constants import physical_constants
 from .unitstr import unit_from_unit_str
 

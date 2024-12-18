@@ -1,5 +1,8 @@
 '''For inspecting and managing toplevel imports within Python files and modules'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Optional
 from types import ModuleType
 from dataclasses import dataclass, field
@@ -7,7 +10,8 @@ from dataclasses import dataclass, field
 import ast
 from pathlib import Path
 
-from .decorators.functional import allow_string_paths # TODO: see if there's anyway to bypass a relative import here
+from ..decorators.functional import allow_string_paths # TODO: see if there's anyway to bypass a relative import here
+from .pkginspect import is_module, is_package
 
 
 @dataclass
@@ -69,9 +73,7 @@ def extract_imports_from_dir(source_dir : Path) -> list[ImportedObjectInfo]:
 
 def extract_imports_from_module(module : ModuleType) -> list[ImportedObjectInfo]:
     '''Compiles info from all Python imports in a Python (.py) file'''
-    # TODO: find more reliable/canonical way to tell packages and bare modules/scripts apart
-    if hasattr(module, '__file__') and getattr(module, '__file__') is not None:
+    if is_package(module):
+        return extract_imports_from_dir(module.__path__[0]) # TODO: provide package-specific, non-recursive implementation of this
+    else: # all packages a re modules, but not all modules a re packages; hence, the check must be done in this order
         return extract_imports_from_pyfile(module.__file__)
-
-    if hasattr(module, '__path__') and getattr(module, '__path__') is not None:
-        return extract_imports_from_dir(module.__path__[0])

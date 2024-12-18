@@ -1,5 +1,8 @@
 '''Utilities for editing, augmenting, and querying Paths'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Union
 from pathlib import Path
     
@@ -13,11 +16,34 @@ def dotless(path : Path) -> str:
     '''Separate the dot from file path. Returns the original suffix if not dot is present'''
     return _dotless(path.suffix)
 
-def is_empty(path : Path) -> bool:
-    '''Check if a directory is empty'''
-    assert(path.is_dir())
-    return list(path.iterdir()) == [] # can't use "len" for generators : TODO : make this more efficient (i.e. iteration-based) for large directories
 
+# EMPTINESS CHECKS
+def is_empty_dir(dirpath : Path) -> bool:
+    '''Check if a directory contains no files'''
+    if not dirpath.is_dir():
+         raise NotADirectoryError(f'dirpath must point to directory, not to file "{dirpath}"')
+    return list(dirpath.iterdir()) == [] # can't use "len" for generators : TODO : make this more efficient (i.e. iteration-based) for large directories
+
+def is_empty_file(filepath : Path) -> bool:
+    '''Check if a file contains no data'''
+    if filepath.is_dir():
+        raise IsADirectoryError(f'filepath must point to file, not to directory "{filepath}"')
+    # NOTE: not checking file existence here, as calling stat() will already do this check (and raise appropriate error)
+
+    return filepath.stat().st_size == 0
+
+def is_empty(path : Path) -> bool:
+    '''Flexibly check whether a path is "empty"
+    If path point to a file, returns whether the file contains data
+    If path points to a directory, returns whether the directory contains any files (empty or otherwise)
+    '''
+    if path.is_dir():
+        return is_empty_dir(path)
+    elif path.is_file():
+        return is_empty_file(path)
+    else:
+        return FileNotFoundError
+    
 
 # PATH CREATION FUNCTIONS
 def assemble_path(directory : Path, prefix : str, extension : str, postfix : str='') -> Path:

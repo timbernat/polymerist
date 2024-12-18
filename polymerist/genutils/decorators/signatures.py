@@ -1,5 +1,8 @@
 '''Tools for simplifying transfer and modification of wrapped function type signatures'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from inspect import Parameter, Signature
 
 POSITIONAL_PARAMETER_TYPES = [

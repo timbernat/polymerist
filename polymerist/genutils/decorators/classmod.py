@@ -1,10 +1,13 @@
 '''Decorators for modifying classes'''
 
-from typing import Callable, Iterable, Optional, TypeVar
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
+from typing import Callable, Iterable, Optional, TypeVar, Union
 C = TypeVar('C')
 
 
-def generate_repr(cls : Optional[C]=None, disp_attrs : Optional[Iterable[str]]=None, lookup_attr : Optional[str]=None):
+def generate_repr(cls : Optional[C]=None, disp_attrs : Optional[Iterable[str]]=None, lookup_attr : Optional[str]=None) -> Union[C, Callable[[C], C]]:
     '''
     Class decorator for auto-generating __repr__ methods
 
@@ -33,7 +36,7 @@ def generate_repr(cls : Optional[C]=None, disp_attrs : Optional[Iterable[str]]=N
         return class_decorator
     return class_decorator(cls) # return literal class decorator call
         
-def register_subclasses(cls : Optional[C]=None, key_attr : str='__name__', reg_attr : str='subclass_registry') -> Callable[[C], C]:
+def register_subclasses(cls : Optional[C]=None, key_attr : str='__name__', reg_attr : str='subclass_registry') -> Union[C, Callable[[C], C]]:
     '''
     Parametric class decorator for automatically generating a registry of subclasses of a target class
     Binds registry to the "registry" class property in the target class
@@ -57,3 +60,29 @@ def register_subclasses(cls : Optional[C]=None, key_attr : str='__name__', reg_a
     if cls is None: # null case (i.e. call without parens), return factory call
         return class_decorator
     return class_decorator(cls) # return literal class decorator call
+
+# NOTE: "klass" is needed to distinguish between the class modified by this decorator and the classmethod arg when calling super()
+# "klass" here is the parent, while "cls" is the child
+def register_abstract_class_attrs(*attr_names : list[str]) -> Callable[[C], C]: # TODO: add mechanism for typehinting
+    '''Register a list of string attribute names as abstract class attributes, 
+    which MUST be implemented by child classes of the wrapped class'''
+    def class_decorator(klass : C) -> C:
+        '''The actual (argument-free) class decorator'''
+        def __wrapped_init_subclass__(cls : C, **kwargs) -> None:
+            '''Wrapper for subclass definition which actually enforces that all named attributes are set'''
+            for attr_name in attr_names:
+                passed_attr_value = kwargs.pop(attr_name, NotImplemented) # want this removed from kwargs before passing to super, regardless of whether already set in child 
+                attr_val_on_child = getattr(cls, attr_name, NotImplemented) # check if this has been set in the child in code
+                
+                if attr_val_on_child is NotImplemented:         # if the value has not been set in code...
+                    if passed_attr_value is not NotImplemented: # ...fall back to value passed into class definition, if it exists...
+                        setattr(cls, attr_name, passed_attr_value)
+                    else:                                       # otherwise, fail and raise Exception
+                        raise TypeError(f"Can't instantiate abstract class {cls.__name__} with abstract class property '{attr_name}' undefined")
+
+            super(klass, cls).__init_subclass__(**kwargs) # this should fail if extraneous named args are passed
+
+        klass.__init_subclass__ = classmethod(__wrapped_init_subclass__)
+        return klass
+
+    return class_decorator # no need for application check here, since the parameterized decorator doesn't take a class to be modified

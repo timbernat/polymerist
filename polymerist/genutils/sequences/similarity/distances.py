@@ -1,5 +1,8 @@
 '''Implementations of calculation methods for sequence distance ("inverse similarity") metrics'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 # NOTE: much of this could be supplanted in the future by the well-implemented textdistance library (https://github.com/life4/textdistance)
 from typing import Sequence, TypeVar
 T = TypeVar('T')

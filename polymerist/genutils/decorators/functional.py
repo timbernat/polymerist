@@ -1,6 +1,12 @@
 '''Decorators for modifying functions'''
 
-from typing import Callable, Iterable, Optional, Type, Union
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
+from typing import Callable, Concatenate, Iterable, Iterator, Optional, ParamSpec, TypeVar, Union
+
+T = TypeVar('T')
+Params = ParamSpec('Params')
 
 from inspect import signature, Parameter
 from functools import wraps, partial
@@ -10,20 +16,18 @@ from pathlib import Path
 
 from .meta import extend_to_methods
 from . import signatures
-from ..typetools.parametric import T, Args, KWArgs
-from ..typetools.categorical import ListLike
 from ..fileutils.pathutils import aspath, asstrpath
 
 
 @extend_to_methods
-def optional_in_place(funct : Callable[[object, Args, KWArgs], None]) -> Callable[[object, Args, bool, KWArgs], Optional[object]]:
+def optional_in_place(funct : Callable[[Concatenate[object, Params]], None]) -> Callable[[Concatenate[object, Params]], Optional[object]]:
     '''Decorator function for allowing in-place (writeable) functions which modify object attributes
     to be not performed in-place (i.e. read-only), specified by a boolean flag'''
     # TODO : add assertion that the wrapped function has at least one arg AND that the first arg is of the desired (limited) type
     old_sig = signature(funct)
     
     @wraps(funct) # for preserving docstring and type annotations / signatures
-    def in_place_wrapper(obj : object, *args : Args, in_place : bool=False, **kwargs : KWArgs) -> Optional[object]: # read-only by default
+    def in_place_wrapper(obj : object, *args : Params.args, in_place : bool=False, **kwargs : Params.kwargs) -> Optional[object]: # read-only by default
         '''If not in-place, create a clone on which the method is executed''' # NOTE : old_sig.bind screws up arg passing
         if in_place:
             funct(obj, *args, **kwargs) # default call to writeable method - implicitly returns None
@@ -51,9 +55,9 @@ def optional_in_place(funct : Callable[[object, Args, KWArgs], None]) -> Callabl
     return in_place_wrapper
 
 # TODO : implement support for extend_to_methods (current mechanism is broken by additional deocrator parameters)
-def flexible_listlike_input(funct : Callable[[ListLike], T]=None, CastType : Type[ListLike]=list, valid_member_types : Union[Type, tuple[Type]]=object) -> Callable[[Iterable], T]:
+def flexible_listlike_input(funct : Callable[[Iterator], T]=None, CastType : type[Iterator]=list, valid_member_types : Union[type, tuple[type]]=object) -> Callable[[Iterable], T]:
     '''Wrapper which allows a function which expects a single list-initializable, Container-like object to accept any Iterable (or even star-unpacked arguments)'''
-    if not issubclass(CastType, ListLike):
+    if not issubclass(CastType, Iterator):
         raise TypeError(f'Cannot wrap listlike input with non-listlike type "{CastType.__name__}"')
 
     @wraps(funct)
@@ -76,13 +80,13 @@ def flexible_listlike_input(funct : Callable[[ListLike], T]=None, CastType : Typ
     return wrapper
 
 @extend_to_methods
-def allow_string_paths(funct : Callable[[Path, Args, KWArgs], T]) -> Callable[[Union[Path, str], Args, KWArgs], T]:
+def allow_string_paths(funct : Callable[[Concatenate[Path, Params]], T]) -> Callable[[Concatenate[Union[Path, str], Params]], T]:
     '''Modifies a function which expects a Path as its first argument to also accept string-paths'''
     # TODO : add assertion that the wrapped function has at least one arg AND that the first arg is of the desired (limited) type
     old_sig = signature(funct) # lookup old type signature
 
     @wraps(funct) # for preserving docstring and type annotations / signatures
-    def str_path_wrapper(flex_path : Union[str, Path], *args : Args, **kwargs : KWArgs) -> T:
+    def str_path_wrapper(flex_path : Union[str, Path], *args : Params.args, **kwargs : Params.kwargs) -> T:
         '''First converts stringy paths into normal Paths, then executes the original function'''
         return funct(aspath(flex_path), *args, **kwargs)
 
@@ -96,13 +100,13 @@ def allow_string_paths(funct : Callable[[Path, Args, KWArgs], T]) -> Callable[[U
     return str_path_wrapper
 
 @extend_to_methods
-def allow_pathlib_paths(funct : Callable[[str, Args, KWArgs], T]) -> Callable[[Union[Path, str], Args, KWArgs], T]:
+def allow_pathlib_paths(funct : Callable[[Concatenate[str, Params]], T]) -> Callable[[Concatenate[Union[Path, str], Params]], T]:
     '''Modifies a function which expects a string path as its first argument to also accept canonical pathlib Paths'''
     # TODO : add assertion that the wrapped function has at least one arg AND that the first arg is of the desired (limited) type
     old_sig = signature(funct) # lookup old type signature
 
     @wraps(funct) # for preserving docstring and type annotations / signatures
-    def str_path_wrapper(flex_path : Union[str, Path], *args : Args, **kwargs : KWArgs) -> T:
+    def str_path_wrapper(flex_path : Union[str, Path], *args : Params.args, **kwargs : Params.kwargs) -> T:
         '''First converts normal Paths into stringy paths, then executes the original function'''
         return funct(asstrpath(flex_path), *args, **kwargs)
 

@@ -1,5 +1,8 @@
 '''For querying chemical databases for information about molecules specified by SMILES string and other structures'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import logging
 LOGGER  = logging.getLogger(__name__)
 
@@ -27,5 +30,3 @@ def get_property_from_smiles(smiles : str, prop_name : str='iupac_name') -> Opti
             return prop_query[pc_prop_name]
     else:
         return None 
-    
-    # TODO : add ChemSpider once I can obtain an API key (https://chemspipy.readthedocs.io/en/latest/guide/intro.html#apikey) 

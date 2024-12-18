@@ -1,5 +1,8 @@
 '''For calculating the edit distance between sequences and inspecting the edits needed to go between them'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Any, Generator, Sequence, Type, TypeVar, TypeAlias
 from dataclasses import dataclass, field, replace
 T = TypeVar('T')

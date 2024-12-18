@@ -1,5 +1,8 @@
 '''Type-hinting for Union-bound categories of types'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Any, Callable, Container, Iterable, Sequence, Type, TypeAlias, Union
 from numpy import (
     ndarray,

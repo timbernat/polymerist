@@ -1,23 +1,22 @@
 '''For conversion of RDKit Mols back and forth between different format encodings - often imbues a desired side effect (such as 2D-projection)'''
 
-from abc import ABC, abstractmethod, abstractproperty
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
+from abc import ABC, abstractmethod
 from rdkit import Chem
 from rdkit.Chem.rdchem import Mol
 
-from ..genutils.decorators.classmod import register_subclasses
+from ..genutils.decorators.classmod import register_subclasses, register_abstract_class_attrs
 
 from .labeling.bijection import bijective_atom_id_iter
 from .rdprops import copy_rd_props
 
 
 @register_subclasses(key_attr='TAG')
+@register_abstract_class_attrs('TAG')
 class RDConverter(ABC): # TODO : add some optional sanitization measures to ensure valid output and bijection
     '''For converting an existing RDKit Molecule to and from a particular format to gain new properties'''
-    @abstractproperty
-    @classmethod
-    def TAG(cls):
-        pass
-
     @abstractmethod
     def _convert(self, rdmol : Mol) -> Mol:
         '''Implement conversion mechanism here'''
@@ -38,34 +37,29 @@ class RDConverter(ABC): # TODO : add some optional sanitization measures to ensu
 
         return newmol
 
-class SMARTSConverter(RDConverter):
-    TAG = 'SMARTS'
+class SMARTSConverter(RDConverter, TAG='SMARTS'):
     def _convert(self, rdmol : Mol) -> Mol:
         return Chem.MolFromSmarts(Chem.MolToSmarts(rdmol))
 
-class SMILESConverter(RDConverter):
-    TAG = 'SMILES'
+class SMILESConverter(RDConverter, TAG='SMILES'):
     def _convert(self, rdmol : Mol) -> Mol:
         return Chem.MolFromSmiles(Chem.MolToSmiles(rdmol), sanitize=False)
     
-class CXSMARTSConverter(RDConverter):
+class CXSMARTSConverter(RDConverter, TAG='CXSMARTS'):
     '''Similar to SMARTSConverter but preserves the 3D structure'''
-    TAG = 'CXSMARTS'
     def _convert(self, rdmol : Mol) -> Mol:
         return Chem.MolFromSmarts(Chem.MolToCXSmarts(rdmol))
 
-class CXSMILESConverter(RDConverter):
+class CXSMILESConverter(RDConverter, TAG='CXSMILES'):
     '''Similar to SMILESConverter but preserves the 3D structure'''
-    TAG = 'CXSMILES'
     def _convert(self, rdmol : Mol) -> Mol:
         return Chem.MolFromSmiles(Chem.MolToCXSmiles(rdmol), sanitize=False)
 
-class InChIConverter(RDConverter): # TOSELF : this does not preserve atom map num ordering (how to incorporate AuxInfo?)
-    TAG = 'InChI'
+class InChIConverter(RDConverter, TAG='InChI'):
+    # TOSELF : this does not preserve atom map num ordering (how to incorporate AuxInfo?)
     def _convert(self, rdmol : Mol) -> Mol:
         return Chem.AddHs(Chem.MolFromInchi(Chem.MolToInchi(rdmol), removeHs=False, sanitize=False))
     
-class JSONConverter(RDConverter):
-    TAG = 'JSON'
+class JSONConverter(RDConverter, TAG='JSON'):
     def _convert(self, rdmol : Mol) -> Mol:
         return Chem.rdMolInterchange.JSONToMols(Chem.MolToJSON(rdmol))[0]

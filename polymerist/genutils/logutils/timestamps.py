@@ -1,5 +1,8 @@
 '''Tools for formatting and recording timestamps for events'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Union
 from dataclasses import dataclass
 

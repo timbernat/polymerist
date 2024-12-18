@@ -1,5 +1,8 @@
 '''Validation and parsing of text enclosed by opening and closing delimiters (i.e. parentheses-like behavior)'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Generator, Iterable, Union
 
 import re

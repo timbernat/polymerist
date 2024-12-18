@@ -1,5 +1,8 @@
 '''For running OpenMM simulations and extracting information from them'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 import logging
 LOGGER = logging.getLogger(__name__)
 

@@ -1,5 +1,8 @@
 '''Tools for making existing classes easily readable/writable to JSON'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Any, Callable, ClassVar, Optional, Type, TypeVar, Union
 C = TypeVar('C') # generic type for classes
 
@@ -23,10 +26,8 @@ def dataclass_serializer_factory(cls : Type[C]) -> TypeSerializer:
     '''For generating a custom TypeSerializer for a JSONifiable dataclass'''
     assert(is_dataclass(cls)) # can enforce modification only to dataclasses (makes behavior a little more natural)
 
-    class DataclassSerializer(TypeSerializer):
+    class DataclassSerializer(TypeSerializer, python_type=cls):
         f'''JSON encoder and decoder for the {cls.__name__} dataclass'''
-        python_type = cls
-
         @staticmethod
         def encode(python_obj : Path) -> dict[str, Any]:
             '''Extract dictionary of attributes (may need other external converters to be fully serialized)'''

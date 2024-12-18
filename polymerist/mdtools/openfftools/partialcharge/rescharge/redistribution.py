@@ -1,5 +1,8 @@
 '''Strategies for redistribution excess partial charge among residues'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from rdkit.Chem import Mol

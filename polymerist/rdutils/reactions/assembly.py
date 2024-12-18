@@ -1,5 +1,8 @@
 '''Tools for simplifying the construction of reaction templates'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from dataclasses import dataclass, field
 from typing import Iterable, Optional, Union
 

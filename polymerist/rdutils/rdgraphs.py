@@ -1,5 +1,8 @@
 '''Utilities for interfacing between RDKit Mols and their graph representations'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Iterable
 
 from rdkit import Chem

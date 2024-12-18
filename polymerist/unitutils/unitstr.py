@@ -1,5 +1,8 @@
 '''Utilities for looking up and producing Units from strings'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Optional
 from openmm import unit as openmm_unit
 from openmm.unit import Unit, dimensionless

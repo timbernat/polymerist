@@ -1,5 +1,8 @@
 '''Custom data containers with useful properties'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Any, Iterable, TypeVar
 T = TypeVar('T') # generic type variable
 

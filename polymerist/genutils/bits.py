@@ -1,5 +1,8 @@
 '''For bitwise operations and conversions to/from bitstrings'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import Union 
 
 

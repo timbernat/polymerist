@@ -1,5 +1,8 @@
 '''Specification for representing, defining, and characterizing selective intermolecular bond placeholders ("ports")'''
 
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
+
 from typing import ClassVar, Generator, Optional
 from dataclasses import dataclass, field
 
