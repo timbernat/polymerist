@@ -53,12 +53,15 @@ jupyter = [
 ]
 visuals = [
     "rich",
-    "nglview",
+    "nglview==3.0.6",
     "py3Dmol",
 ]
 chemdb = [
     "cirpy",
     "chemspipy",
+]
+gnn = [
+    "espaloma-charge",
 ]
 
 [tool.setuptools]
