@@ -16,4 +16,3 @@ python:
 
 conda:
   environment: devtools/conda-envs/release-build.yml
-  # environment: docs/requirements.yaml
