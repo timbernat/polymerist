@@ -8,11 +8,14 @@ dependencies:
     - pip
     - jupyterlab
 
-    # Testing and docs
+    # Testing
     - pytest
     - pytest-cov
     - codecov
+    
+    # Docs
     - sphinx
+    - sphinx_rtd_theme
 
     # Numerical libraries
     - numpy
