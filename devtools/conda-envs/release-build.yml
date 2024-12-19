@@ -4,11 +4,11 @@ channels:
     - openeye
 dependencies:
     # Basic Python dependencies
-    - python ==3.11.0
+    - python==3.11.0
     - pip
     - jupyterlab
 
-    # Testing
+    # Unit testing
     - pytest
     - pytest-cov
     - codecov
@@ -18,9 +18,8 @@ dependencies:
     - sphinx_rtd_theme
 
     # Numerical libraries
-    - numpy
+    - numpy<2.0.0 # big update in July 2024 which many packages don't support
     - pandas
-    - dgl >=1.0
     - networkx
     - anytree
   
@@ -39,18 +38,18 @@ dependencies:
     # Visualization
     - pillow
     - matplotlib
-    - ipywidgets ==8.0.4 # more recent versions don't work with Jupyter notebooks, for some reason
+    - ipywidgets==8.0.4 # more recent versions don't work with Jupyter notebooks, for some reason
     - py3Dmol
-    - nglview ==3.0.6
+    - nglview==3.0.6
 
     # OpenFF stack
-    - openff-toolkit ~=0.16
-    - openff-interchange >=0.3.28
-    - openff-nagl >= 0.4
-    - openff-nagl-models >= 0.3
+    - openff-toolkit~=0.16
+    - openff-interchange>=0.3.28
+    - openff-nagl>=0.4
+    - openff-nagl-models>=0.3
 
     # Chemical database queries
     - cirpy
     - pubchempy
     - pip:
-        - espaloma-charge ==0.0.8
+        - espaloma-charge>=0.0.8

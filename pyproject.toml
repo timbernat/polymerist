@@ -22,7 +22,7 @@ requires-python = "==3.11"
 # Declare any run-time dependencies that should be installed with the package.
 dependencies = [
     "importlib-resources", # added to allow incorporation of `data` later on
-    "numpy",
+    "numpy<2.0.0",
     "scipy",
     "matplotlib",
     "pillow",
