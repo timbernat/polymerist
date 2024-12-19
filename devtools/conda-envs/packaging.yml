@@ -1,0 +1,13 @@
+# minimum requirements to package and upload to PyPI
+name: packaging
+channels:
+  - conda-forge
+dependencies:
+  # Basic Python dependencies
+  - python
+  - pip
+
+  # Unit testing
+  - build
+  - twine
+  - sphinx
