@@ -9,7 +9,7 @@ from typing import Annotated, Literal
 
 
 # USEFUL CUSTOM TYPEHINTS
-Array4x4 = Annotated[npt.NDArray[np.float_], Literal[4, 4]]
+Array4x4 = Annotated[npt.NDArray[np.float64], Literal[4, 4]]
 AffineMatrix = Array4x4 # alias for convenience
 
 # RIGID TRANSFORMATIONS
