@@ -3,10 +3,12 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-# Add imports here
-from ._version import __version__
-from .genutils import importutils
-# from .genutils.importutils import register_submodules, module_by_pkg_str
+# from ._version import __version__
+from importlib.metadata import version
+__version__ = version(__name__)
 
-# _MODULE_SELF = module_by_pkg_str(__package__) # keep reference to own module
-# register_submodules(_MODULE_SELF, recursive=True, blacklist=['analysis'])
+# used to check whether package is installed and importable
+from .genutils import importutils
+
+from .genutils.importutils.pkgiter import module_hierarchy
+from .maths.combinatorics.tables import pascal
