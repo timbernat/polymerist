@@ -27,7 +27,7 @@ you may need to include `importlib_resources` in your package dependencies.
 In `pyproject.toml`, include the following in your `[project]` table.
 ```
 dependencies = [
-    "importlib-resources;python_version<'3.10'",
+    "importlib-resources;python_version=='3.11'",
 ]
 ```
 
