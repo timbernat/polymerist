@@ -1,53 +1,12 @@
 name: test
 channels:
   - conda-forge
-  - openeye
 dependencies:
   # Basic Python dependencies
   - python
   - pip
-  - jupyterlab
 
-  # Testing and docs
+  # Unit testing
   - pytest
   - pytest-cov
   - codecov
-  - sphinx
-
-  # Numerical libraries
-  - numpy
-  - pandas
-  - dgl >=1.0
-  - networkx
-  - anytree
-
-  # MD engines
-  - openmm
-  - lammps
-  - mdtraj
-  - pint # for units in case OpenFF is not installed
-
-  # Molecule building
-  - mbuild
-  - openbabel
-  - rdkit
-  - openeye-toolkits # TODO: consider making this optional?
-
-  # Visualization
-  - pillow
-  - matplotlib
-  - ipywidgets ==8.0.4 # more recent versions don't work with Jupyter notebooks, for some reason
-  - py3Dmol
-  - nglview ==3.0.6
-
-  # OpenFF stack
-  - openff-toolkit ~=0.16
-  - openff-interchange >=0.3.28
-  - openff-nagl >= 0.4
-  - openff-nagl-models >= 0.3
-
-  # Chemical database queries
-  - cirpy
-  - pubchempy
-  - pip:
-      - espaloma-charge ==0.0.8
