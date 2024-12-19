@@ -16,9 +16,10 @@ from anytree.node import Node
 from anytree.render import AbstractStyle, ContStyle
 from anytree.iterators import PreOrderIter
 
+from .pkginspect import module_stem, is_package
+from .dependencies import MissingPrerequisitePackage
 from ..trees.treebase import NodeCorrespondence, compile_tree_factory
 from ..trees.treeviz import treestr
-from .pkginspect import module_stem, is_package
 
 
 
@@ -36,7 +37,7 @@ class ModuleToNodeCorrespondence(NodeCorrespondence, FROMTYPE=ModuleType):
             try:
                 submodule = import_module(module_name)
                 yield submodule
-            except ModuleNotFoundError:
+            except (ModuleNotFoundError, MissingPrerequisitePackage):
                 continue
 
 module_tree = compile_tree_factory(
