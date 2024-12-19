@@ -42,7 +42,8 @@ jobs:
       - uses: mamba-org/setup-micromamba@v1
         with:
           generate-run-shell: false # recommended fix to weird ENOENT error (https://github.com/mamba-org/setup-micromamba/issues/130)
-          environment-file: devtools/conda-envs/test-env.yml
+          # environment-file: devtools/conda-envs/test-env.yml    # TOSELF: omitted for now to avoid updating deps in multiple places;...
+          environment-file: devtools/conda-envs/release-build.yml # ...tree-shake later to obtain minimal unit test env reqs
           environment-name: test
           condarc: |
             channels:
