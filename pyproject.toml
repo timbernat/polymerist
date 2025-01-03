@@ -60,9 +60,6 @@ chemdb = [
     "cirpy",
     "chemspipy",
 ]
-gnn = [
-    "espaloma-charge",
-]
 
 [tool.setuptools]
 # This subkey is a beta stage development and keys may change in the future, see https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html for more details
