@@ -48,11 +48,11 @@ test = [
   "pytest-cov",
   "codecov",
 ]
-jupyter = [
+interactive = [
+    # Jupyter notebooks
     "jupyterlab",
     "ipywidgets==8.0.4",
-]
-visuals = [
+    # Molecular visualization
     "nglview==3.0.6",
     "py3Dmol",
 ]
