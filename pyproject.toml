@@ -24,9 +24,10 @@ dependencies = [
     "importlib-resources", # added to allow incorporation of `data` later on
     "numpy<2.0.0",
     "scipy",
-    "matplotlib",
-    "pillow",
     "pandas",
+    "rich",
+    "pillow",
+    "matplotlib",
     "anytree",
     "networkx",
     "rdkit",
@@ -52,7 +53,6 @@ jupyter = [
     "ipywidgets==8.0.4",
 ]
 visuals = [
-    "rich",
     "nglview==3.0.6",
     "py3Dmol",
 ]
