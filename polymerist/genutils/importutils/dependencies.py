@@ -27,7 +27,7 @@ class MissingPrerequisitePackage(Exception):
             dependency_name_formal = dependency_name
         
         message = f'''
-        {use_case.capitalize()} require(s) {dependency_name_formal}, which was not found in the current environment
+        {use_case} require(s) {dependency_name_formal}, which was not found in the current environment
         Please install `{dependency_name}` by following the installation instructions at {install_link}
         Then try importing from "{importing_package_name}" again'''
         
