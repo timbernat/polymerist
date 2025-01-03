@@ -6,9 +6,29 @@ __email__ = 'timotej.bernat@colorado.edu'
 import logging
 LOGGER  = logging.getLogger(__name__)
 
-import cirpy
-import pubchempy as pcp
 from typing import Optional
+
+from ..genutils.importutils.dependencies import modules_installed, MissingPrerequisitePackage
+if not modules_installed('cirpy'):
+    raise MissingPrerequisitePackage(
+        importing_package_name=__spec__.name,
+        use_case='Querying the NIH CACTUS Chemical Identifier Resolver (CIR)',
+        install_link='https://cirpy.readthedocs.io/en/latest/guide/install.html',
+        dependency_name='cirpy',
+        dependency_name_formal='CIRpy',
+    )
+import cirpy
+
+from ..genutils.importutils.dependencies import modules_installed, MissingPrerequisitePackage
+if not modules_installed('pubchempy'):
+    raise MissingPrerequisitePackage(
+        importing_package_name=__spec__.name,
+        use_case='Querying the PubChem Compound database',
+        install_link='https://pubchempy.readthedocs.io/en/latest/guide/install.html',
+        dependency_name='pubchempy',
+        dependency_name_formal='PubChemPy',
+    )
+import pubchempy as pcp
 
 
 def get_property_from_smiles(smiles : str, prop_name : str='iupac_name') -> Optional[str]: # TODO: abstract each query method via Strategy pattern
