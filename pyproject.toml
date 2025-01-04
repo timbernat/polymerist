@@ -58,6 +58,7 @@ interactive = [
 ]
 chemdb = [
     "cirpy",
+    "pubchempy",
     "chemspipy",
 ]
 
