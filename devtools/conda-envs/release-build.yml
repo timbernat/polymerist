@@ -48,8 +48,9 @@ dependencies:
     - openff-nagl>=0.4
     - openff-nagl-models>=0.3
 
+    # Espaloma
+    - espaloma_charge>=0.0.8
+
     # Chemical database queries
     - cirpy
     - pubchempy
-    - pip:
-        - espaloma-charge>=0.0.8
