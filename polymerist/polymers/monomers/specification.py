@@ -19,19 +19,28 @@ from ...rdutils.labeling import molwise
 # CHEMICAL INFO SPECIFICATION
 SANITIZE_AS_KEKULE = (Chem.SANITIZE_ALL & ~Chem.SANITIZE_SETAROMATICITY) # sanitize everything EXCEPT reassignment of aromaticity
 
-def expanded_SMILES(smiles : str, assign_map_nums : bool=True, start_from : int=1) -> str:
-    '''Takes a SMILES string and clarifies chemical information, namely explicit hydrogens, kekulized aromatic bonds, and atom map numbers'''
+def expanded_SMILES(
+        smiles : str,
+        assign_map_nums : bool=True,
+        start_from : int=1,
+        kekulize : bool=True,
+    ) -> str:
+    '''
+    Expands and clarifies the chemical information contained within a passed SMILES string
+    namely explicit hydrogens and bond orders, and (optionally) kekulized aromatic bonds and atom map numbers
+    '''
     assert(is_valid_SMILES(smiles))
     
-    rdmol = Chem.MolFromSmiles(smiles, sanitize=True) # TOSELF : determine values of pros/cons of sanitizations (freedom of specificity vs random RDKit errors)
+    rdmol = Chem.MolFromSmiles(smiles, sanitize=True)
     rdmol = Chem.AddHs(rdmol, addCoords=True)
     if assign_map_nums:
         rdmol = molwise.assign_ordered_atom_map_nums(rdmol, start_from=start_from)
-        
-    Chem.Kekulize(rdmol, clearAromaticFlags=True)
+    
+    if kekulize:
+        Chem.Kekulize(rdmol, clearAromaticFlags=True)
     Chem.SanitizeMol(rdmol)
 
-    return Chem.MolToSmiles(rdmol, kekuleSmiles=True, allBondsExplicit=True, allHsExplicit=True)
+    return Chem.MolToSmiles(rdmol, kekuleSmiles=kekulize, allBondsExplicit=True, allHsExplicit=True)
 
 
 # REGEX TEMPLATES FOR COMPLIANT SMARTS
@@ -66,7 +75,14 @@ def chem_info_from_match(match : re.Match) -> dict[str, Union[int, str, None]]:
 
 
 # SMARTS ATOM QUERY GENERATION
-def compliant_atom_query_from_info(atomic_num : int, degree : int, atom_map_num : int, formal_charge : int=0, isotope : int=0, as_atom : bool=False) -> Union[str, QueryAtom]:
+def compliant_atom_query_from_info(
+        atomic_num : int,
+        degree : int,
+        atom_map_num : int,
+        formal_charge : int=0,
+        isotope : int=0,
+        as_atom : bool=False
+    ) -> Union[str, QueryAtom]:
     '''Construct a monomer-spec compliant atom SMARTS string directly from chemical information'''
     if not isotope: # handles when isotope is literal 0 or NoneType
         isotope = "" # non-specific isotope is not explicitly written in string (left empty)
