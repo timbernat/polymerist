@@ -20,6 +20,10 @@ from ..graphics.named_colors import WHITE
            
 
 # GLOBAL PREFERENCES
+def set_rdkdraw_size(dim : int=300, aspect : float=3/2):
+    '''Change image size and shape of RDKit Mol images'''
+    IPythonConsole.molSize = (int(aspect*dim), dim) # Change IPython image display size
+    
 def enable_substruct_highlights() -> None:
     '''Turns on highlighting of found substructures when performing substructure matches'''
     IPythonConsole.highlightSubstructs = True
@@ -28,9 +32,13 @@ def disable_substruct_highlights() -> None:
     '''Turns off highlighting of found substructures when performing substructure matches'''
     IPythonConsole.highlightSubstructs = False
 
-def set_rdkdraw_size(dim : int=300, aspect : float=3/2):
-    '''Change image size and shape of RDKit Mol images'''
-    IPythonConsole.molSize = (int(aspect*dim), dim) # Change IPython image display size
+def enable_kekulized_drawing() -> None:
+    '''Turns on automatic kekulization of aromatic bonds before drawing molecules in Jupyter Notebooks'''
+    IPythonConsole.kekulizeStructures = True
+
+def disable_kekulized_drawing() -> None:
+    '''Turns off automatic kekulization of aromatic bonds before drawing molecules in Jupyter Notebooks'''
+    IPythonConsole.kekulizeStructures = False
 
 
 # SINGLE-MOLECULE DISPLAY OPTIONS
