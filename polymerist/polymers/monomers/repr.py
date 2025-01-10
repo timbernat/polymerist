@@ -50,10 +50,10 @@ class MonomerGroup:
         if resname in self.monomers:
             existing_resgroup = self.monomers[resname]
             if isinstance(existing_resgroup, list) and (smarts not in existing_resgroup):
-                LOGGER.info(f'Extending existing residue category "{resname}" with SMARTS {smarts}')
+                LOGGER.debug(f'Extending existing residue category "{resname}" with SMARTS {smarts}')
                 self.monomers[resname].append(smarts)
         else:
-            LOGGER.info(f'Creating new residue category "{resname}", containing singular SMARTS ["{smarts}"])')
+            LOGGER.debug(f'Creating new residue category "{resname}", containing singular SMARTS ["{smarts}"])')
             self.monomers[resname] = [smarts]
             
     def _add_monomers(self, resname : str, smarts_container : Iterable[Smarts]) -> None:
