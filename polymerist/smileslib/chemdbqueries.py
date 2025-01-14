@@ -148,7 +148,7 @@ else:
         '''
         service_name : ClassVar[str] = 'PubChem'
         available_properties : ClassVar[set[str]] = set(pcp.PROPERTY_MAP.keys()) | set(pcp.PROPERTY_MAP.values())
-        available_namepaces : ClassVar[set[str]] = { # obtained from https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest#section=Input
+        available_namespaces : ClassVar[set[str]] = { # obtained from https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest#section=Input
             'cid',
             'name',
             'smiles',
