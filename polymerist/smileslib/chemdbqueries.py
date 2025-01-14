@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 from requests import HTTPError
 
 from ..genutils.decorators.classmod import register_abstract_class_attrs, register_subclasses
-from ..genutils.importutils.dependencies import modules_installed, MissingPrerequisitePackage
+from ..genutils.importutils.dependencies import requires_modules, MissingPrerequisitePackage
 
 
 # CUSTOM EXCEPTIONS
@@ -30,17 +30,27 @@ class ChemicalDataQueryFailed(Exception):
 
 # STRATEGIES BASE FOR QUERYING CHEMICAL DATA
 @register_subclasses(key_attr='service_name')
-@register_abstract_class_attrs('service_name', 'available_properties', 'available_namespaces')
+@register_abstract_class_attrs('service_name')
 class ChemDBServiceQueryStrategy(ABC):
     '''Implementation of queries from a particular chemical database'''
     @abstractmethod
     def _get_property(self, prop_name : str, representation : str, **kwargs) -> Optional[Any]:
         ...
         
+    @classmethod
+    @abstractmethod
+    def available_properties(cls) -> Container[str]:
+        ...
+
+    @classmethod
+    @abstractmethod
+    def available_namespaces(cls) -> Container[str]:
+        ...
+        
     def validate_property(self, prop_name : str) -> None:
         '''Pre-check to ensure that a property is queryable from a service before attempting HTTP query'''
-        if prop_name not in self.available_properties:
-            prop_options_str = '\n'.join(sorted(self.available_properties))
+        if prop_name not in self.available_properties():
+            prop_options_str = '\n'.join(sorted(self.available_properties()))
             prop_error_msg = f'Cannot query property "{prop_name}" from {self.service_name}'
             LOGGER.error(prop_error_msg) # log briefer error message in cases where the ensuing ValueError is bypassed
             
@@ -73,24 +83,28 @@ class ChemDBServiceQueryStrategy(ABC):
         return prop_val
     
 # CONCRETE IMPLEMENTATIONS OF CHEMICAL DATABASE SERVICE QUERIES
-if not modules_installed('cirpy'):
-    raise MissingPrerequisitePackage(
-        importing_package_name=__spec__.name,
-        use_case='Querying the NIH CACTUS Chemical Identifier Resolver (CIR)',
-        install_link='https://cirpy.readthedocs.io/en/latest/guide/install.html',
-        dependency_name='cirpy',
-        dependency_name_formal='CIRpy',
-    )
-else:
-    import cirpy
+## NIH CACTUS
+cirpy_error = MissingPrerequisitePackage(
+    importing_package_name=__spec__.name,
+    use_case='Querying the NIH CACTUS Chemical Identifier Resolver (CIR)',
+    install_link='https://cirpy.readthedocs.io/en/latest/guide/install.html',
+    dependency_name='cirpy',
+    dependency_name_formal='CIRpy',
+)
+
+class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
+    '''
+    Implementation of chemical query requests to the NIH's CADD group 
+    Cheminformatics Tools and User Services (CACTUS) Chemical Identifier Resolver (CIR)
+    '''
+    service_name : ClassVar[str] = 'NIH CACTUS CIR'
     
-    class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
-        '''
-        Implementation of chemical query requests to the NIH's CADD group 
-        Cheminformatics Tools and User Services (CACTUS) Chemical Identifier Resolver (CIR)
-        '''
-        service_name : ClassVar[str] = 'NIH CACTUS CIR'
-        _CIR_PROPS : ClassVar[set[str]] = {
+    @classmethod
+    @requires_modules('cirpy', missing_module_error=cirpy_error)
+    def available_properties(cls) -> set[str]:
+        import cirpy 
+        
+        _CIR_PROPS = {  # see official docs for more info: https://cactus.nci.nih.gov/chemical/structure_documentation
             'stdinchikey',
             'stdinchi',
             'smiles',
@@ -115,8 +129,11 @@ else:
             'ring_count',
             'ringsys_count',
         }
-        available_properties : ClassVar[set[str]] = _CIR_PROPS | cirpy.FILE_FORMATS # see official docs for more info: https://cactus.nci.nih.gov/chemical/structure_documentation
-        available_namespaces : ClassVar[set[str]] = { # obtained from https://cirpy.readthedocs.io/en/latest/guide/resolvers.html
+        return _CIR_PROPS | cirpy.FILE_FORMATS
+    
+    @classmethod
+    def available_namespaces(cls) -> set[str]:
+        return { # obtained from https://cirpy.readthedocs.io/en/latest/guide/resolvers.html
             'smiles',
             'stdinchikey',
             'stdinchi',
@@ -126,29 +143,40 @@ else:
             'name_by_opsin',
             'name_by_cir',
         }
-        
-        def _get_property(self, prop_name : str, representation : str, namespace : str, **kwargs):
-            return cirpy.resolve(representation, prop_name, resolvers=[namespace], **kwargs)
-
-if not modules_installed('pubchempy'):
-    raise MissingPrerequisitePackage(
-        importing_package_name=__spec__.name,
-        use_case='Querying the PubChem Compound database',
-        install_link='https://pubchempy.readthedocs.io/en/latest/guide/install.html',
-        dependency_name='pubchempy',
-        dependency_name_formal='PubChemPy',
-    )
-else:
-    import pubchempy as pcp
     
-    class PubChemQueryStrategy(ChemDBServiceQueryStrategy):
-        '''
-        Implementation of chemical query requests to PubChem via the
-        PUG REST API (https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest)
-        '''
-        service_name : ClassVar[str] = 'PubChem'
-        available_properties : ClassVar[set[str]] = set(pcp.PROPERTY_MAP.keys()) | set(pcp.PROPERTY_MAP.values())
-        available_namespaces : ClassVar[set[str]] = { # obtained from https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest#section=Input
+    @requires_modules('cirpy', missing_module_error=cirpy_error)
+    def _get_property(self, prop_name : str, representation : str, namespace : str, **kwargs):
+        import cirpy
+        
+        return cirpy.resolve(representation, prop_name, resolvers=[namespace], **kwargs)
+
+## PubChem
+pubchempy_error = MissingPrerequisitePackage(
+    importing_package_name=__spec__.name,
+    use_case='Querying the PubChem Compound database',
+    install_link='https://pubchempy.readthedocs.io/en/latest/guide/install.html',
+    dependency_name='pubchempy',
+    dependency_name_formal='PubChemPy',
+)
+
+class PubChemQueryStrategy(ChemDBServiceQueryStrategy):
+    '''
+    Implementation of chemical query requests to PubChem via the
+    PUG REST API (https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest)
+    '''
+
+    service_name : ClassVar[str] = 'PubChem'
+    
+    @classmethod
+    @requires_modules('pubchempy', missing_module_error=pubchempy_error)
+    def available_properties(cls) -> set[str]:
+        from pubchempy import PROPERTY_MAP
+        
+        return set(PROPERTY_MAP.keys()) | set(PROPERTY_MAP.values())
+    
+    @classmethod
+    def available_namespaces(cls) -> set[str]:
+        return { # obtained from https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest#section=Input
             'cid',
             'name',
             'smiles',
@@ -158,21 +186,24 @@ else:
             'formula',
             'listkey',
         }
+    
+    @requires_modules('pubchempy', missing_module_error=pubchempy_error)
+    def _get_property(self, prop_name : str, representation : str, namespace : str, **kwargs) -> Optional[Any]:
+        from pubchempy import PROPERTY_MAP, get_properties, PubChemPyError
         
-        def _get_property(self, prop_name : str, representation : str, namespace : str, **kwargs) -> Optional[Any]:
-            official_prop_name = pcp.PROPERTY_MAP.get(prop_name, prop_name) # this is done internally, but needed here to extract the property value from the final return dict
-            try:
-                pubchem_result = pcp.get_properties(official_prop_name, identifier=representation, namespace=namespace, **kwargs)
-            except pcp.PubChemPyError:
-                raise HTTPError # discards some information in return for making Strategy interface oblivious to pubchempy (i.e. in case it is not installed)
-            else:
-                if pubchem_result:
-                    pubchem_result = [
-                        query_result[official_prop_name] # extract property value from extraneous CID (and any other) info
-                            for query_result in pubchem_result
-                                if official_prop_name in query_result # skip if return doesn't contain the info we specifically requested (happens occasionally for some reason)
-                    ] 
-                return pubchem_result
+        official_prop_name = PROPERTY_MAP.get(prop_name, prop_name) # this is done internally, but needed here to extract the property value from the final return dict
+        try:
+            pubchem_result = get_properties(official_prop_name, identifier=representation, namespace=namespace, **kwargs)
+        except PubChemPyError:
+            raise HTTPError # discards some information in return for making Strategy interface oblivious to pubchempy (i.e. in case it is not installed)
+        else:
+            if pubchem_result:
+                pubchem_result = [
+                    query_result[official_prop_name] # extract property value from extraneous CID (and any other) info
+                        for query_result in pubchem_result
+                            if official_prop_name in query_result # skip if return doesn't contain the info we specifically requested (happens occasionally for some reason)
+                ] 
+            return pubchem_result
         
 # UTILITY FUNCTIONS EMPLOYING GENERIC STRATEG(Y/IES)
 def get_chemical_property(
