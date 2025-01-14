@@ -3,7 +3,7 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import Callable, Optional, ParamSpec, TypeVar
+from typing import Callable, Optional, ParamSpec, TypeVar, Union
 
 Params = ParamSpec('Params')
 ReturnType = TypeVar('ReturnType')
@@ -58,7 +58,7 @@ def module_installed(module_name : str) -> bool:
     
     try: # NOTE: opted for this implementation, as it never actually imports the package in question (faster and fewer side-effects)
         return find_spec(module_name) is not None
-    except (ValueError, AttributeError, ModuleNotFoundError): # these could all be raised by 
+    except (ValueError, AttributeError, ModuleNotFoundError): # these could all be raised by a missing module
         return False
     
 def modules_installed(*module_names : list[str]) -> bool:
@@ -80,7 +80,7 @@ def modules_installed(*module_names : list[str]) -> bool:
 
 def requires_modules(
         *required_module_names : list[str],
-        missing_module_error : type[Exception]=ImportError,
+        missing_module_error : Union[Exception, type[Exception]]=ImportError,
     ) -> Callable[[TCall[..., ReturnType]], TCall[..., ReturnType]]:
     '''
     Decorator which enforces optional module dependencies prior to function execution
@@ -99,12 +99,27 @@ def requires_modules(
         Raised if any of the specified packages is not found to be installed
         Exception message will indicate the name of the specific package found missing
     '''
+    # meta-check to ensure type of raised Exception is valid
+    if not isinstance(missing_module_error, Exception):
+        if not (isinstance(missing_module_error, type) and issubclass(missing_module_error, Exception)):
+            # DEV: this is potentially brittle, depending on how the specific Exception subtype is implemented?
+            raise TypeError('Must pass either Exception instance or subtype to "missing_module_error') 
+        
+    def tailored_exception(module_name : str) -> Exception:
+        '''Accessory function to generate targetted Exceptions based on the provided
+        mssing_module_error value and the name of a module with no found installation'''
+        if isinstance(missing_module_error, Exception):
+            return missing_module_error
+        
+        if isinstance(missing_module_error, type):
+           return missing_module_error(f'No installation found for module "{module_name}"')
+    
     def decorator(func) -> TCall[..., ReturnType]:
         @wraps(func)
         def req_wrapper(*args : Params.args, **kwargs : Params.kwargs) -> ReturnType:
             for module_name in required_module_names:
                 if not module_installed(module_name):
-                    raise missing_module_error(f'No installation found for module "{module_name}"')
+                    raise tailored_exception(module_name)
             else:
                 return func(*args, **kwargs)
             

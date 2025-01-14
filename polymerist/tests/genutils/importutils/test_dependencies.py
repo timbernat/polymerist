@@ -5,7 +5,7 @@ __email__ = 'timotej.bernat@colorado.edu'
 
 import pytest
 
-from typing import Any, Callable
+from typing import Any, Callable, Union
 from polymerist.genutils.importutils import dependencies
 
 
@@ -23,24 +23,42 @@ def test_modules_installed(module_names : list[str], expected_found : bool) -> N
     '''Check that module install checker correctly identifies present and absent modules'''
     assert dependencies.modules_installed(*module_names) == expected_found
     
-# Testing requires_modules decorator
-@dependencies.requires_modules('os')
-def should_pass() -> str:
-    '''Dummy function to test requires_modules decorator for dependencies that are present'''
-    return 'I will run!'
-
-@dependencies.requires_modules('fake--module')
-def should_fail() -> str:
-    '''Dummy function to test requires_modules decorator for dependencies that are present'''
-    return 'I will xfail :('
-
+# Testing requires_modules() decorator
 @pytest.mark.parametrize(
-    'func',
+    'module_name,missing_module_error',
     [
-        should_pass,
-        pytest.param(should_fail, marks=pytest.mark.xfail(raises=ImportError, reason='The required module shouldn\'t be found in the environment', strict=True)),
+        ('os', ImportError),
+        ('os', ImportError('This is not the default message!')),
+        pytest.param(
+            'os', 42, # note that module IS valid here but the Exception raised is not (meta-error)
+            marks=pytest.mark.xfail(
+                raises=TypeError, 
+                reason='Non Exception-like object passed to missing_module_error',
+                strict=True,
+            )
+        ),
+        pytest.param(
+            'fake--module', ImportError, 
+            marks=pytest.mark.xfail(
+                raises=ImportError, # NOTE that this ImportError MUST be the same as the import error passed via args
+                reason='The required module shouldn\'t be found in the environment',
+                strict=True,
+            )
+        ),
+        pytest.param(
+            'fake--module', AttributeError('something else'), 
+            marks=pytest.mark.xfail(
+                raises=AttributeError, # NOTE that this AttributeError MUST be the same as the import error passed via args
+                reason='The required module shouldn\'t be found in the environment',
+                strict=True,
+            )
+        ),
     ]
 )
-def test_requires_modules(func : Callable[..., Any]) -> None:
-    '''Test that the requires_modules decortor correctly wraps functions'''
+def test_requires_modules(module_name : str, missing_module_error : Union[Exception, type[Exception]]) -> None:
+    '''Test that the requires_modules decorator correctly wraps functions'''
+    @dependencies.requires_modules(module_name, missing_module_error=missing_module_error)
+    def func() -> str:
+        return 'I am pointless'
+    
     _ = func() # no assertion needed, xfail cases should raise Exception while working cases will ternimate without Exception
