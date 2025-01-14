@@ -229,4 +229,4 @@ def get_chemical_property(
             LOGGER.error(f'{fail_msg}; returning NoneType')
             return None
         else: # fail vocally if none of the services can fulfill the property request
-            raise ValueError(fail_msg)
+            raise ChemicalDataQueryFailed(fail_msg)
