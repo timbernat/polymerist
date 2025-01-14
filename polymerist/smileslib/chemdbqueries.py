@@ -30,7 +30,7 @@ class ChemicalDataQueryFailed(Exception):
 
 # STRATEGIES BASE FOR QUERYING CHEMICAL DATA
 @register_subclasses(key_attr='service_name')
-@register_abstract_class_attrs('service_name', 'available_properties')
+@register_abstract_class_attrs('service_name', 'available_properties', 'available_namespaces')
 class ChemDBServiceQueryStrategy(ABC):
     '''Implementation of queries from a particular chemical database'''
     @abstractmethod
@@ -116,9 +116,18 @@ else:
             'ringsys_count',
         }
         available_properties : ClassVar[set[str]] = _CIR_PROPS | cirpy.FILE_FORMATS # see official docs for more info: https://cactus.nci.nih.gov/chemical/structure_documentation
+        available_namespaces : ClassVar[set[str]] = { # obtained from https://cirpy.readthedocs.io/en/latest/guide/resolvers.html
+            'smiles',
+            'stdinchikey',
+            'stdinchi',
+            'ncicadd_identifier', # (for FICTS, FICuS, uuuuu)
+            'hashisy',
+            'cas_number',
+            'name_by_opsin',
+            'name_by_cir',
+        }
         
         def _get_property(self, prop_name : str, representation : str, namespace : str, **kwargs):
-            # NOTE: "namespace" is interpreted as a signular resolver method (https://cirpy.readthedocs.io/en/latest/guide/resolvers.html)
             return cirpy.resolve(representation, prop_name, resolvers=[namespace], **kwargs)
 
 if not modules_installed('pubchempy'):
@@ -139,6 +148,16 @@ else:
         '''
         service_name : ClassVar[str] = 'PubChem'
         available_properties : ClassVar[set[str]] = set(pcp.PROPERTY_MAP.keys()) | set(pcp.PROPERTY_MAP.values())
+        available_namepaces : ClassVar[set[str]] = { # obtained from https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest#section=Input
+            'cid',
+            'name',
+            'smiles',
+            'inchi',
+            'sdf',
+            'inchikey',
+            'formula',
+            'listkey',
+        }
         
         def _get_property(self, prop_name : str, representation : str, namespace : str, **kwargs) -> Optional[Any]:
             official_prop_name = pcp.PROPERTY_MAP.get(prop_name, prop_name) # this is done internally, but needed here to extract the property value from the final return dict
