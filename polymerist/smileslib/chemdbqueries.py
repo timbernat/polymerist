@@ -9,7 +9,7 @@ LOGGER  = logging.getLogger(__name__)
 from typing import Any, ClassVar, Container, Optional, Sequence
 from abc import ABC, abstractmethod
 
-from requests import HTTPError
+import requests
 
 from ..genutils.decorators.classmod import register_abstract_class_attrs, register_subclasses
 from ..genutils.importutils.dependencies import requires_modules, MissingPrerequisitePackage
@@ -39,18 +39,26 @@ class ChemDBServiceQueryStrategy(ABC):
         
     @classmethod
     @abstractmethod
-    def available_properties(cls) -> Container[str]:
+    def is_online(cls) -> bool:
+        '''Check if the service being queried is online and can accept requests'''
+        ...
+        
+    @classmethod
+    @abstractmethod
+    def queryable_properties(cls) -> Container[str]:
+        '''List which chemical property names can be queried from the service'''
         ...
 
     @classmethod
     @abstractmethod
-    def available_namespaces(cls) -> Container[str]:
+    def queryable_namespaces(cls) -> Container[str]:
+        '''List which chemical identification types can be searched through by the service'''
         ...
         
     def validate_property(self, prop_name : str) -> None:
         '''Pre-check to ensure that a property is queryable from a service before attempting HTTP query'''
-        if prop_name not in self.available_properties():
-            prop_options_str = '\n'.join(sorted(self.available_properties()))
+        if prop_name not in self.queryable_properties():
+            prop_options_str = '\n'.join(sorted(self.queryable_properties()))
             prop_error_msg = f'Cannot query property "{prop_name}" from {self.service_name}'
             LOGGER.error(prop_error_msg) # log briefer error message in cases where the ensuing ValueError is bypassed
             
@@ -101,7 +109,7 @@ class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
     
     @classmethod
     @requires_modules('cirpy', missing_module_error=cirpy_error)
-    def available_properties(cls) -> set[str]:
+    def queryable_properties(cls) -> set[str]:
         import cirpy 
         
         _CIR_PROPS = {  # see official docs for more info: https://cactus.nci.nih.gov/chemical/structure_documentation
@@ -132,7 +140,15 @@ class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
         return _CIR_PROPS | cirpy.FILE_FORMATS
     
     @classmethod
-    def available_namespaces(cls) -> set[str]:
+    @requires_modules('cirpy', missing_module_error=cirpy_error)
+    def is_online(cls):
+        import cirpy
+        
+        response = requests.head(cirpy.API_BASE)
+        return response.status_code < 500 # NOTE: could also be more stringent and check == 200 for OK; enough to just check server-side error for now
+    
+    @classmethod
+    def queryable_namespaces(cls) -> set[str]:
         return { # obtained from https://cirpy.readthedocs.io/en/latest/guide/resolvers.html
             'smiles',
             'stdinchikey',
@@ -164,18 +180,25 @@ class PubChemQueryStrategy(ChemDBServiceQueryStrategy):
     Implementation of chemical query requests to PubChem via the
     PUG REST API (https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest)
     '''
-
     service_name : ClassVar[str] = 'PubChem'
     
     @classmethod
     @requires_modules('pubchempy', missing_module_error=pubchempy_error)
-    def available_properties(cls) -> set[str]:
+    def is_online(cls):
+        import pubchempy
+        
+        response = requests.get(f'{pubchempy.API_BASE}/compound/name/aspirin/property/IUPACName/TXT') # sample query which is well-formatted
+        return response.status_code < 500 # NOTE: enough to just check server-side error for now, but could be more stringent and check if ==200
+        
+    @classmethod
+    @requires_modules('pubchempy', missing_module_error=pubchempy_error)
+    def queryable_properties(cls) -> set[str]:
         from pubchempy import PROPERTY_MAP
         
         return set(PROPERTY_MAP.keys()) | set(PROPERTY_MAP.values())
     
     @classmethod
-    def available_namespaces(cls) -> set[str]:
+    def queryable_namespaces(cls) -> set[str]:
         return { # obtained from https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest#section=Input
             'cid',
             'name',
@@ -195,7 +218,7 @@ class PubChemQueryStrategy(ChemDBServiceQueryStrategy):
         try:
             pubchem_result = get_properties(official_prop_name, identifier=representation, namespace=namespace, **kwargs)
         except PubChemPyError:
-            raise HTTPError # discards some information in return for making Strategy interface oblivious to pubchempy (i.e. in case it is not installed)
+            raise requests.HTTPError # discards some information in return for making Strategy interface oblivious to pubchempy (i.e. in case it is not installed)
         else:
             if pubchem_result:
                 pubchem_result = [
@@ -248,7 +271,7 @@ def get_chemical_property(
                 **kwargs,
             )
             return prop_val
-        except HTTPError:
+        except requests.HTTPError:
             LOGGER.error(f'Query to {service.service_name} failed, either due to connection timeout or invalid request')
             continue
         except (InvalidPropertyError, NullPropertyResponse): # skip over invalid property names (keep trying other services rather than failing)
