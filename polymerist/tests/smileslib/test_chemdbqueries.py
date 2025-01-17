@@ -20,7 +20,8 @@ from polymerist.smileslib.chemdbqueries import (
     # NOTE: these strageies are implemented to be defined even if the packages in question aren't installed
     # it's just that instances will raise excception on most of their method calls
     NIHCACTUSQueryStrategy,
-    PubChemQueryStrategy
+    PubChemQueryStrategy,
+    get_chemical_property,
     
 )
 
@@ -129,7 +130,7 @@ EXAMPLES_BY_SERVICE : list[tuple[ChemDBServiceQueryStrategy, ChemDBQueryExample,
         ),
         None,
         marks=pytest.mark.xfail(
-            raises=NullPropertyResponse,
+            raises=(NullPropertyResponse, ChemicalDataQueryFailed),
             reason='Did not allow response to be NoneType',
             strict=True,
         )
@@ -145,7 +146,7 @@ EXAMPLES_BY_SERVICE : list[tuple[ChemDBServiceQueryStrategy, ChemDBQueryExample,
         ),
         None,
         marks=pytest.mark.xfail(
-            raises=InvalidPropertyError,
+            raises=(InvalidPropertyError, ChemicalDataQueryFailed),
             reason='Tried to query a property that does not exist',
             strict=True,
         )
@@ -207,7 +208,7 @@ EXAMPLES_BY_SERVICE : list[tuple[ChemDBServiceQueryStrategy, ChemDBQueryExample,
         ),
         None,
         marks=pytest.mark.xfail(
-            raises=HTTPError,
+            raises=(HTTPError, ChemicalDataQueryFailed),
             reason='Invalid request sent to PubChem (queried a name as a SMILES string)',
             strict=True,
         )
@@ -234,7 +235,7 @@ EXAMPLES_BY_SERVICE : list[tuple[ChemDBServiceQueryStrategy, ChemDBQueryExample,
         ),
         None,
         marks=pytest.mark.xfail(
-            raises=NullPropertyResponse,
+            raises=(NullPropertyResponse, ChemicalDataQueryFailed),
             reason='Did not allow response to be NoneType',
             strict=True,
         )
@@ -250,7 +251,7 @@ EXAMPLES_BY_SERVICE : list[tuple[ChemDBServiceQueryStrategy, ChemDBQueryExample,
         ),
         None,
         marks=pytest.mark.xfail(
-            raises=InvalidPropertyError,
+            raises=(InvalidPropertyError, ChemicalDataQueryFailed),
             reason='Tried to query a property that does not exist',
             strict=True,
         )
@@ -271,6 +272,22 @@ class TestChemicalDatabaseServiceQueries:
         # initialize and query service
         service = service_type()
         assert service.get_property(**asdict(query_example)) == expected_return
+        
+    def test_get_chemical_property_wrapper(self, service_type : ChemDBQueryExample, query_example : ChemDBQueryExample, expected_return : Any) -> None:
+        '''Test that requests filtered through the get_chemical_properties() strategy wrapper are executed faithfully'''
+        # prechecks to skip tests
+        if not CHEMDB_STRATEGY_DEPENDENCIES_MET[service_type]:
+            pytest.skip(f'{service_type.service_name} is missing Python dependencies')
+            
+        if not CHEMDB_STRATEGY_ONLINE[service_type]:
+            pytest.skip(f'{service_type.service_name} cannot be connected to')
+   
+        # call get_chemical_property wrapper
+        # try:
+        print(asdict(query_example))
+        assert get_chemical_property(**asdict(query_example), services=[service_type], fail_quietly=False) == expected_return # CRUCIAL that fail_quietly be False; rely on exceptions to match with xfails
+        # except ChemicalDataQueryFailed:
+            # print('foo')
     
 
 # @pytest.mark.skipif(not CHEMDB_STRATEGIES_TO_TEST, reason=f'No chemical data server(s) is not available')
