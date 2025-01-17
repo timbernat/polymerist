@@ -149,11 +149,8 @@ class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
         return _CIR_PROPS | cirpy.FILE_FORMATS
     
     @classmethod
-    @requires_modules('cirpy', missing_module_error=cirpy_error)
     def is_online(cls):
-        import cirpy
-        
-        response = requests.head(cirpy.API_BASE)
+        response = requests.head('https://cactus.nci.nih.gov/chemical/structure')
         return response.status_code < 500 # NOTE: could also be more stringent and check == 200 for OK; enough to just check server-side error for now
     
     @classmethod
@@ -197,11 +194,8 @@ class PubChemQueryStrategy(ChemDBServiceQueryStrategy):
         return ['pubchempy']
     
     @classmethod
-    @requires_modules('pubchempy', missing_module_error=pubchempy_error)
     def is_online(cls):
-        import pubchempy
-        
-        response = requests.get(f'{pubchempy.API_BASE}/compound/name/aspirin/property/IUPACName/TXT') # sample query which is well-formatted
+        response = requests.get('https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/aspirin/property/IUPACName/TXT') # sample query which is well-formatted
         return response.status_code < 500 # NOTE: enough to just check server-side error for now, but could be more stringent and check if ==200
         
     @classmethod
