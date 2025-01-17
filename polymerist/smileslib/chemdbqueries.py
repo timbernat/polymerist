@@ -122,8 +122,10 @@ class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
         import cirpy 
         
         _CIR_PROPS = {  # see official docs for more info: https://cactus.nci.nih.gov/chemical/structure_documentation
+            'inchi',
+            'inchikey',
+            'stdinchi', # aliases of the above
             'stdinchikey',
-            'stdinchi',
             'smiles',
             'ficts',
             'ficus',
