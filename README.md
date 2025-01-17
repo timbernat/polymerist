@@ -38,7 +38,7 @@ Once you have a package manager installed, you may proceed with one of the provi
 A fully-featured install in a safe virtual environment (named "polymerist-env", here) can be obtained by running the following terminal commands:
 
 #### Mamba install (basic)
-```sh
+```bash
 mamba create -n polymerist-env python=3.11
 mamba activate polymerist-env
 pip install polymerist
@@ -47,7 +47,7 @@ mamba install -c conda-forge openff-toolkit mbuild openbabel
 
 #### Mamba install (extended)
 An extended install with [Jupyter Notebook](https://jupyter.org/) support, molecular visualization capability, and chemical data querying capability can be obtained very similarly:
-```sh
+```bash
 mamba create -n polymerist-env python=3.11
 mamba activate polymerist-env
 pip install polymerist[interactive,chemdb]
@@ -56,7 +56,7 @@ mamba install -c conda-forge openff-toolkit mbuild openbabel
 
 #### Conda install (not recommended)
 Equivalent commands using `conda` (in case `mamba` has not been installed or the user is too stubborn to use it) are given below. These will perform the same installation, just much more slowly:
-```sh
+```bash
 conda create -n polymerist-env python=3.11
 conda activate polymerist-env
 pip install polymerist[interactive,chemdb]
@@ -67,7 +67,7 @@ In either case, the final [openff-toolkit](https://github.com/openforcefield/ope
 
 #### 1.1) Testing installation
 To see if the installation was successful, one can run the following short set of commands which should yield the outputs shown:
-```sh
+```python
 mamba activate polymerist-env; python
 >>> import polymerist as ps
 >>> print(ps.pascal(5))
@@ -82,7 +82,7 @@ mamba activate polymerist-env; python
 Assigning atomic partial charges using some flavor of [AM1-BCC](https://docs.eyesopen.com/toolkits/python/quacpactk/molchargetheory.html#am1bcc-charges) with `polymerist` also requires installation of some supplementary toolkits.
 
 One can mix-and-match installing any combination of the toolkits below to taste or (if impatient or indifferent) opt for a "shotgun" approach and install all 3 with the following commands:
-```sh
+```bash
 mamba activate polymerist-env
 mamba install -c openeye openeye-toolkits
 mamba install -c conda-forge espaloma_charge openff-nagl
@@ -102,7 +102,7 @@ This is an OpenFF-specific GNN based on similar architecture to Espaloma with a 
 Polymerist can also be installed directly from the source code in this repository. To install, execute the following set of terminal commands in whichever directory you'd like the installation to live on your local machine:
 
 #### Mamba install (source)
-```sh
+```bash
 git clone https://github.com/timbernat/polymerist
 cd polymerist
 mamba env create -n polymerist-env -f devtools/conda-envs/release-build.yml
@@ -111,7 +111,7 @@ pip install .
 ```
 
 #### Conda install (source, not recommended)
-```sh
+```bash
 git clone https://github.com/timbernat/polymerist
 cd polymerist
 conda env create -n polymerist-env -f devtools/conda-envs/release-build.yml
@@ -122,7 +122,7 @@ Once the source install is complete, you no longer need the clone of the polymer
 
 ### Developer installation (for advanced users only)
 Those developing for `polymerist` may like to have an editable local installation, in which they can make changes to the source code and test behavior changes in real-time. In this case, one requires an "editable build" which mirrors the source files that live in the site_packages directory of the created environment. This type of installation proceeds as follows:
-```sh
+```bash
 git clone https://github.com/timbernat/polymerist
 cd polymerist
 mamba env create -n polymerist-dev -f devtools/conda-envs/dev-build.yml
