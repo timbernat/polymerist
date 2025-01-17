@@ -6,13 +6,13 @@ __email__ = 'timotej.bernat@colorado.edu'
 import logging
 LOGGER  = logging.getLogger(__name__)
 
-from typing import Any, ClassVar, Container, Optional, Sequence
+from typing import Any, ClassVar, Container, Iterable, Optional, Sequence
 from abc import ABC, abstractmethod
 
 import requests
 
 from ..genutils.decorators.classmod import register_abstract_class_attrs, register_subclasses
-from ..genutils.importutils.dependencies import requires_modules, MissingPrerequisitePackage
+from ..genutils.importutils.dependencies import modules_installed, requires_modules, MissingPrerequisitePackage
 
 
 # CUSTOM EXCEPTIONS
@@ -35,6 +35,11 @@ class ChemDBServiceQueryStrategy(ABC):
     '''Implementation of queries from a particular chemical database'''
     @abstractmethod
     def _get_property(self, prop_name : str, representation : str, **kwargs) -> Optional[Any]:
+        ...
+        
+    @classmethod
+    def dependencies(cls) -> Iterable[str]:
+        '''For internals, allows dynamic checking for package dependencies (useful for automating unit test boilerplate)'''
         ...
         
     @classmethod
@@ -68,7 +73,7 @@ class ChemDBServiceQueryStrategy(ABC):
             self, 
             prop_name : str, 
             representation : str, 
-            namespace : str='smiles',
+            namespace : Optional[str],
             keep_first_only : bool=True,
             allow_null_return : bool=False,
             **kwargs
@@ -106,6 +111,10 @@ class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
     Cheminformatics Tools and User Services (CACTUS) Chemical Identifier Resolver (CIR)
     '''
     service_name : ClassVar[str] = 'NIH CACTUS CIR'
+    
+    @classmethod
+    def dependencies(cls):
+        return ['cirpy']
     
     @classmethod
     @requires_modules('cirpy', missing_module_error=cirpy_error)
@@ -156,12 +165,13 @@ class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
             'ncicadd_identifier', # (for FICTS, FICuS, uuuuu)
             'hashisy',
             'cas_number',
+            'name', # this is not documented but DOES work
             'name_by_opsin',
             'name_by_cir',
         }
     
     @requires_modules('cirpy', missing_module_error=cirpy_error)
-    def _get_property(self, prop_name : str, representation : str, namespace : str, **kwargs):
+    def _get_property(self, prop_name : str, representation : str, namespace : Optional[str]=None, **kwargs):
         import cirpy
         
         return cirpy.resolve(representation, prop_name, resolvers=[namespace], **kwargs)
@@ -181,6 +191,10 @@ class PubChemQueryStrategy(ChemDBServiceQueryStrategy):
     PUG REST API (https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest)
     '''
     service_name : ClassVar[str] = 'PubChem'
+    
+    @classmethod
+    def dependencies(cls):
+        return ['pubchempy']
     
     @classmethod
     @requires_modules('pubchempy', missing_module_error=pubchempy_error)
@@ -211,7 +225,7 @@ class PubChemQueryStrategy(ChemDBServiceQueryStrategy):
         }
     
     @requires_modules('pubchempy', missing_module_error=pubchempy_error)
-    def _get_property(self, prop_name : str, representation : str, namespace : str, **kwargs) -> Optional[Any]:
+    def _get_property(self, prop_name : str, representation : str, namespace : Optional[str]='smiles', **kwargs) -> Optional[Any]:
         from pubchempy import PROPERTY_MAP, get_properties, PubChemPyError
         
         official_prop_name = PROPERTY_MAP.get(prop_name, prop_name) # this is done internally, but needed here to extract the property value from the final return dict
