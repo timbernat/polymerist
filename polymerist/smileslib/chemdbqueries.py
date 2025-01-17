@@ -83,10 +83,13 @@ class ChemDBServiceQueryStrategy(ABC):
         self.validate_property(prop_name=prop_name)
         
         prop_val = self._get_property(prop_name=prop_name, representation=representation, namespace=namespace, **kwargs)
-        if (prop_val is not None):
-            if keep_first_only and isinstance(prop_val, Container) and not isinstance(prop_val, str): # avoid bug where first char of string response is returned
-                prop_val = prop_val[0]
-        elif not allow_null_return:
+        if not prop_val:
+            prop_val = None # cast empty lists, strings, etc to NoneType
+        
+        if isinstance(prop_val, Container) and not isinstance(prop_val, str) and keep_first_only: # avoid bug where first char of string response is returned
+            prop_val = prop_val[0]
+        
+        if (prop_val is None) and (not allow_null_return): # NOTE: duplicated NoneType check is needed to catch empty containers which are cast to None above
             null_error_msg = f'{self.service_name} returned NoneType "{prop_name}", which is declared invalid by call signature'
             LOGGER.error(null_error_msg)
             
