@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 import requests
 
 from ..genutils.decorators.classmod import register_abstract_class_attrs, register_subclasses
-from ..genutils.importutils.dependencies import modules_installed, requires_modules, MissingPrerequisitePackage
+from ..genutils.importutils.dependencies import requires_modules, MissingPrerequisitePackage
 
 
 # CUSTOM EXCEPTIONS
@@ -125,10 +125,6 @@ class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
         import cirpy 
         
         _CIR_PROPS = {  # see official docs for more info: https://cactus.nci.nih.gov/chemical/structure_documentation
-            'inchi',
-            'inchikey',
-            'stdinchi', # aliases of the above
-            'stdinchikey',
             'smiles',
             'ficts',
             'ficus',
@@ -150,6 +146,19 @@ class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
             'effective_rotor_count',
             'ring_count',
             'ringsys_count',
+            'inchi',
+            'inchikey',
+            # shortened aliases of InChI-related properties
+            'stdinchi', 
+            'stdinchikey',
+            # these were not documented on CACTUS or by cirpy, but scraped from webchem: https://github.com/ropensci/webchem/blob/master/R/cir.R#L168-L174
+            'deprotonable_group_count',
+            'heavy_atom_count',
+            'heteroatom_count',
+            'hydrogen_atom_count',
+            'monoisotopic_mass',
+            'protonable_group_count',
+            'xlogp2',
         }
         return _CIR_PROPS | cirpy.FILE_FORMATS
     
@@ -208,7 +217,7 @@ class PubChemQueryStrategy(ChemDBServiceQueryStrategy):
     def queryable_properties(cls) -> set[str]:
         from pubchempy import PROPERTY_MAP
         
-        return set(PROPERTY_MAP.keys()) | set(PROPERTY_MAP.values())
+        return set(PROPERTY_MAP.keys()) | set(PROPERTY_MAP.values()) | {'Fingerprint2D'} # also taken from webchem: https://github.com/ropensci/webchem/blob/master/R/pubchem.R#L377C21-L392C55
     
     @classmethod
     def queryable_namespaces(cls) -> set[str]:
