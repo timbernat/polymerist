@@ -146,13 +146,11 @@ class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
             ## Other formats
             'cas',
             'chemspider_id',
-            'image',
             # Chemical information
             'mw',
             'h_bond_donor_count',
             'h_bond_acceptor_count',
             'h_bond_center_count',
-            # 'twirl', # NOTE: this is documented on the CIR site, but raises XML error in practice
             'rule_of_5_violation_count',
             'rotor_count',
             'effective_rotor_count',
@@ -166,6 +164,9 @@ class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
             'monoisotopic_mass',
             'protonable_group_count',
             'xlogp2',
+            # Documented but non-working queries
+            # 'image', # for some reason, image query returns internal server error in testing
+            # 'twirl', # NOTE: this is documented on the CIR site, but raises XML error in practice
         }
         return _CIR_PROPS | cirpy.FILE_FORMATS # see here for file formats: https://cirpy.readthedocs.io/en/latest/guide/gettingstarted.html#file-formats
     
