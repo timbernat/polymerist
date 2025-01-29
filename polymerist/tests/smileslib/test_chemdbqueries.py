@@ -65,23 +65,23 @@ def test_missing_dependency_xfail(service_type : ChemDBServiceQueryStrategy) -> 
 @dataclass
 class ChemDBQueryParameters:
     '''For encapsulating the many parameters passable to a chemical database service query'''
-    representation : str
+    identifier : str
     namespace : str
     keep_first_only : bool
     allow_null_return : bool
 
 # examples which test
 ETHANOL_PARAMS = ChemDBQueryParameters(
-    representation='CCO',
+    identifier='CCO',
     namespace='smiles',
     keep_first_only=True,
     allow_null_return=True, 
 )
 FIXED_PARAMETER_EXAMPLES : list[tuple[str, type[ChemDBServiceQueryStrategy], ChemDBQueryParameters, Any]] = [
-    (prop_name, strategy_type, ETHANOL_PARAMS)
+    (property_name, strategy_type, ETHANOL_PARAMS)
         for strategy_type, dependencies_met in CHEMDB_STRATEGY_DEPENDENCIES_MET.items()
             if dependencies_met
-                for prop_name in strategy_type.queryable_properties()
+                for property_name in strategy_type.queryable_properties()
 ]
 
 # examples which test that many diverse inputs yield expected outputs
@@ -91,7 +91,7 @@ VARIED_PARAMETER_EXAMPLES : list[tuple[str, type[ChemDBServiceQueryStrategy], Ch
         'iupac_name',
         NIHCACTUSQueryStrategy,
         ChemDBQueryParameters( 
-            'CCO',
+            identifier='CCO',
             namespace='smiles',
             keep_first_only=True,
             allow_null_return=False,
@@ -102,7 +102,7 @@ VARIED_PARAMETER_EXAMPLES : list[tuple[str, type[ChemDBServiceQueryStrategy], Ch
         'inchi',
         NIHCACTUSQueryStrategy,
         ChemDBQueryParameters( 
-            'N-methylformamide',
+            identifier='N-methylformamide',
             namespace='name',
             keep_first_only=True,
             allow_null_return=False,
@@ -113,7 +113,7 @@ VARIED_PARAMETER_EXAMPLES : list[tuple[str, type[ChemDBServiceQueryStrategy], Ch
         'mw',
         NIHCACTUSQueryStrategy,
         ChemDBQueryParameters(
-            'benzophenone',
+            identifier='benzophenone',
             namespace='name', 
             keep_first_only=True,
             allow_null_return=False,
@@ -124,7 +124,7 @@ VARIED_PARAMETER_EXAMPLES : list[tuple[str, type[ChemDBServiceQueryStrategy], Ch
         'names',
         NIHCACTUSQueryStrategy,
         ChemDBQueryParameters(
-            'c1ccccc1-C(=S)S',
+            identifier='c1ccccc1-C(=S)S',
             namespace='smiles', 
             keep_first_only=False, 
             allow_null_return=False,
@@ -135,7 +135,7 @@ VARIED_PARAMETER_EXAMPLES : list[tuple[str, type[ChemDBServiceQueryStrategy], Ch
         'inchi',
         NIHCACTUSQueryStrategy,
         ChemDBQueryParameters(
-            'bogus-name', # this is obviously fake and should not return anything
+            identifier='bogus-name', # this is obviously fake and should not return anything
             namespace='name', 
             keep_first_only=True,
             allow_null_return=True,
@@ -146,7 +146,7 @@ VARIED_PARAMETER_EXAMPLES : list[tuple[str, type[ChemDBServiceQueryStrategy], Ch
         'inchi',
         NIHCACTUSQueryStrategy,
         ChemDBQueryParameters(
-            'bogus-name', # this is obviously fake and should not return anything
+            identifier='bogus-name', # this is obviously fake and should not return anything
             namespace='name', 
             keep_first_only=True,
             allow_null_return=False,
@@ -162,7 +162,7 @@ VARIED_PARAMETER_EXAMPLES : list[tuple[str, type[ChemDBServiceQueryStrategy], Ch
         'in_no_way_a_valid_property', # this should not even be considered a valid property
         NIHCACTUSQueryStrategy,
         ChemDBQueryParameters(
-            'benophenone', 
+            identifier='benophenone', 
             namespace='name', 
             keep_first_only=True,
             allow_null_return=False,
@@ -180,7 +180,7 @@ VARIED_PARAMETER_EXAMPLES : list[tuple[str, type[ChemDBServiceQueryStrategy], Ch
         'iupac_name',
         PubChemQueryStrategy,
         ChemDBQueryParameters(
-            'CCO',
+            identifier='CCO',
             namespace='smiles',
             keep_first_only=True,
             allow_null_return=False
@@ -191,7 +191,7 @@ VARIED_PARAMETER_EXAMPLES : list[tuple[str, type[ChemDBServiceQueryStrategy], Ch
         'inchi',
         PubChemQueryStrategy,
         ChemDBQueryParameters( 
-            'N-methylformamide',
+            identifier='N-methylformamide',
             namespace='name',
             keep_first_only=True,
             allow_null_return=False,
@@ -202,7 +202,7 @@ VARIED_PARAMETER_EXAMPLES : list[tuple[str, type[ChemDBServiceQueryStrategy], Ch
         'MolecularWeight',
         PubChemQueryStrategy,
         ChemDBQueryParameters(
-            'InChI=1S/C2H5NO/c1-3-2-4/h2H,1H3,(H,3,4)',
+            identifier='InChI=1S/C2H5NO/c1-3-2-4/h2H,1H3,(H,3,4)',
             namespace='inchi', 
             keep_first_only=True,
             allow_null_return=False,
@@ -213,7 +213,7 @@ VARIED_PARAMETER_EXAMPLES : list[tuple[str, type[ChemDBServiceQueryStrategy], Ch
         'HeavyAtomCount',
         PubChemQueryStrategy,
         ChemDBQueryParameters(
-            'CCO', 
+            identifier='CCO', 
             namespace='smiles', 
             keep_first_only=False,
             allow_null_return=False,
@@ -224,7 +224,7 @@ VARIED_PARAMETER_EXAMPLES : list[tuple[str, type[ChemDBServiceQueryStrategy], Ch
         'inchi',
         PubChemQueryStrategy,
         ChemDBQueryParameters(
-            'bogus-name', # this is obviously fake and should not return anything
+            identifier='bogus-name', # this is obviously fake and should not return anything
             namespace='smiles', 
             keep_first_only=True,
             allow_null_return=True,
@@ -240,7 +240,7 @@ VARIED_PARAMETER_EXAMPLES : list[tuple[str, type[ChemDBServiceQueryStrategy], Ch
         'inchi',
         PubChemQueryStrategy,
         ChemDBQueryParameters(
-            'bogus-name', # this is obviously fake and should not return anything
+            identifier='bogus-name', # this is obviously fake and should not return anything
             namespace='name', 
             keep_first_only=True,
             allow_null_return=True,
@@ -251,7 +251,7 @@ VARIED_PARAMETER_EXAMPLES : list[tuple[str, type[ChemDBServiceQueryStrategy], Ch
         'inchi',
         PubChemQueryStrategy,
         ChemDBQueryParameters(
-            'bogus-name', # this is obviously fake and should not return anything
+            identifier='bogus-name', # this is obviously fake and should not return anything
             namespace='name', 
             keep_first_only=True,
             allow_null_return=False,
@@ -267,7 +267,7 @@ VARIED_PARAMETER_EXAMPLES : list[tuple[str, type[ChemDBServiceQueryStrategy], Ch
         'in_no_way_a_valid_property', # this should not even be considered a valid property
         PubChemQueryStrategy,
         ChemDBQueryParameters(
-            'benophenone', 
+            identifier='benophenone', 
             namespace='name', 
             keep_first_only=True,
             allow_null_return=False,
@@ -282,24 +282,24 @@ VARIED_PARAMETER_EXAMPLES : list[tuple[str, type[ChemDBServiceQueryStrategy], Ch
 ]
     
 class TestChemicalDatabaseServiceQueries:
-    @pytest.mark.parametrize('prop_name,service_type,query_params', FIXED_PARAMETER_EXAMPLES)
-    def test_queryable_properties(self, prop_name : str, service_type : type[ChemDBServiceQueryStrategy], query_params : ChemDBQueryParameters) -> None:
+    @pytest.mark.parametrize('property_name,service_type,query_params', FIXED_PARAMETER_EXAMPLES)
+    def test_queryable_properties(self, property_name : str, service_type : type[ChemDBServiceQueryStrategy], query_params : ChemDBQueryParameters) -> None:
         '''Test that the properties each service type lists as queryable do indeed return valid results'''
         skip_pytest_on_invalid_service(service_type=service_type)
         service = service_type()
-        _ = service.get_property(prop_name=prop_name, **asdict(query_params)) # no assert, simply checking that this doesn't raise Exception
+        _ = service.get_property(property_name=property_name, **asdict(query_params)) # no assert, simply checking that this doesn't raise Exception
     
-    @pytest.mark.parametrize('prop_name,service_type,query_params,expected_return', VARIED_PARAMETER_EXAMPLES)
-    def test_direct_service_property_query(self, prop_name : str, service_type : type[ChemDBServiceQueryStrategy], query_params : ChemDBQueryParameters, expected_return : Any) -> None:
+    @pytest.mark.parametrize('property_name,service_type,query_params,expected_return', VARIED_PARAMETER_EXAMPLES)
+    def test_direct_service_property_query(self, property_name : str, service_type : type[ChemDBServiceQueryStrategy], query_params : ChemDBQueryParameters, expected_return : Any) -> None:
         '''Test if a chemical database query through a given service is executed completely and returns the expected result'''
         skip_pytest_on_invalid_service(service_type=service_type)
         service = service_type()
-        assert service.get_property(prop_name=prop_name, **asdict(query_params)) == expected_return
+        assert service.get_property(property_name=property_name, **asdict(query_params)) == expected_return
         
-    @pytest.mark.parametrize('prop_name,service_type,query_params,expected_return', VARIED_PARAMETER_EXAMPLES)
-    def test_get_chemical_property_wrapper(self, prop_name : str, service_type : type[ChemDBServiceQueryStrategy], query_params : ChemDBQueryParameters, expected_return : Any) -> None:
+    @pytest.mark.parametrize('property_name,service_type,query_params,expected_return', VARIED_PARAMETER_EXAMPLES)
+    def test_get_chemical_property_wrapper(self, property_name : str, service_type : type[ChemDBServiceQueryStrategy], query_params : ChemDBQueryParameters, expected_return : Any) -> None:
         '''Test that requests filtered through the get_chemical_properties() strategy wrapper are executed faithfully'''
         skip_pytest_on_invalid_service(service_type=service_type)
-        assert get_chemical_property(prop_name, **asdict(query_params), services=[service_type], fail_quietly=False) == expected_return # CRUCIAL that fail_quietly be False; rely on exceptions to match with xfails
+        assert get_chemical_property(property_name, **asdict(query_params), services=[service_type], fail_quietly=False) == expected_return # CRUCIAL that fail_quietly be False; rely on exceptions to match with xfails
         # except ChemicalDataQueryFailed:
     

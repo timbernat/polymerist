@@ -35,7 +35,7 @@ class ChemicalDataQueryFailed(Exception):
 class ChemDBServiceQueryStrategy(ABC):
     '''Implementation of queries from a particular chemical database'''
     @abstractmethod
-    def _get_property(self, prop_name : str, representation : str, **kwargs) -> Optional[Any]:
+    def _get_property(self, property_name : str, identifier : str, **kwargs) -> Optional[Any]:
         ...
         
     @classmethod
@@ -61,30 +61,30 @@ class ChemDBServiceQueryStrategy(ABC):
         '''List which chemical identification types can be searched through by the service'''
         ...
         
-    def validate_property(self, prop_name : str) -> None:
+    def validate_property(self, property_name : str) -> None:
         '''Pre-check to ensure that a property is queryable from a service before attempting HTTP query'''
-        if prop_name not in self.queryable_properties():
+        if property_name not in self.queryable_properties():
             prop_options_str = '\n'.join(sorted(self.queryable_properties()))
-            prop_error_msg = f'Cannot query property "{prop_name}" from {self.service_name}'
+            prop_error_msg = f'Cannot query property "{property_name}" from {self.service_name}'
             LOGGER.error(prop_error_msg) # log briefer error message in cases where the ensuing ValueError is bypassed
             
             raise InvalidPropertyError(f'{prop_error_msg};\nChoose from one of the following property names:\n{prop_options_str}')
         
     def get_property(
             self, 
-            prop_name : str, 
-            representation : str, 
+            property_name : str, 
+            identifier : str, 
             namespace : Optional[str],
             keep_first_only : bool=True,
             allow_null_return : bool=False,
             **kwargs
         ) -> Optional[Any]:
         '''Fetch a property associated with a molecule from a chemical database query service'''
-        prop_name = prop_name.casefold() # avoid needing to account for case-sensitivity in property name check
-        LOGGER.info(f'Sent query request for property "{prop_name}" to {self.service_name}')
-        self.validate_property(prop_name=prop_name)
+        property_name = property_name.casefold() # avoid needing to account for case-sensitivity in property name check
+        LOGGER.info(f'Sent query request for property "{property_name}" to {self.service_name}')
+        self.validate_property(property_name=property_name)
         
-        prop_val = self._get_property(prop_name=prop_name, representation=representation, namespace=namespace, **kwargs)
+        prop_val = self._get_property(property_name=property_name, identifier=identifier, namespace=namespace, **kwargs)
         if not prop_val:
             prop_val = None # cast empty lists, strings, etc to NoneType
         
@@ -92,11 +92,11 @@ class ChemDBServiceQueryStrategy(ABC):
             prop_val = prop_val[0]
         
         if (prop_val is None) and (not allow_null_return): # NOTE: duplicated NoneType check is needed to catch empty containers which are cast to None above
-            null_error_msg = f'{self.service_name} returned NoneType "{prop_name}", which is declared invalid by call signature'
+            null_error_msg = f'{self.service_name} returned NoneType "{property_name}", which is declared invalid by call signature'
             LOGGER.error(null_error_msg)
             
             raise NullPropertyResponse(null_error_msg)
-        LOGGER.info(f'Successfully received property "{prop_name}" from {self.service_name}')
+        LOGGER.info(f'Successfully received property "{property_name}" from {self.service_name}')
                 
         return prop_val
     
@@ -190,10 +190,15 @@ class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
         }
     
     @requires_modules('cirpy', missing_module_error=cirpy_error)
-    def _get_property(self, prop_name : str, representation : str, namespace : Optional[str]=None, **kwargs):
+    def _get_property(self, property_name : str, identifier : str, namespace : Optional[str]=None, **kwargs):
         import cirpy
         
-        return cirpy.resolve(representation, prop_name, resolvers=[namespace], **kwargs)
+        return cirpy.resolve(
+            input=identifier,
+            representation=property_name,
+            resolvers=[namespace],
+            **kwargs,
+        )
 
 ## PubChem
 pubchempy_error = MissingPrerequisitePackage(
@@ -246,27 +251,32 @@ class PubChemQueryStrategy(ChemDBServiceQueryStrategy):
         }
     
     @requires_modules('pubchempy', missing_module_error=pubchempy_error)
-    def _get_property(self, prop_name : str, representation : str, namespace : Optional[str]='smiles', **kwargs) -> Optional[Any]:
-        from pubchempy import get_properties, PubChemPyError
+    def _get_property(self, property_name : str, identifier : str, namespace : Optional[str]='smiles', **kwargs) -> Optional[Any]:
+        import pubchempy as pcp
         
         try:
-            pubchem_result = get_properties(prop_name, identifier=representation, namespace=namespace, **kwargs)
-        except PubChemPyError:
+            pubchem_result = pcp.get_properties(
+                properties=property_name, 
+                identifier=identifier,
+                namespace=namespace, 
+                **kwargs,
+            )
+        except pcp.PubChemPyError:
             raise requests.HTTPError # discards some information in return for making Strategy interface oblivious to pubchempy (i.e. in case it is not installed)
         else:
             if pubchem_result:
-                prop_name_no_under = prop_name.replace('_', '') # remove underscores to compatibilize naming hits (property names returned from PubChem will never contain underscores)
+                property_name_no_under = property_name.replace('_', '') # remove underscores to compatibilize naming hits (property names returned from PubChem will never contain underscores)
                 pubchem_result = [ # extract the requested property field from the full return fields pubchempy returns
-                    case_insensitive_query_result[prop_name_no_under] # extract property value from extraneous CID (and any other) info
+                    case_insensitive_query_result[property_name_no_under] # extract property value from extraneous CID (and any other) info
                         for case_insensitive_query_result in map(CaseInsensitiveDict, pubchem_result) # allows case-insensitive matching to query names
-                            if prop_name_no_under in case_insensitive_query_result # skip if return doesn't contain the info we specifically requested (happens occasionally for some reason)
+                            if property_name_no_under in case_insensitive_query_result # skip if return doesn't contain the info we specifically requested (happens occasionally for some reason)
                 ] 
             return pubchem_result
         
 # UTILITY FUNCTIONS EMPLOYING GENERIC STRATEG(Y/IES)
 def get_chemical_property(
-        prop_name : str, 
-        representation : str, 
+        property_name : str, 
+        identifier : str, 
         namespace : str='smiles',
         keep_first_only : bool=True,
         allow_null_return : bool=False,
@@ -298,8 +308,8 @@ def get_chemical_property(
         LOGGER.info(f'Attempting chemical property query to service {i}/{n_services_to_try} ("{service.service_name}"):')
         try:
             prop_val = service.get_property(
-                prop_name,
-                representation,
+                property_name,
+                identifier,
                 namespace,
                 keep_first_only=keep_first_only,
                 allow_null_return=allow_null_return,
