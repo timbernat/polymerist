@@ -26,13 +26,13 @@ def _is_valid_bond_derangement(bond_derangement : dict[int, tuple[int, int]]) ->
     # 1) check that each swap maps to a new element (i.e. no identity swaps)
     for begin_map_num, (curr_end_map_num, targ_end_map_num) in bond_derangement.items():
         if curr_end_map_num == targ_end_map_num:
-            LOGGER.warn(f'Swap defined for initial index {begin_map_num} maps back to current partner ({curr_end_map_num} -> {targ_end_map_num})')
+            LOGGER.warning(f'Swap defined for initial index {begin_map_num} maps back to current partner ({curr_end_map_num} -> {targ_end_map_num})')
             return False
         
     # 2) check bijection (i.e. terminal atom remappings form a closed multiset)
     curr_end_counts, targ_end_counts = [Counter(i) for i in zip(*bond_derangement.values())] #  multisets are permissible for when multiple current/target bonds connect to the same atom 
     if curr_end_counts != targ_end_counts:
-        LOGGER.warn('Bond derangement does not define a 1-1 correspondence between elements in the multiset')
+        LOGGER.warning('Bond derangement does not define a 1-1 correspondence between elements in the multiset')
         return False
 
     return True # only return if all above checks pass
@@ -65,7 +65,7 @@ def swap_bonds(rwmol : RWMol, bond_derangement : dict[int, tuple[int, int]], sho
         )
 
         if show_steps:
-            print(f'{begin_map_num} --x-> {curr_end_map_num}')
+            LOGGER.info(f'{begin_map_num} --x-> {curr_end_map_num}')
             display(rwmol)
 
     # form new bonds - must be done AFTER breakage to ensure all necessary ports exist
@@ -78,7 +78,7 @@ def swap_bonds(rwmol : RWMol, bond_derangement : dict[int, tuple[int, int]], sho
         )
 
         if show_steps:
-            print(f'{begin_map_num} ----> {targ_end_map_num}')
+            LOGGER.info(f'{begin_map_num} ----> {targ_end_map_num}')
             display(rwmol)
 
     # deregister bondable pair
