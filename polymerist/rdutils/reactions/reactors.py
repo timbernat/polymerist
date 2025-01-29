@@ -133,12 +133,12 @@ class PolymerizationReactor(Reactor):
         reactants = monomers # initialize reactive pair with monomers
         while True: # check if the reactants can be applied under the reaction template
             try:
-                intermediates = self.react(reactants, repetitions=1, clear_props=False) # can't clear properties yet, otherwise intermonomer bond finder would have nothing to go off of
+                adducts = self.react(reactants, repetitions=1, clear_props=False) # can't clear properties yet, otherwise intermonomer bond finder would have nothing to go off of
             except ReactantTemplateMismatch:
                 break
             
             fragments : list[Mol] = []
-            for i, product in enumerate(intermediates):
+            for i, product in enumerate(adducts):
                 Chem.SanitizeMol(product, sanitizeOps=SANITIZE_AS_KEKULE) # clean up molecule, specifically avoiding de-kekulization in the case of aromatics
                 if clear_map_nums:
                     molwise.clear_atom_map_nums(product, in_place=True)
@@ -151,5 +151,5 @@ class PolymerizationReactor(Reactor):
                             separate=True
                         )
                 )
-            yield intermediates, fragments # yield the dimerized fragment and the 2 new reactive fragments
+            yield adducts, fragments # yield the dimerized fragment and the 2 new reactive fragments
             reactants = fragments # set fragments from current round of polymerizatio as reactants for next round
