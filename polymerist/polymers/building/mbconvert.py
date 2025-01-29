@@ -37,7 +37,7 @@ from ...mdtools.openmmtools.serialization import serialize_openmm_pdb
 
 
 # Conversion from other formats to Compound
-def mbmol_from_mono_rdmol(rdmol : Chem.Mol, resname : Optional[str]=None) -> tuple[Compound, list[int]]:
+def mbmol_from_mono_rdmol(rdmol : Chem.Mol, resname : Optional[str]=None, kekulize : bool=True) -> tuple[Compound, list[int]]:
     '''
     Accepts a monomer-spec-compliant SMARTS string and returns an mbuild Compound and a list of the indices of atom ports
     If "resname" is provided, will assign that name to the mBuild Compound returned
@@ -47,8 +47,14 @@ def mbmol_from_mono_rdmol(rdmol : Chem.Mol, resname : Optional[str]=None) -> tup
     # create port-free version of molecule which RDKit can embed without errors
     prot_mol = hydrogenate_rdmol_ports(rdmol, in_place=False)
     # prot_mol = saturate_ports(rdmol) # TOSELF : custom, port-based saturation methods are not yet ready for deployment - yield issues in RDKit representation under-the-hood 
-    Chem.SanitizeMol(prot_mol, sanitizeOps=SANITIZE_AS_KEKULE) # ensure Mol is valid (avoids implicitValence issues)
     
+    # sanitize to ensure Mol is valid (namely, avoids implicitValence issues)
+    sanitize_ops = Chem.SANITIZE_ALL
+    if kekulize:
+        sanitize_ops &= ~Chem.SANITIZE_SETAROMATICITY # disable aromaticity cleaning to enforce kekulization
+    Chem.SanitizeMol(prot_mol, sanitizeOps=sanitize_ops)
+    
+    # convert cleaned RDKit Mol into mbuild Compound
     mb_compound = from_rdkit(prot_mol) # native from_rdkit() method actually appears to preserve atom ordering
     if resname is not None:
         mb_compound.name = resname
