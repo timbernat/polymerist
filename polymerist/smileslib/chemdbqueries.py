@@ -10,6 +10,7 @@ from typing import Any, ClassVar, Container, Iterable, Optional, Sequence
 from abc import ABC, abstractmethod
 
 import requests
+from requests.structures import CaseInsensitiveDict
 
 from ..genutils.decorators.classmod import register_abstract_class_attrs, register_subclasses
 from ..genutils.importutils.dependencies import requires_modules, MissingPrerequisitePackage
@@ -79,6 +80,7 @@ class ChemDBServiceQueryStrategy(ABC):
             **kwargs
         ) -> Optional[Any]:
         '''Fetch a property associated with a molecule from a chemical database query service'''
+        prop_name = prop_name.casefold() # avoid needing to account for case-sensitivity in property name check
         LOGGER.info(f'Sent query request for property "{prop_name}" to {self.service_name}')
         self.validate_property(prop_name=prop_name)
         
@@ -125,33 +127,38 @@ class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
         import cirpy 
         
         _CIR_PROPS = {  # see official docs for more info: https://cactus.nci.nih.gov/chemical/structure_documentation
+            # Chemical Representations
             'smiles',
+            'names',
+            'iupac_name',
+            'formula',
+            'sdf',
+            ## NIH NCI Identifiers
             'ficts',
             'ficus',
             'uuuuu',
             'hashisy',
-            'names',
-            'iupac_name',
+            ## InChI-related properties with aliases
+            'inchi',
+            'inchikey',
+            'stdinchi', 
+            'stdinchikey',
+            ## Other formats
             'cas',
             'chemspider_id',
             'image',
-            'twirl',
+            # Chemical information
             'mw',
-            'formula',
             'h_bond_donor_count',
             'h_bond_acceptor_count',
             'h_bond_center_count',
+            # 'twirl', # NOTE: this is documented on the CIR site, but raises XML error in practice
             'rule_of_5_violation_count',
             'rotor_count',
             'effective_rotor_count',
             'ring_count',
             'ringsys_count',
-            'inchi',
-            'inchikey',
-            # shortened aliases of InChI-related properties
-            'stdinchi', 
-            'stdinchikey',
-            # these were not documented on CACTUS or by cirpy, but scraped from webchem: https://github.com/ropensci/webchem/blob/master/R/cir.R#L168-L174
+            ## these were not documented on CACTUS or by cirpy, but scraped from webchem: https://github.com/ropensci/webchem/blob/master/R/cir.R#L168-L174
             'deprotonable_group_count',
             'heavy_atom_count',
             'heteroatom_count',
@@ -160,7 +167,7 @@ class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
             'protonable_group_count',
             'xlogp2',
         }
-        return _CIR_PROPS | cirpy.FILE_FORMATS
+        return _CIR_PROPS | cirpy.FILE_FORMATS # see here for file formats: https://cirpy.readthedocs.io/en/latest/guide/gettingstarted.html#file-formats
     
     @classmethod
     def is_online(cls):
@@ -217,7 +224,12 @@ class PubChemQueryStrategy(ChemDBServiceQueryStrategy):
     def queryable_properties(cls) -> set[str]:
         from pubchempy import PROPERTY_MAP
         
-        return set(PROPERTY_MAP.keys()) | set(PROPERTY_MAP.values()) | {'Fingerprint2D'} # also taken from webchem: https://github.com/ropensci/webchem/blob/master/R/pubchem.R#L377C21-L392C55
+        return set.union(
+            set(PROPERTY_MAP.keys()),
+            set(PROPERTY_MAP.values()),
+            set(proper_name.casefold() for proper_name in PROPERTY_MAP.values()), # include case-insensitive versions of names for completeness
+            {'fingerprint2d'}, # also taken from webchem: https://github.com/ropensci/webchem/blob/master/R/pubchem.R#L377C21-L392C55
+        )
     
     @classmethod
     def queryable_namespaces(cls) -> set[str]:
@@ -234,19 +246,19 @@ class PubChemQueryStrategy(ChemDBServiceQueryStrategy):
     
     @requires_modules('pubchempy', missing_module_error=pubchempy_error)
     def _get_property(self, prop_name : str, representation : str, namespace : Optional[str]='smiles', **kwargs) -> Optional[Any]:
-        from pubchempy import PROPERTY_MAP, get_properties, PubChemPyError
+        from pubchempy import get_properties, PubChemPyError
         
-        official_prop_name = PROPERTY_MAP.get(prop_name, prop_name) # this is done internally, but needed here to extract the property value from the final return dict
         try:
-            pubchem_result = get_properties(official_prop_name, identifier=representation, namespace=namespace, **kwargs)
+            pubchem_result = get_properties(prop_name, identifier=representation, namespace=namespace, **kwargs)
         except PubChemPyError:
             raise requests.HTTPError # discards some information in return for making Strategy interface oblivious to pubchempy (i.e. in case it is not installed)
         else:
             if pubchem_result:
-                pubchem_result = [
-                    query_result[official_prop_name] # extract property value from extraneous CID (and any other) info
-                        for query_result in pubchem_result
-                            if official_prop_name in query_result # skip if return doesn't contain the info we specifically requested (happens occasionally for some reason)
+                prop_name_no_under = prop_name.replace('_', '') # remove underscores to compatibilize naming hits (property names returned from PubChem will never contain underscores)
+                pubchem_result = [ # extract the requested property field from the full return fields pubchempy returns
+                    case_insensitive_query_result[prop_name_no_under] # extract property value from extraneous CID (and any other) info
+                        for case_insensitive_query_result in map(CaseInsensitiveDict, pubchem_result) # allows case-insensitive matching to query names
+                            if prop_name_no_under in case_insensitive_query_result # skip if return doesn't contain the info we specifically requested (happens occasionally for some reason)
                 ] 
             return pubchem_result
         
