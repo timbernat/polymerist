@@ -30,6 +30,17 @@ CHEMDB_STRATEGY_DEPENDENCIES_MET : dict[ChemDBServiceQueryStrategy, bool] = {}
 for ChemDBStrategy in ChemDBServiceQueryStrategy.__subclasses__(): # dynamically determine criteria for which services should be tested
     CHEMDB_STRATEGY_ONLINE[          ChemDBStrategy] = ChemDBStrategy.is_online()
     CHEMDB_STRATEGY_DEPENDENCIES_MET[ChemDBStrategy] = modules_installed(*ChemDBStrategy.dependencies())
+    
+def skip_pytest_on_invalid_service(service_type : ChemDBServiceQueryStrategy) -> None:
+    '''
+    Boilerplate function for skipping a test if the requested database
+    query service is either missing local dependencies or is offline
+    '''
+    if not CHEMDB_STRATEGY_DEPENDENCIES_MET[service_type]:
+        pytest.skip(f'{service_type.service_name} is missing Python dependencies')
+        
+    if not CHEMDB_STRATEGY_ONLINE[service_type]:
+        pytest.skip(f'{service_type.service_name} cannot be connected to')
 
 @pytest.mark.parametrize(
     'service_type', 
@@ -258,38 +269,22 @@ EXAMPLES_BY_SERVICE : list[tuple[ChemDBServiceQueryStrategy, ChemDBQueryExample,
     ),
 ]
     
-@pytest.mark.parametrize('service_type,query_example,expected_return', EXAMPLES_BY_SERVICE)
 class TestChemicalDatabaseServiceQueries:
+    @pytest.mark.parametrize('service_type,query_example,expected_return', EXAMPLES_BY_SERVICE)
     def test_direct_service_property_query(self, service_type : ChemDBQueryExample, query_example : ChemDBQueryExample, expected_return : Any) -> None:
         '''Test if a chemical database query through a given service is executed completely and returns the expected result'''
-        # prechecks to skip tests
-        if not CHEMDB_STRATEGY_DEPENDENCIES_MET[service_type]:
-            pytest.skip(f'{service_type.service_name} is missing Python dependencies')
-            
-        if not CHEMDB_STRATEGY_ONLINE[service_type]:
-            pytest.skip(f'{service_type.service_name} cannot be connected to')
+        skip_pytest_on_invalid_service(service_type=service_type)
    
-        # initialize and query service
         service = service_type()
         assert service.get_property(**asdict(query_example)) == expected_return
         
+    @pytest.mark.parametrize('service_type,query_example,expected_return', EXAMPLES_BY_SERVICE)
     def test_get_chemical_property_wrapper(self, service_type : ChemDBQueryExample, query_example : ChemDBQueryExample, expected_return : Any) -> None:
         '''Test that requests filtered through the get_chemical_properties() strategy wrapper are executed faithfully'''
-        # prechecks to skip tests
-        if not CHEMDB_STRATEGY_DEPENDENCIES_MET[service_type]:
-            pytest.skip(f'{service_type.service_name} is missing Python dependencies')
-            
-        if not CHEMDB_STRATEGY_ONLINE[service_type]:
-            pytest.skip(f'{service_type.service_name} cannot be connected to')
+        skip_pytest_on_invalid_service(service_type=service_type)
    
-        # call get_chemical_property wrapper
         # try:
-        print(asdict(query_example))
         assert get_chemical_property(**asdict(query_example), services=[service_type], fail_quietly=False) == expected_return # CRUCIAL that fail_quietly be False; rely on exceptions to match with xfails
         # except ChemicalDataQueryFailed:
             # print('foo')
     
-
-# @pytest.mark.skipif(not CHEMDB_STRATEGIES_TO_TEST, reason=f'No chemical data server(s) is not available')
-# def test_get_chemical_property() -> None:
-#     a = 4
