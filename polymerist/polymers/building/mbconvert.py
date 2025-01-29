@@ -29,10 +29,9 @@ with warnings.catch_warnings(record=True): # suppress numerous and irritating mb
 from rdkit import Chem
 
 from ...genutils.decorators.functional import allow_string_paths, allow_pathlib_paths
-from ..monomers.specification import SANITIZE_AS_KEKULE
 from ...molfiles.pdb import SerialAtomLabeller
 from ...rdutils.bonding.portlib import get_linker_ids
-from ...rdutils.bonding.substitution import saturate_ports, hydrogenate_rdmol_ports
+from ...rdutils.bonding.substitution import hydrogenate_rdmol_ports
 from ...mdtools.openmmtools.serialization import serialize_openmm_pdb
 
 
@@ -46,13 +45,10 @@ def mbmol_from_mono_rdmol(rdmol : Chem.Mol, resname : Optional[str]=None, kekuli
     
     # create port-free version of molecule which RDKit can embed without errors
     prot_mol = hydrogenate_rdmol_ports(rdmol, in_place=False)
-    # prot_mol = saturate_ports(rdmol) # TOSELF : custom, port-based saturation methods are not yet ready for deployment - yield issues in RDKit representation under-the-hood 
-    
-    # sanitize to ensure Mol is valid (namely, avoids implicitValence issues)
     sanitize_ops = Chem.SANITIZE_ALL
     if kekulize:
         sanitize_ops &= ~Chem.SANITIZE_SETAROMATICITY # disable aromaticity cleaning to enforce kekulization
-    Chem.SanitizeMol(prot_mol, sanitizeOps=sanitize_ops)
+    Chem.SanitizeMol(prot_mol, sanitizeOps=sanitize_ops) # sanitize to ensure Mol is valid (namely, avoids implicitValence issues)
     
     # convert cleaned RDKit Mol into mbuild Compound
     mb_compound = from_rdkit(prot_mol) # native from_rdkit() method actually appears to preserve atom ordering
