@@ -10,23 +10,32 @@ from rdkit import Chem
 from rdkit.Chem import rdqueries, Mol
 
 
-# REFERENCE TABLES FOR SPECIAL ATOM TYPES
-_special = { # shorthand for special, non-element queries
-    'metal'           : 'M',
-    'halogen'         : 'X',
-    'heavy'           : 'A',
-    'heavy_noncarbon' : 'Q',
+# REFERENCE TABLES FOR SPECIAL ATOM QUERIES (https://www.rdkit.org/docs/RDKit_Book.html#mol-sdf-support-and-extensions))
+_special_queries : dict[str, list[str]] = { # shorthand for special, non-element queries; 
+    # nonheavy queries: the H postfix throughout is for hydrogen
+    'MH' : ['metal_or_H'],
+    'XH' : ['halogen_or_H'],
+    'AH' : ['any'],
+    'QH' : ['heteratom_or_H', 'noncarbon_or_H'],
+    # heavy atom-specific queries; identifiers not ending in H only match heavy atoms
+    'M' : ['metal', 'metal_heavy'],
+    'X' : ['halogen', 'halogen_heavy'],
+    'A' : ['heavy', 'any_heavy'], # note that these are NOT SMARTS!! (e.g. "A" means "aliphatic atom" if interpreted as SMARTS)
+    'Q' : ['heteratom', 'heteratom_heavy', 'noncarbon', 'noncarbon_heavy'],
 }
 
-SPECIAL_SMARTS = { 
-    query_label : getattr(rdqueries, f'{symbol}AtomQueryAtom')().GetSmarts()
-        for query_label, symbol in _special.items()
-}
-
-SPECIAL_QUERY_MOLS = { # TODO : make these lambda-like so that a unique object is returned on access
-    query_name : Chem.MolFromSmarts(smarts)
-        for query_name, smarts in SPECIAL_SMARTS.items()
-}
+SPECIAL_QUERY_SMARTS : dict[str, str] = {}
+SPECIAL_QUERY_ATOMS  : dict[str, Chem.QueryAtom] = {}
+SPECIAL_QUERY_MOLS   : dict[str, Chem.Mol] = {}
+for query_identifier, aliases in _special_queries.items():
+    query_atom = getattr(rdqueries, f'{query_identifier}AtomQueryAtom')()
+    query_smarts = query_atom.GetSmarts()
+    query_mol = Chem.MolFromSmarts(query_smarts)
+    
+    for alias in aliases:
+        SPECIAL_QUERY_SMARTS[alias] = query_smarts
+        SPECIAL_QUERY_ATOMS[ alias] = query_atom
+        SPECIAL_QUERY_MOLS[  alias] = query_mol
 
 
 # COUNTING SUBSTRUCTURE QUERIES
