@@ -13,15 +13,15 @@ from rdkit.Chem import rdqueries, Mol
 # REFERENCE TABLES FOR SPECIAL ATOM QUERIES (https://www.rdkit.org/docs/RDKit_Book.html#mol-sdf-support-and-extensions))
 _special_queries : dict[str, list[str]] = { # shorthand for special, non-element queries; 
     # nonheavy queries: the H postfix throughout is for hydrogen
-    'MH' : ['metal_or_H'],
-    'XH' : ['halogen_or_H'],
-    'AH' : ['any'],
-    'QH' : ['heteratom_or_H', 'noncarbon_or_H'],
+    'MH' : ['MH', 'metal_or_H'],
+    'XH' : ['XH', 'halogen_or_H'],
+    'AH' : ['AH', 'any'],
+    'QH' : ['QH', 'heteratom_or_H', 'noncarbon_or_H'],
     # heavy atom-specific queries; identifiers not ending in H only match heavy atoms
-    'M' : ['metal', 'metal_heavy'],
-    'X' : ['halogen', 'halogen_heavy'],
-    'A' : ['heavy', 'any_heavy'], # note that these are NOT SMARTS!! (e.g. "A" means "aliphatic atom" if interpreted as SMARTS)
-    'Q' : ['heteratom', 'heteratom_heavy', 'noncarbon', 'noncarbon_heavy'],
+    'M' : ['M', 'metal', 'metal_heavy'],
+    'X' : ['X', 'halogen', 'halogen_heavy'],
+    'A' : ['A', 'heavy', 'any_heavy'], # note that these are NOT SMARTS!! (e.g. "A" means "aliphatic atom" if interpreted as SMARTS)
+    'Q' : ['Q', 'heteratom', 'heteratom_heavy', 'noncarbon', 'noncarbon_heavy'],
 }
 
 SPECIAL_QUERY_SMARTS : dict[str, str] = {}
