@@ -3,28 +3,48 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
+from typing import Union
+
 from dataclasses import dataclass, field
 from collections import Counter
 
 
-PDB_ATOM_TOKEN_COLUMNS : dict[str, tuple[int, int]] = {
-    'Is heteratom'                  : (1, 6),
-    'Atom serial number'            : (7, 11),
-    'Atom name'                     : (13, 16),
-    'Alternate location indicator'  : (17, 17),
-    'Residue name'                  : (18, 20),
-    'Chain identifier'              : (22, 22),
-    'Residue sequence number'       : (23, 26),
-    'Residue insertion code'        : (27, 27),
-    'X (angstrom)'                  : (31, 38),
-    'Y (angstrom)'                  : (39, 46),
-    'Z (angstrom)'                  : (47, 54),
-    'Occupancy'                     : (55, 60),
-    'Temperature factor'            : (61, 66),
-    'Segment identifier'            : (73, 76),
-    'Element symbol'                : (77, 78),
-    'Charge'                        : (79, 80),
+# Column indices and expected types of pieces of information in PDB atom lines
+PDB_ATOM_RECORD_TOKENS : dict[str, tuple[tuple[int, int], type]] = { 
+    'Residue atom type'             : (( 1,  6), str),
+    'Atom serial number'            : (( 7, 11), int),
+    'Atom name'                     : ((13, 16), str),
+    'Alternate location indicator'  : ((17, 17), str),
+    'Residue name'                  : ((18, 20), str),
+    'Chain identifier'              : ((22, 22), str),
+    'Residue sequence number'       : ((23, 26), int),
+    'Residue insertion code'        : ((27, 27), str),
+    'X (angstrom)'                  : ((31, 38), float),
+    'Y (angstrom)'                  : ((39, 46), float),
+    'Z (angstrom)'                  : ((47, 54), float),
+    'Occupancy'                     : ((55, 60), float),
+    'Temperature factor'            : ((61, 66), float),
+    'Segment identifier'            : ((73, 76), str),
+    'Element symbol'                : ((77, 78), str),
+    'Charge'                        : ((79, 80), str),
 } # taken from PDB spec (https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/tutorials/pdbintro.html)
+
+def parse_pdb_atom_record(pdb_atom_record : str) -> dict[str, Union[str, int, float]]:
+    '''Extracts informations (with correct type casting) from a PDB "ATOM" or "HETATM" record'''
+    pdb_atom_record = pdb_atom_record.ljust(80) # ensure line if padded to 80 characters long to avoid IndexErrors
+    
+    atom_info = {} # TODO: add error handling for poorly-formatted atom records
+    for field_name, ((col_start, col_end), cast_type) in PDB_ATOM_RECORD_TOKENS.items():
+        field_value = pdb_atom_record[col_start-1:col_end].strip() # offset for 0-indexing
+        if not field_value: # special cases for empty fields
+            # no need to check for empty strings; these are allowed
+            if cast_type == int:
+                field_value = 0
+            if cast_type == float:
+                field_value = 0.0
+        atom_info[field_name] = cast_type(field_value)
+        
+    return atom_info
 
 @dataclass(frozen=True)
 class SerialAtomLabeller:
