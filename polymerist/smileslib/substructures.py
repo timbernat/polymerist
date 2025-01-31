@@ -4,7 +4,7 @@ __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
 from typing import Generator, TypeVar
-T = TypeVar('T')
+L = TypeVar('L')
 
 from rdkit import Chem
 from rdkit.Chem import rdqueries, Mol
@@ -60,32 +60,44 @@ def num_substruct_queries_distinct(target_mol : Mol, substruct_query : Mol) -> i
 
 
 # MAPPING SUBSTRUCTURE QUERIES
-def matching_labels_from_substruct_dict(target_mol : Mol, substruct_queries : dict[T, Mol]) -> Generator[T, None, None]:
-    '''Takes a target RDKit Mol and a string-keyed dict of SMARTS substructure query Mols and 
-    yields ONLY the keys of substructures which are found in the target'''
+def matches_from_labelled_substructs(target_mol : Mol, substruct_queries : dict[L, Mol]) -> Generator[L, None, None]:
+    '''
+    Takes a Mol object and a dict of labelled substructures and generates the labels of all substructures found in the Mol
+    
+    Parameters
+    ----------
+    target_mol : Chem.Mol
+        The RDKit molecule object to query
+    substruct_queries : dict[L, Chem.Mol]
+        Dict keyed with arbitrary (hashable) labels whose values are substructure query Mol objects
+        
+    Returns
+    -------
+    matching_labels : Generator[L, None, None]
+        Yields labels of all substructures found in target_mol
+    '''
     for match_mol_name, match_mol in substruct_queries.items():
         if target_mol.HasSubstructMatch(match_mol):
             yield match_mol_name
 
-def matching_dict_from_substruct_dict(target_mol : Mol, substruct_queries : dict[T, Mol]) -> dict[T, bool]:
-    '''Takes a target RDKit Mol and a string-keyed dict of SMARTS substructure query Mols and 
-    returns a dict of bools with the same keys indicating whether each match is present'''
-    return {
-        match_mol_name : target_mol.HasSubstructMatch(match_mol)
+def match_dict_from_labelled_substructs(target_mol : Mol, substruct_queries : dict[L, Mol]) -> dict[L, bool]:
+    '''
+    Takes a Mol object and a dict of labelled substructures and returns a new dict keyed by substructure
+    labels whose values indicate whether the corresponding substructure was found in the MOl
+    
+    Parameters
+    ----------
+    target_mol : Chem.Mol
+        The RDKit molecule object to query
+    substruct_queries : dict[L, Chem.Mol]
+        Dict keyed with arbitrary (hashable) labels whose values are substructure query Mol objects
+        
+    Returns
+    -------
+    matching_labels_dict : dict[L, bool]
+        Dict keyed by the same labels indicating whether the corresponding substructure was found in target_mol
+    '''
+    return { # DEVNOTE: kept implementation separate from matches_from_labelled_substructs() to avoid coupling a provide a low-memory alternative function
+        match_mol_name : target_mol.HasSubstructMatch(match_mol) 
             for match_mol_name, match_mol in substruct_queries.items()
     }
-
-def matching_dict_from_substruct_dict_alt(target_mol : Mol, substruct_queries : dict[T, Mol]) -> dict[T, bool]:
-    '''Takes a target RDKit Mol and a string-keyed dict of SMARTS substructure query Mols and 
-    returns a dict of bools with the same keys indicating whether each match is present
-    
-    Alternate implementation with lazy evaluation'''
-    matching_dict = {
-        match_mol_name : False # set False as sentinel value
-            for match_mol_name in substruct_queries.keys()
-    }
-
-    for label in matching_labels_from_substruct_dict(target_mol, substruct_queries=substruct_queries):
-        matching_dict[label] = True
-
-    return matching_dict
