@@ -30,9 +30,20 @@ def bridgehead_atom_ids(product : Chem.Mol) -> Generator[int, None, None]:
 class IntermonomerBondIdentificationStrategy(ABC):
     '''Abstract base for Intermonomer Bond Identification Strategies for fragmentation during in-silico polymerization'''
     @abstractmethod
-    def locate_intermonomer_bonds(self, product : Mol, product_info : RxnProductInfo) -> Generator[int, None, None]:
-        '''Generates the indices of all identified inter-monomer bonds by molecule'''
+    def _locate_intermonomer_bonds(self, product : Mol, product_info : RxnProductInfo) -> Generator[int, None, None]:
+        '''
+        Generates the indices of all identified inter-monomer bonds by molecule
+        MUST BE IMPLEMENTED in order to define behavior of fragmentation strategy
+        '''
         pass
+
+    def locate_intermonomer_bonds(self, product : Mol, product_info : RxnProductInfo) -> Generator[int, None, None]:
+        '''Generates the indices of all identified inter-monomer bonds by molecule, no more than once each'''
+        bonds_already_cut : set[int] = set()
+        for bond_id in self._locate_intermonomer_bonds(product, product_info=product_info):
+            if bond_id not in bonds_already_cut: # bond cleavage must be idempotent, to avoid attempting to cut bonds which no longer exist
+                yield bond_id
+                bonds_already_cut.add(bond_id)   # mark bond as visited to avoid duplicate cuts
 
     def produce_fragments(self, product : Mol, product_info : RxnProductInfo, separate : bool=True):
         '''Apply break all bonds identified by this IBIS algorithm and return the resulting fragments'''
@@ -48,19 +59,19 @@ IBIS = IntermonomerBondIdentificationStrategy # shorthand alias for convenience
 ## CONCRETE IMPLEMENTATIONS
 class ReseparateRGroups(IBIS):
     '''IBIS which cleaves any new bonds formed between atoms that were formerly the start of an R-group in the reaction template'''
-    def locate_intermonomer_bonds(self, product: Mol, product_info : RxnProductInfo) -> Generator[int, None, None]:
-        for bridgehead_id_pair in combinations(bridgehead_atom_ids(product), 2):                         # for every pair of R-group bridgehead atoms...
+    def _locate_intermonomer_bonds(self, product: Mol, product_info : RxnProductInfo) -> Generator[int, None, None]:
+        for bridgehead_id_pair in combinations(bridgehead_atom_ids(product), 2):                    # for every pair of R-group bridgehead atoms...
             for new_bond_id in product_info.new_bond_ids_to_map_nums.keys():                        # find the path(s) with fewest bonds between the bridgeheads... 
-                if new_bond_id in bondwise.get_shortest_path_bonds(product, *bridgehead_id_pair):   # and cut any newly-formed bonds along that path
+                if new_bond_id in bondwise.get_shortest_path_bonds(product, *bridgehead_id_pair):   # and select for cutting any newly-formed bonds found along that path
                     yield new_bond_id
 
 class ReseparateRGroupsUnique(IBIS):
     '''IBIS which cleaves any new bonds formed between atoms that were formerly the start of an R-group in the reaction template exactly once each'''
-    def locate_intermonomer_bonds(self, product: Mol, product_info : RxnProductInfo) -> Generator[int, None, None]:
+    def _locate_intermonomer_bonds(self, product: Mol, product_info : RxnProductInfo) -> Generator[int, None, None]:
         bonds_already_cut : set[int] = set()
-        for bridgehead_id_pair in combinations(bridgehead_atom_ids(product), 2):                                     # for every pair of R-group bridgehead atoms...
+        for bridgehead_id_pair in combinations(bridgehead_atom_ids(product), 2):                                     
             shortest_path_bond_ids : list[int] = bondwise.get_shortest_path_bonds(product, *bridgehead_id_pair) # find the path(s) with fewest bonds between the bridgeheads... 
             for new_bond_id in product_info.new_bond_ids_to_map_nums.keys():                                    # then for each newly formed bond...
                 if (new_bond_id in shortest_path_bond_ids) and (new_bond_id not in bonds_already_cut):          # if the new bond lies along the path and has not already been selected for cutting...
                     yield new_bond_id                                                                           # select the new bond for cutting...
-                    bonds_already_cut.add(new_bond_id)                                                          # and mark it as visited to avoid duplicate cuts
+                    bonds_already_cut.add(new_bond_id)                                                          
