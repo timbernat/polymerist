@@ -13,7 +13,7 @@ from rdkit.Chem.rdmolops import SanitizeFlags, SANITIZE_ALL
 
 from .reactexc import ReactantTemplateMismatch
 from .reactions import AnnotatedReaction, RxnProductInfo
-from .fragment import IBIS, ReseparateRGroups, ReseparateRGroupsUnique
+from .fragment import IBIS, ReseparateRGroups
 
 from .. import rdprops
 from ..labeling import bondwise, molwise
@@ -135,7 +135,7 @@ class PolymerizationReactor(Reactor):
     def propagate(
         self,
         monomers : Iterable[Mol],
-        fragment_strategy : IBIS=ReseparateRGroupsUnique(),
+        fragment_strategy : IBIS=ReseparateRGroups(),
         clear_map_nums : bool=True,
         sanitize_ops : SanitizeFlags=SANITIZE_ALL,
      ) -> Generator[tuple[list[Mol], list[Mol]], None, None]:

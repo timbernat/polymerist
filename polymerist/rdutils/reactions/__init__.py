@@ -4,6 +4,6 @@ __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
 from .reactions import AnnotatedReaction, RxnProductInfo
-from .fragment import IBIS, IntermonomerBondIdentificationStrategy, ReseparateRGroupsUnique
+from .fragment import IBIS, IntermonomerBondIdentificationStrategy, ReseparateRGroups
 from .reactors import Reactor, PolymerizationReactor
 from .assembly import ReactionAssembler
