@@ -1,4 +1,4 @@
-'''PDB file formatting tools'''
+'''PDB file atom line formatting tools'''
 
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
@@ -6,6 +6,25 @@ __email__ = 'timotej.bernat@colorado.edu'
 from dataclasses import dataclass, field
 from collections import Counter
 
+
+PDB_ATOM_TOKEN_COLUMNS : dict[str, tuple[int, int]] = {
+    'Is heteratom'                  : (1, 6),
+    'Atom serial number'            : (7, 11),
+    'Atom name'                     : (13, 16),
+    'Alternate location indicator'  : (17, 17),
+    'Residue name'                  : (18, 20),
+    'Chain identifier'              : (22, 22),
+    'Residue sequence number'       : (23, 26),
+    'Residue insertion code'        : (27, 27),
+    'X (angstrom)'                  : (31, 38),
+    'Y (angstrom)'                  : (39, 46),
+    'Z (angstrom)'                  : (47, 54),
+    'Occupancy'                     : (55, 60),
+    'Temperature factor'            : (61, 66),
+    'Segment identifier'            : (73, 76),
+    'Element symbol'                : (77, 78),
+    'Charge'                        : (79, 80),
+} # taken from PDB spec (https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/tutorials/pdbintro.html)
 
 @dataclass(frozen=True)
 class SerialAtomLabeller:

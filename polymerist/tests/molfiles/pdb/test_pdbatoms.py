@@ -1,21 +1,26 @@
-'''Unit tests for PDB file I/O utils'''
+'''Unit tests for PDB file atom I/O utils'''
 
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
 import pytest
-from polymerist.molfiles.pdb import SerialAtomLabeller
+from polymerist.molfiles.pdb.pdbatoms import SerialAtomLabeller
 
+
+SAMPLE_PDB_LINES : list[str] = [
+    'ATOM    189  C99 OCT     5      39.590  30.100  38.320  1.00  0.00',
+    'ATOM    190 C100 OCT     5      38.850  31.110  37.700  1.00  0.00',
+    'HETATM   47  H21 UNL     1       0.000   0.000   0.000  1.00  0.00           H ',
+]
 
 ELEMS : tuple[str] = ('C', 'H', 'H', 'H', 'N', 'H', 'C', 'O', 'Cl') # atoms for methylcarbamoyl chloride (MCC)
-
 @pytest.mark.parametrize(
     'mol_atom_elems, atom_label_width, include_elem_idx, default_elem_idx, expected_labels',
     [
-        (ELEMS, 4, True, 0, ['C000', 'H000', 'H001', 'H002', 'N000', 'H003', 'C001', 'O000', 'Cl00']), # test with default PDD-compatible settings
-        (ELEMS, 4, True, 2, ['C002', 'H002', 'H003', 'H004', 'N002', 'H005', 'C003', 'O002', 'Cl02']), # test element index offset
-        (ELEMS, 3, True, 2, ['C02', 'H02', 'H03', 'H04', 'N02', 'H05', 'C03', 'O02', 'Cl2']), # test shorter atom label width
-        (ELEMS, 1, True, 0, ['C', 'H', 'H', 'H', 'N', 'H', 'C', 'O', 'C']), # test truncation works below threshold where indices can be written
+        (ELEMS, 4, True , 0, ['C000', 'H000', 'H001', 'H002', 'N000', 'H003', 'C001', 'O000', 'Cl00']), # test with default PDD-compatible settings
+        (ELEMS, 4, True , 2, ['C002', 'H002', 'H003', 'H004', 'N002', 'H005', 'C003', 'O002', 'Cl02']), # test element index offset
+        (ELEMS, 3, True , 2, ['C02', 'H02', 'H03', 'H04', 'N02', 'H05', 'C03', 'O02', 'Cl2']), # test shorter atom label width
+        (ELEMS, 1, True , 0, ['C', 'H', 'H', 'H', 'N', 'H', 'C', 'O', 'C']), # test truncation works below threshold where indices can be written
         (ELEMS, 4, False, 0, ['C   ', 'H   ', 'H   ', 'H   ', 'N   ', 'H   ', 'C   ', 'O   ', 'Cl  ']), # test without element indices
         (ELEMS, 4, False, 7, ['C   ', 'H   ', 'H   ', 'H   ', 'N   ', 'H   ', 'C   ', 'O   ', 'Cl  ']), # test that default indices has no impact when indices aren't present
         (ELEMS, 0, False, 0, ['', '', '', '', '', '', '', '', '']), # test null-width labels
@@ -53,7 +58,7 @@ def test_atom_labeller(
         default_elem_idx : int,
         expected_labels : list[str],
     ) -> None:
-    '''Test that atom labelling hebaves as expected with various label formatting configurations'''
+    '''Test that atom labelling behaves as expected with various label formatting configurations'''
     labeller = SerialAtomLabeller(
         atom_label_width=atom_label_width,
         include_elem_idx=include_elem_idx,
