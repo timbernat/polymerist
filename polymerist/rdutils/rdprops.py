@@ -4,6 +4,8 @@ __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
 from typing import Any, Callable, Generator, Optional, TypeVar, TypeAlias, Union
+T = TypeVar('T')   # generic type for AtomProp attributes
+
 from copy import deepcopy
 
 from rdkit import Chem
@@ -13,14 +15,6 @@ from .labeling.bijection import bijective_atom_id_iter
 from ..genutils.decorators.functional import optional_in_place
 from ..genutils.typetools.categorical import _union_member_factory
 from ..genutils.attrs import compile_argfree_getable_attrs
-
-
-# RDKit-specific generics and type aliases
-T = TypeVar('T')   # generic type for AtomProp attributes
-RD = TypeVar('RD') # generic type to represent an RDKit object
-
-RDObj : TypeAlias = Union[Atom, Bond, Mol, RWMol]
-isrdobj = _union_member_factory(RDObj, 'RDObj')
 
 
 # REFERENCE FOR "MAGIC" PROP KEYS AND DESCRIPTIONS IN RDKit (from https://www.rdkit.org/docs/RDKit_Book.html#magic-property-values) 
@@ -50,7 +44,6 @@ RDATOM_MAGIC_PROPS = {
     'smilesSymbol'           : 'determines the symbol that will be written to a SMILES for the atom',
 }
 
-
 # REFERENCE TABLES FOR ENFORCING C++ TYPING THAT RDKit ENFORCES
 RDPROP_GETTERS = {
     str   : 'GetProp',
@@ -65,7 +58,15 @@ RDPROP_SETTERS = {
     float : 'SetDoubleProp'
 }
 
-# ATOM NEIGHBOR PROPERTY FACTORIES
+# PROPERTY INSPECTION FUNCTIONS
+RDObj : TypeAlias = Union[Atom, Bond, Mol, RWMol]
+isrdobj = _union_member_factory(RDObj, 'RDObj')
+
+def detailed_rdobj_info(rdobj : RDObj) -> dict[str, Any]:
+    '''Extract all get-able info about a particular RDKit atom. Does NOT include any non-default Prop values (e.g. atomMapNumber)'''
+    return compile_argfree_getable_attrs(rdobj, getter_re='Get', repl_str='')
+
+## ATOM PROPERTIES
 def _get_atom_neighbors_by_condition_factory(condition : Callable[[Atom], bool]) -> Callable[[Atom], Generator[Atom, None, None]]:
     '''Factory function for generating neighbor-search functions over Atoms by a boolean condition'''
     def neighbors_by_condition(atom : Atom) -> Generator[Atom, None, None]:
@@ -84,11 +85,6 @@ def _has_atom_neighbors_by_condition_factory(condition : Callable[[Atom], bool])
                 for nb_atom in atom.GetNeighbors()
         )
     return has_neighbors_by_condition
-
-# PROPERTY INSPECTION FUNCTIONS
-def detailed_rdobj_info(rdobj : RDObj) -> dict[str, Any]:
-    '''Extract all get-able info about a particular RDKit atom. Does NOT include any non-default Prop values (e.g. atomMapNumber)'''
-    return compile_argfree_getable_attrs(rdobj, getter_re='Get', repl_str='')
 
 def atom_ids_with_prop(rdmol : Mol, prop_name : str) -> list[int]:
     '''Returns list of atom IDs of atom which have a particular property assigned'''
@@ -118,7 +114,7 @@ def aggregate_atom_prop(rdmol : Mol, prop : str, prop_type : T=str) -> dict[int,
     }
 
 # PROPERTY TRANSFER FUNCTIONS
-def copy_rd_props(from_rdobj : RD, to_rdobj : RD) -> None: # NOTE : no need to incorporate typing info, as RDKit objects can correctly interpret typed strings
+def copy_rd_props(from_rdobj : RDObj, to_rdobj : RDObj) -> None: # NOTE : no need to incorporate typing info, as RDKit objects can correctly interpret typed strings
     '''For copying properties between a pair of RDKit Atoms or Mols'''
     # NOTE : avoid use of GetPropsAsDict() to avoid errors from restrictive C++ typing
     assert isrdobj(from_rdobj) and isrdobj(to_rdobj) # verify that both objects passed are RDKit objects...

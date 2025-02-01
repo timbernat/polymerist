@@ -15,7 +15,7 @@ from .reactexc import ReactantTemplateMismatch
 from .reactions import AnnotatedReaction, RxnProductInfo
 from .fragment import IBIS, ReseparateRGroups
 
-from .. import rdprops
+from ..rdprops import atom_ids_with_prop, clear_atom_props
 from ..labeling.bondwise import get_bond_by_map_num_pair
 from ..labeling.molwise import clear_atom_map_nums
 from ...genutils.decorators.functional import optional_in_place
@@ -50,7 +50,7 @@ class Reactor:
     @optional_in_place
     def _relabel_reacted_atoms(product : Mol, reactant_label : str, reactant_map_nums : dict[int, int]) -> None:
         '''Re-assigns "reactant_idx" Prop to modified reacted atoms to re-complete atom-to-reactant numbering'''
-        for atom_id in rdprops.atom_ids_with_prop(product, 'old_mapno'):
+        for atom_id in atom_ids_with_prop(product, 'old_mapno'):
             atom = product.GetAtomWithIdx(atom_id)
             map_num = atom.GetIntProp('old_mapno')
 
@@ -94,7 +94,7 @@ class Reactor:
                 in_place=True
             )
             if clear_props:
-                rdprops.clear_atom_props(product, in_place=True)
+                clear_atom_props(product, in_place=True)
             Chem.SanitizeMol(product, sanitizeOps=sanitize_ops) # perform sanitization as-specified by the user
                 
             products.append(product)
@@ -155,7 +155,7 @@ class PolymerizationReactor(Reactor):
                     clear_atom_map_nums(product, in_place=True)
                 
                 fragments.extend( # list extension preserves insertion order at each step
-                    rdprops.clear_atom_props(fragment, in_place=False) # essential to avoid reaction mapping info from prior steps from contaminating future ones
+                    clear_atom_props(fragment, in_place=False) # essential to avoid reaction mapping info from prior steps from contaminating future ones
                         for fragment in fragment_strategy.produce_fragments(
                             product,
                             product_info=self.rxn_schema.product_info_maps[i],
