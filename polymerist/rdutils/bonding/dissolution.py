@@ -11,7 +11,6 @@ from rdkit import Chem
 from rdkit.Chem.rdchem import BondType, RWMol
 
 from . import BondOrderModificationError
-from ..labeling.bondwise import are_bonded_atoms
 from ...genutils.decorators.functional import optional_in_place
 
 
@@ -19,7 +18,7 @@ from ...genutils.decorators.functional import optional_in_place
 def _decrease_bond_order(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int) -> RWMol: 
     '''Lower the order of a bond between two atoms, raising Expection if no bond exists
     DOES NOT ENSURE VALENCE OF BONDED ATOMS IS PRESERVED'''
-    if not are_bonded_atoms(rwmol, atom_id_1, atom_id_2):
+    if rwmol.GetBondBetweenAtoms(atom_id_1, atom_id_2) is None:
         raise BondOrderModificationError
     
     # determine expected bond type after order decrease (handle single-bond case, specifically) 

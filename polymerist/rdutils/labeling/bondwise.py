@@ -17,10 +17,6 @@ from ...genutils.decorators.functional import optional_in_place
 
 
 # BOND ID QUERYING
-def are_bonded_atoms(rdmol : Mol, atom_id_1 : int, atom_id_2 : int) -> bool:
-    '''Check if pair of atoms in an RDKit Mol have a bond between them'''
-    return (rdmol.GetBondBetweenAtoms(atom_id_1, atom_id_2) is not None)
-
 def bond_ids_by_cond(rdmol : Mol, bond_cond : Callable[Concatenate[Bond, Params], bool]) -> tuple[int]:
     '''Return IDs of all bonds which satisfy some binary condition'''
     return tuple(
