@@ -9,7 +9,7 @@ Params = ParamSpec('Params')
 from itertools import combinations
 from rdkit.Chem.rdchem import Bond, BondType, Mol
 
-from .molwise import atom_ids_by_map_nums
+from .molwise import get_atom_ids_by_map_nums
 
 
 # BOND ID QUERYING    
@@ -25,7 +25,7 @@ def get_bonded_pairs(rdmol : Mol, *atom_ids : Iterable[int]) -> dict[int, tuple[
 
 def get_bonded_pairs_by_map_nums(rdmol : Mol, *atom_map_nums : Iterable[int]) -> dict[int, tuple[int, int]]:
     '''Obtain bonded pair dict by atom map numbers instead of IDs'''
-    return get_bonded_pairs(rdmol, *atom_ids_by_map_nums(rdmol, *atom_map_nums))
+    return get_bonded_pairs(rdmol, *get_atom_ids_by_map_nums(rdmol, *atom_map_nums))
 
 def get_bond_by_map_num_pair(rdmol : Mol, map_num_pair : tuple[int, int], as_bond : bool=True) -> Optional[Union[int, Bond]]:
     '''
@@ -34,7 +34,7 @@ def get_bond_by_map_num_pair(rdmol : Mol, map_num_pair : tuple[int, int], as_bon
     
     If no bond exists between the atoms, will return None regardless of the value of "as_bond"
     '''
-    bond = rdmol.GetBondBetweenAtoms(*atom_ids_by_map_nums(rdmol, *map_num_pair))
+    bond = rdmol.GetBondBetweenAtoms(*get_atom_ids_by_map_nums(rdmol, *map_num_pair))
     if (not as_bond) and (bond is not None):
         return bond.GetIdx()
     return bond # returns bond or, implicitly, NoneType if no bond is found

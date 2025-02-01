@@ -14,8 +14,8 @@ from .portlib import get_linker_ids, get_single_port
 from .identification import get_num_bondable_port_pairs, get_first_bondable_port_pair
 
 from ..labeling.molwise import (
-    map_nums_by_atom_ids,
-    atom_ids_by_map_nums,
+    get_atom_map_nums_by_ids,
+    get_atom_ids_by_map_nums,
     assign_ordered_atom_map_nums
 )
 from ...genutils.decorators.functional import optional_in_place
@@ -33,9 +33,9 @@ def splice_atoms(rwmol : RWMol, atom_id_1 : Optional[int]=None, atom_id_2 : Opti
     assert(port_1.bond.GetBondType() == port_2.bond.GetBondType()) # slightly redundant given pre-bonding checks, but is a helpful failsafe
     for i in range(int(port_1.bond.GetBondTypeAsDouble())): # bond the target atoms up to the degree of the desired port pair; types
         if i == 0: # record map numbers, as these are invariant between bonding events (unlike atom IDs)
-            atom_map_nums = [j for j in map_nums_by_atom_ids(rwmol, atom_id_1, atom_id_2)] # unpack as list to avoid values being "used up" upon iteration
+            atom_map_nums = [j for j in get_atom_map_nums_by_ids(rwmol, atom_id_1, atom_id_2)] # unpack as list to avoid values being "used up" upon iteration
         else:
-            atom_id_1, atom_id_2 = atom_ids_by_map_nums(rwmol, *atom_map_nums) # reassign bonded atom IDs from invariant map nums cached on first bond formation
+            atom_id_1, atom_id_2 = get_atom_ids_by_map_nums(rwmol, *atom_map_nums) # reassign bonded atom IDs from invariant map nums cached on first bond formation
 
         increase_bond_order(rwmol, atom_id_1, atom_id_2, flavor_pair=flavor_pair, in_place=True) 
 
