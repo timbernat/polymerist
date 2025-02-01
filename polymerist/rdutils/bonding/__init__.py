@@ -3,4 +3,4 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from ._bonding import combined_rdmol
+from ._bonding import combined_rdmol, BondOrderModificationError

@@ -15,7 +15,10 @@ from rdkit.Chem.rdchem import Mol, RWMol
 from ..labeling.molwise import assign_contiguous_atom_map_nums
 
 
-# BOND REFERENCE
+class BondOrderModificationError(Exception):
+    '''Raised when an invalid RDKit bond modification is attempted'''
+    pass
+
 def combined_rdmol(*rdmols : Iterable[Mol], assign_map_nums : bool=True, editable : bool=True) -> Union[Mol, RWMol]:
     '''Merge any number of RDKit Mols into a single molecule with contiguous, non-overlapping atom map numbers'''
     if assign_map_nums: # assign contiguous, unique atom map numbers
