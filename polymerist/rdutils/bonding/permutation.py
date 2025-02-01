@@ -15,7 +15,7 @@ from IPython.display import display # for Jupyter display support
 from . import portlib
 from .formation import increase_bond_order
 from .dissolution import decrease_bond_order
-from ..labeling import molwise
+from ..labeling.molwise import get_isotopes, atom_ids_by_map_nums
 
 from ...genutils.sequences.seqops import int_complement
 from ...genutils.decorators.functional import optional_in_place
@@ -51,7 +51,7 @@ def swap_bonds(rwmol : RWMol, bond_derangement : dict[int, tuple[int, int]], sho
         raise ValueError('Invalid interatomic bond derangement provided')
 
     # determine non-interfering port flavors for new bonds (preserves parity between permutation sets)
-    available_port_flavors = int_complement(molwise.get_isotopes(rwmol), bounded=False) # ensures newly-created temporary ports don't clash with any existing ones
+    available_port_flavors = int_complement(get_isotopes(rwmol), bounded=False) # ensures newly-created temporary ports don't clash with any existing ones
     flavor_pair = (next(available_port_flavors), next(available_port_flavors)) # grab first two available flavors
     portlib.Port.bondable_flavors.insert(flavor_pair) # temporarily register pair as bondable
 
@@ -59,7 +59,7 @@ def swap_bonds(rwmol : RWMol, bond_derangement : dict[int, tuple[int, int]], sho
     for begin_map_num, (curr_end_map_num, _) in bond_derangement.items():
         decrease_bond_order(
             rwmol,
-            *molwise.atom_ids_by_map_nums(rwmol, begin_map_num, curr_end_map_num),
+            *atom_ids_by_map_nums(rwmol, begin_map_num, curr_end_map_num),
             new_flavor_pair=flavor_pair,
             in_place=True # must be done in-place to allow optional_in_place decoration
         )
@@ -72,7 +72,7 @@ def swap_bonds(rwmol : RWMol, bond_derangement : dict[int, tuple[int, int]], sho
     for begin_map_num, (_, targ_end_map_num) in bond_derangement.items():
         increase_bond_order(
             rwmol,
-            *molwise.atom_ids_by_map_nums(rwmol, begin_map_num, targ_end_map_num), 
+            *atom_ids_by_map_nums(rwmol, begin_map_num, targ_end_map_num), 
             flavor_pair=flavor_pair,
             in_place=True # must be done in-place to allow optional_in_place decoration
         )

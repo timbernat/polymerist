@@ -16,7 +16,8 @@ from .reactions import AnnotatedReaction, RxnProductInfo
 from .fragment import IBIS, ReseparateRGroups
 
 from .. import rdprops
-from ..labeling import bondwise, molwise
+from ..labeling.bondwise import get_bond_by_map_num_pair
+from ..labeling.molwise import clear_atom_map_nums
 from ...genutils.decorators.functional import optional_in_place
 
 
@@ -63,7 +64,7 @@ class Reactor:
         for prod_bond_id, map_num_pair in product_info.mod_bond_ids_to_map_nums.items():
             target_bond = product_template.GetBondWithIdx(prod_bond_id)
 
-            product_bond = bondwise.get_bond_by_map_num_pair(product, map_num_pair)
+            product_bond = get_bond_by_map_num_pair(product, map_num_pair)
             assert(product_bond.GetBeginAtom().HasProp('_ReactionDegreeChanged')) 
             assert(product_bond.GetEndAtom().HasProp('_ReactionDegreeChanged')) # double check that the reaction agrees that the bond has changed
 
@@ -151,7 +152,7 @@ class PolymerizationReactor(Reactor):
             fragments : list[Mol] = []
             for i, product in enumerate(adducts):
                 if clear_map_nums:
-                    molwise.clear_atom_map_nums(product, in_place=True)
+                    clear_atom_map_nums(product, in_place=True)
                 
                 fragments.extend( # list extension preserves insertion order at each step
                     rdprops.clear_atom_props(fragment, in_place=False) # essential to avoid reaction mapping info from prior steps from contaminating future ones
