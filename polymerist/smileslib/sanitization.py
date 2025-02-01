@@ -26,7 +26,7 @@ def is_valid_SMILES(smiles : Smiles) -> bool:
 SANITIZE_AS_KEKULE = (Chem.SANITIZE_ALL & ~Chem.SANITIZE_SETAROMATICITY) # sanitize everything EXCEPT reassignment of aromaticity
 
 # CANONICALIZATION
-def canonicalize_mol(mol : Chem.Mol) -> str:
+def canonical_SMILES_from_mol(mol : Chem.Mol) -> str:
     '''
     Cast Mol to a "canonical" SMILES format -
     Mols with identical chemical structure should produce identical strings

@@ -9,7 +9,9 @@ from dataclasses import dataclass, field
 import re
 from io import StringIO
 from pathlib import Path
+
 from functools import cached_property
+from collections import defaultdict, Counter
 
 from rdkit.Chem import rdChemReactions, Mol
 
@@ -18,9 +20,10 @@ from ..bonding._bonding import combined_rdmol
 from ..labeling.molwise import ordered_map_nums
 from ..labeling.bondwise import get_bonded_pairs_by_map_nums
 
-from ...genutils.decorators.functional import allow_string_paths, allow_pathlib_paths
-from ...genutils.sequences.discernment import DISCERNMENTSolver
+from ...smileslib.sanitization import canonical_SMILES_from_mol
 from ...smileslib.substructures import num_substruct_queries_distinct
+from ...genutils.decorators.functional import allow_string_paths, allow_pathlib_paths
+from ...genutils.sequences.discernment import DISCERNMENTSolver, SymbolInventory
 
 
 # REACTION INFORMATICS CLASSES
@@ -178,6 +181,27 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         
         return prod_info_map
     
+    # REACTANT PATHFINDING
+    def build_functional_group_inventory(self, reactants : Iterable[Mol], label_reactants_with_smiles : bool=False) -> SymbolInventory:
+        '''
+        Construct an inventory of numbers of functional groups (reactant templates) found in a sequence of reactant Mols,
+        which can be evaluated as a DISCERNMENT-type problem to determine valid reactant ordering(s), if some exist
+        
+        Isomorphisms to the DISCERNMENT problem in this instance are as follows:
+            "symbols"     <-> indices of functional groups, as-defined by reactant templates
+            "target word" <-> the sequence of indices [n-1] = [0, 1, ..., n-1] where "n" is the number of reactant templates
+            "magazine"    <-> an ordered collection of reactant molecules, which may contain any number of functional groups apiece each
+            "word labels" <-> either the index of a reactant in the order it's passed or its canonical SMILES representation (depends on value of "label_reactants_with_smiles")
+        '''
+        fn_group_sym_inv = defaultdict(Counter) # TODO: add more "native" mechanism to instantiate SymbolInventory directly from counts (rather than sequences of bins)
+        for reactant_idx, reactant in enumerate(reactants): # NOTE: placed first in case reactants are exhaustible (e.g. generator-like)
+            for template_idx, reactant_template in enumerate(self.GetReactants()): 
+                fn_group_sym_inv[template_idx][
+                    canonical_SMILES_from_mol(reactant) if label_reactants_with_smiles else reactant_idx
+                ] = num_substruct_queries_distinct(reactant, reactant_template) # counts are the number of times a particular reactant template occurs in a monomer
+        
+        return SymbolInventory(fn_group_sym_inv)
+    
     def valid_reactant_ordering(self, reactants : Sequence[Mol], as_mols : bool=True) -> Optional[list[Mol]]:
         '''
         Given an RDKit chemical reaction mechanism and a sequence of reactant Mols, will determine if there is
@@ -186,36 +210,21 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         Returns the first found ordering, or NoneType if no such ordering exists
         Ordering returned as list of Chem.Mol objects if as_mols == True, or as list of ints otherwise
         '''
-        # 0) Preliminary quick check on number of reactants; can discount a bad reactant collection prior to more expensive check
+        # Preliminary quick check on number of reactants; can discount a bad reactant collection prior to more expensive check
         num_reactants_provided = len(reactants)
-        num_reactant_templates_in_mechanism = self.GetNumReactantTemplates()
+        num_reactant_templates_required = self.GetNumReactantTemplates()
 
-        if num_reactants_provided != num_reactant_templates_in_mechanism:
-            raise BadNumberReactants(f'{self.__class__.__name__} expected {num_reactant_templates_in_mechanism} reactants, but {num_reactants_provided} were provided')
+        if num_reactants_provided != num_reactant_templates_required:
+            raise BadNumberReactants(f'{self.__class__.__name__} expected {num_reactant_templates_required} reactants, but {num_reactants_provided} were provided')
 
-        # if number of fragments is correct, perform more complex of whether a molecule-unique substructure selection exists
-        ## 1) Pre-compilation of template substructure indices
-        reactant_template_indices : list[int] = [templ_idx for templ_idx in range(num_reactant_templates_in_mechanism)]
-        reactant_templates_by_index : dict[int, Mol] = {
-            templ_idx : self.GetReactantTemplate(templ_idx)
-                for templ_idx in reactant_template_indices
-        }
-
-        template_substruct_ids_by_reactant_ids : dict[int, list[int]] = { 
-            react_idx : [ # associate with each reactant a substructure "word"...
-                templ_idx # ... consisting of the indices of reactant template indices present as substructure(s) in the reactant...
-                    for templ_idx, react_templ in reactant_templates_by_index.items()
-                        for _ in range(num_substruct_queries_distinct(reactant, react_templ)) # ...which appear as many times as the substructure is uniquely present
-            ]
-                for react_idx, reactant in enumerate(reactants)
-        } # TOSELF: implemented this w/ indices (rather than directly using Mols, which are hashable) because the same mol might return distinct hashes (cannot evaluate self-equality via __eq__ directly)
-
-        ## 2) Choice-finding to see if a selection of reactants matching the templates exists
-        reactant_ordering_planner = DISCERNMENTSolver(template_substruct_ids_by_reactant_ids)
-
-        if reactant_ordering_planner.solution_exists(reactant_template_indices, unique_bins=True):
+        # If number of fragments is correct, perform more complex of whether a molecule-unique substructure selection exists
+        target_word : list[int] = [templ_idx for templ_idx in range(num_reactant_templates_required)]
+        fn_group_inventory = self.build_functional_group_inventory(reactants, label_reactants_with_smiles=False) # use indices of reactants to allow direct lookup of reactants from solution
+        reactant_ordering_planner = DISCERNMENTSolver(fn_group_inventory)
+        
+        if reactant_ordering_planner.solution_exists(target_word, unique_bins=True): # TODO: remove redudancy of check here
             reactant_ordering : tuple[int] = next(reactant_ordering_planner.enumerate_choices(
-                word=reactant_template_indices,
+                word=target_word,
                 unique_bins=True) # need to have unique bins so a single reactant is not taken more than once
             )
             if as_mols:

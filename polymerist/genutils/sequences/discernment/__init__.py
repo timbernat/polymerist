@@ -15,3 +15,4 @@ from .strategies import (
     DISCERNMENTStrategyCartesian,
     DISCERNMENTStrategyRecursive,
 )
+from .inventory import SymbolInventory
