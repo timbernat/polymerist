@@ -8,7 +8,7 @@ T = TypeVar('T')
 
 from rdkit.Chem import Atom, Mol
 
-from .rdprops import RDPROP_GETTERS
+from ._rdprops import RDPROP_GETTERS
 from ...genutils.decorators.functional import optional_in_place
 
 
