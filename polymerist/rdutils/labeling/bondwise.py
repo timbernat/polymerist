@@ -7,12 +7,9 @@ from typing import Any, Callable, Concatenate, Iterable, Optional, ParamSpec, Un
 Params = ParamSpec('Params')
 
 from itertools import combinations
-
-from rdkit import Chem
 from rdkit.Chem.rdchem import Bond, BondType, Mol
 
 from .molwise import atom_ids_by_map_nums
-from ...genutils.iteration import sliding_window
 from ...genutils.decorators.functional import optional_in_place
 
 
@@ -22,7 +19,7 @@ def bond_ids_by_cond(rdmol : Mol, bond_cond : Callable[Concatenate[Bond, Params]
     return tuple(
         bond.GetIdx()
             for bond in rdmol.GetBonds()
-                 if bond_cond(bond)
+                if bond_cond(bond)
     )
     
 def get_bonded_pairs(rdmol : Mol, *atom_ids : Iterable[int]) -> dict[int, tuple[int, int]]:
@@ -50,14 +47,6 @@ def get_bond_by_map_num_pair(rdmol : Mol, map_num_pair : tuple[int, int], as_bon
     if (not as_bond) and (bond is not None):
         return bond.GetIdx()
     return bond # returns bond or, implicitly, NoneType f no bond is found
-
-def get_shortest_path_bonds(rdmol : Mol, start_idx : int, end_idx : int) -> list[int]:
-    '''Returns bond indices along shortest path between two atoms in a Mol'''
-    return [
-        rdmol.GetBondBetweenAtoms(*atom_id_pair).GetIdx()
-            for atom_id_pair in sliding_window(Chem.GetShortestPath(rdmol, start_idx, end_idx), n=2)
-    ]
-
 
 # BOND ID LABELING
 @optional_in_place

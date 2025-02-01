@@ -11,7 +11,7 @@ from rdkit import Chem
 from rdkit.Chem import rdqueries, Mol
 
 from .reactions import RxnProductInfo
-from ..labeling.bondwise import get_shortest_path_bonds
+from ...genutils.iteration import sliding_window
 
 
 # HELPER FUNCTIONS
@@ -26,6 +26,13 @@ def bridgehead_atom_ids(product : Chem.Mol) -> Generator[int, None, None]:
     for bh_atom in product.GetAtomsMatchingQuery(HEAVY_FORMER_LINKER_QUERY_ATOM):
         yield bh_atom.GetIdx()
         
+def get_shortest_path_bonds(rdmol : Mol, start_atom_idx : int, end_atom_idx : int) -> list[int]:
+    '''Returns bond indices along shortest path between two atoms in a Mol'''
+    return [
+        rdmol.GetBondBetweenAtoms(*atom_id_pair).GetIdx()
+            for atom_id_pair in sliding_window(Chem.GetShortestPath(rdmol, start_atom_idx, end_atom_idx), n=2)
+    ]
+    
 # ABSTRACT BASE FOR FRAGMENTATION STRATEGIES
 class IntermonomerBondIdentificationStrategy(ABC):
     '''Abstract base for Intermonomer Bond Identification Strategies for fragmentation during in-silico polymerization'''
