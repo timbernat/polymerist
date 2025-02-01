@@ -9,5 +9,4 @@ from .sanitization import (
     Smarts,
     is_valid_SMARTS,
     expanded_SMILES,
-    SANITIZE_AS_KEKULE,
 )
