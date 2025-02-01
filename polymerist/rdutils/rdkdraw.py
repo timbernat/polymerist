@@ -14,7 +14,7 @@ from matplotlib.colors import Normalize, Colormap
 from rdkit.Chem.rdchem import Mol
 from rdkit.Chem.Draw import rdMolDraw2D, SimilarityMaps, MolsToGridImage, IPythonConsole
 
-from .rdprops import aggregate_atom_prop, annotate_atom_prop
+from .rdprops.atomprops import aggregate_atom_prop, annotate_atom_prop
 from ..graphics import imageutils, plotutils
 from ..graphics.named_colors import WHITE
            

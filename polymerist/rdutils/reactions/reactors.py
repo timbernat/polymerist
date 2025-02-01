@@ -15,7 +15,7 @@ from .reactexc import ReactantTemplateMismatch
 from .reactions import AnnotatedReaction, RxnProductInfo
 from .fragment import IBIS, ReseparateRGroups
 
-from ..rdprops import atom_ids_with_prop, clear_atom_props
+from ..rdprops.atomprops import atom_ids_with_prop, clear_atom_props
 from ..labeling.bondwise import get_bond_by_map_num_pair
 from ..labeling.molwise import clear_atom_map_nums
 from ...genutils.decorators.functional import optional_in_place
