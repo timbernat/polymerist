@@ -3,14 +3,13 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import Any, Callable, Concatenate, Iterable, Optional, ParamSpec, Union
+from typing import Iterable, Optional, ParamSpec, Union
 Params = ParamSpec('Params')
 
 from itertools import combinations
 from rdkit.Chem.rdchem import Bond, BondType, Mol
 
 from .molwise import atom_ids_by_map_nums
-from ...genutils.decorators.functional import optional_in_place
 
 
 # BOND ID QUERYING    
@@ -38,21 +37,4 @@ def get_bond_by_map_num_pair(rdmol : Mol, map_num_pair : tuple[int, int], as_bon
     bond = rdmol.GetBondBetweenAtoms(*atom_ids_by_map_nums(rdmol, *map_num_pair))
     if (not as_bond) and (bond is not None):
         return bond.GetIdx()
-    return bond # returns bond or, implicitly, NoneType f no bond is found
-
-# BOND ID LABELING
-@optional_in_place
-def assign_bond_id_labels(rdmol : Mol, bond_id_remap : Optional[dict[int, int]]=None) -> None:
-    '''Draws bond indices over their positions when displaying a Mol. 
-    Can optionally provide a dict mapping bond indices to some other integers'''
-    if bond_id_remap is None:
-        bond_id_remap = {} # avoid mutable default
-
-    for bond in rdmol.GetBonds():
-        bond.SetIntProp('bondNote', bond_id_remap.get(bond.GetIdx(), bond.GetIdx())) # check if map value exists, if not default to index
-
-@optional_in_place
-def clear_bond_id_labels(rdmol : Mol) -> None:
-    '''Removes bond indices over their positions when displaying a Mol'''
-    for bond in rdmol.GetBonds():
-        bond.ClearProp('bondNote')
+    return bond # returns bond or, implicitly, NoneType if no bond is found
