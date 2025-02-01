@@ -3,14 +3,15 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import Any, Callable, Iterable, Optional
+from typing import Any, Callable, Concatenate, Iterable, Optional, ParamSpec
+Params = ParamSpec('Params')
+
 from itertools import combinations
 
 from rdkit import Chem
 from rdkit.Chem.rdchem import Bond, BondType, Mol
 
 from .molwise import atom_ids_by_map_nums
-from ...genutils.typetools.parametric import Args, KWArgs
 from ...genutils.iteration import sliding_window
 from ...genutils.decorators.functional import optional_in_place
 
@@ -31,7 +32,7 @@ def get_bonded_pairs(rdmol : Mol, *atom_ids : Iterable[int]) -> dict[int, tuple[
             res[bond.GetIdx()] = atom_id_pair
     return res
 
-def bond_ids_by_cond(rdmol : Mol, bond_cond : Callable[[Bond, Args, KWArgs], bool]) -> tuple[int]:
+def bond_ids_by_cond(rdmol : Mol, bond_cond : Callable[Concatenate[Bond, Params], bool]) -> tuple[int]:
     '''Return IDs of all bonds which satisfy some binary condition'''
     return tuple(
         bond.GetIdx()
