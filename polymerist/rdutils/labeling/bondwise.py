@@ -13,15 +13,7 @@ from .molwise import atom_ids_by_map_nums
 from ...genutils.decorators.functional import optional_in_place
 
 
-# BOND ID QUERYING
-def bond_ids_by_cond(rdmol : Mol, bond_cond : Callable[Concatenate[Bond, Params], bool]) -> tuple[int]:
-    '''Return IDs of all bonds which satisfy some binary condition'''
-    return tuple(
-        bond.GetIdx()
-            for bond in rdmol.GetBonds()
-                if bond_cond(bond)
-    )
-    
+# BOND ID QUERYING    
 def get_bonded_pairs(rdmol : Mol, *atom_ids : Iterable[int]) -> dict[int, tuple[int, int]]:
     '''Get bond and (begin,end) atom indices of all bonds which exist between any pair of atoms in an indexed list'''
     bond_id_dict = {}
