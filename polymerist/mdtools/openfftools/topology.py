@@ -28,7 +28,7 @@ from ...genutils.iteration import asiterable
 from ...genutils.fileutils.pathutils import dotless
 from ...genutils.decorators.functional import allow_string_paths, optional_in_place
 
-from ...rdutils.rdprops.rdprops import RDPROP_SETTERS, copy_rd_props
+from ...rdutils.rdprops import RDPROP_SETTERS, copy_rd_props
 from ...rdutils.rdcoords.tiling import tile_lattice_with_rdmol
 
 
