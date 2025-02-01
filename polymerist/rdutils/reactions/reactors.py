@@ -64,7 +64,7 @@ class Reactor:
         for prod_bond_id, map_num_pair in product_info.mod_bond_ids_to_map_nums.items():
             target_bond = product_template.GetBondWithIdx(prod_bond_id)
 
-            product_bond = get_bond_by_map_num_pair(product, map_num_pair)
+            product_bond = get_bond_by_map_num_pair(product, map_num_pair, as_bond=True)
             assert(product_bond.GetBeginAtom().HasProp('_ReactionDegreeChanged')) 
             assert(product_bond.GetEndAtom().HasProp('_ReactionDegreeChanged')) # double check that the reaction agrees that the bond has changed
 
