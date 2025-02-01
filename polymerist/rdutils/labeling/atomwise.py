@@ -7,10 +7,6 @@ from typing import Callable, Generator
 from rdkit.Chem.rdchem import Atom
 
 # NEIGHBOR ATOM INFO
-def get_num_bonds(atom : Atom) -> int:
-    '''Returns number of explicit bonded connections an atom has (distinct from atom.GetExplicitValence due to bond orders)'''
-    return len(atom.GetBonds())
-
 def _get_neighbor_factory_by_condition(condition : Callable[[Atom], bool]) -> Callable[[Atom], Generator[Atom, None, None]]:
     '''Factory function for generating neighbor-search functions over Atoms by a boolean condition'''
     def neighbors_by_condition(atom : Atom) -> Generator[Atom, None, None]:
