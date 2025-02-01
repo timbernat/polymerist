@@ -12,35 +12,9 @@ from typing import Union
 from rdkit import Chem
 from rdkit.Chem import QueryAtom
 
-from ...smileslib.primitives import is_valid_SMILES, is_valid_SMARTS, RDKIT_QUERYBONDS_BY_BONDTYPE
-from ...rdutils.labeling import molwise
-
-
-# CHEMICAL INFO SPECIFICATION
-SANITIZE_AS_KEKULE = (Chem.SANITIZE_ALL & ~Chem.SANITIZE_SETAROMATICITY) # sanitize everything EXCEPT reassignment of aromaticity
-
-def expanded_SMILES(
-        smiles : str,
-        assign_map_nums : bool=True,
-        start_from : int=1,
-        kekulize : bool=True,
-    ) -> str:
-    '''
-    Expands and clarifies the chemical information contained within a passed SMILES string
-    namely explicit hydrogens and bond orders, and (optionally) kekulized aromatic bonds and atom map numbers
-    '''
-    assert(is_valid_SMILES(smiles))
-    
-    rdmol = Chem.MolFromSmiles(smiles, sanitize=True)
-    rdmol = Chem.AddHs(rdmol, addCoords=True)
-    if assign_map_nums:
-        rdmol = molwise.assign_ordered_atom_map_nums(rdmol, start_from=start_from)
-    
-    if kekulize:
-        Chem.Kekulize(rdmol, clearAromaticFlags=True)
-    Chem.SanitizeMol(rdmol)
-
-    return Chem.MolToSmiles(rdmol, kekuleSmiles=kekulize, allBondsExplicit=True, allHsExplicit=True)
+from ...smileslib import is_valid_SMILES, is_valid_SMARTS
+from ...smileslib.primitives import RDKIT_QUERYBONDS_BY_BONDTYPE
+from ...rdutils.labeling.molwise import has_fully_mapped_atoms, has_uniquely_mapped_atoms
 
 
 # REGEX TEMPLATES FOR COMPLIANT SMARTS
@@ -72,7 +46,6 @@ def chem_info_from_match(match : re.Match) -> dict[str, Union[int, str, None]]:
             atom_info[key] = int(value) # convert parsed strings to ints where possible
 
     return atom_info
-
 
 # SMARTS ATOM QUERY GENERATION
 def compliant_atom_query_from_info(
@@ -112,7 +85,6 @@ def compliant_atom_query_from_re_match(match : re.Match) -> str:
     '''Construct a monomer-spec compliant atom SMARTS string from a RegEx string match of a compliant or aberrant atom'''
     return compliant_atom_query_from_info(**chem_info_from_match(match), as_atom=False)
 
-
 # CONVERSION METHODS
 ## DEV: add function to check whether a given SMARTS is COMPLETELY spec-compliant
 def compliant_mol_SMARTS(smarts : str) -> str:
@@ -120,8 +92,8 @@ def compliant_mol_SMARTS(smarts : str) -> str:
     # initial checks
     assert(is_valid_SMARTS(smarts))
     rdmol = Chem.MolFromSmarts(smarts)
-    assert(molwise.has_fully_mapped_atoms(rdmol))
-    assert(molwise.has_uniquely_mapped_atoms(rdmol))
+    assert(has_fully_mapped_atoms(rdmol))
+    assert(has_uniquely_mapped_atoms(rdmol))
     # TODO : add aromaticity checks
     
     # assign query info to atoms and bonds

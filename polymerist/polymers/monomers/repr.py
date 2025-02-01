@@ -17,7 +17,7 @@ from rdkit import Chem
 from ...genutils.iteration import iter_len
 from ...genutils.fileutils.jsonio.jsonify import make_jsonifiable
 
-from ...smileslib.primitives import Smarts, is_valid_SMARTS
+from ...smileslib import Smarts, is_valid_SMARTS
 from ...rdutils.bonding.portlib import get_num_ports
 
 

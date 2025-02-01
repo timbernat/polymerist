@@ -3,4 +3,11 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from .primitives import is_valid_SMILES, is_valid_SMARTS, Smiles, Smarts
+from .sanitization import (
+    Smiles,
+    is_valid_SMILES,
+    Smarts,
+    is_valid_SMARTS,
+    expanded_SMILES,
+    SANITIZE_AS_KEKULE,
+)
