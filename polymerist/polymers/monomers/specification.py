@@ -12,7 +12,15 @@ from typing import Union
 from rdkit import Chem
 from rdkit.Chem import QueryAtom
 
-from ...smileslib import is_valid_SMILES, is_valid_SMARTS
+from ...smileslib.sanitization import (
+    Smiles, 
+    is_valid_SMILES,
+    Smarts,
+    is_valid_SMARTS,
+    all_Hs_are_explicit,
+    has_aromatic_bonds,
+    expanded_SMILES, # beyond being a necessary import, this also make importing expanded_SMILES from here backwards-compatible
+)
 from ...smileslib.primitives import RDKIT_QUERYBONDS_BY_BONDTYPE
 from ...rdutils.labeling.molwise import has_fully_mapped_atoms, has_uniquely_mapped_atoms
 
@@ -33,7 +41,7 @@ ABERRANT_ATOM_SMARTS = re.compile( # spec-compliant query which has been mangled
     r'#(?P<atomic_num>\d+?)' \
     r'(&(?P<isotope>\d+?)\*)?' \
     r'(&D(?P<degree>\d{1}))?' \
-    r'(&[+-](?P<formal_charge>\d+))?'
+    r'(&[+-](?P<formal_charge>\d+))?' # TODO: fix match to catch missing numeric value for explicit charges (e.g. [#8X0--:5])
     r':(?P<atom_map_num>\d+?)' \
     r'\]'
 )
@@ -86,15 +94,23 @@ def compliant_atom_query_from_re_match(match : re.Match) -> str:
     return compliant_atom_query_from_info(**chem_info_from_match(match), as_atom=False)
 
 # CONVERSION METHODS
-## DEV: add function to check whether a given SMARTS is COMPLETELY spec-compliant
-def compliant_mol_SMARTS(smarts : str) -> str:
+def compliant_mol_SMARTS(smarts : Union[Smiles, Smarts]) -> str:
     '''Convert generic SMARTS string into a spec-compliant one'''
-    # initial checks
+    # initialize 
     assert(is_valid_SMARTS(smarts)) # insert smiles expansion and kekulization
     rdmol = Chem.MolFromSmarts(smarts)
-    assert(has_fully_mapped_atoms(rdmol))
-    assert(has_uniquely_mapped_atoms(rdmol))
-    # TODO : add aromaticity checks
+    
+    # check explicit hydrogens and atom map numbers
+    if not (
+            has_fully_mapped_atoms(rdmol)
+            and has_uniquely_mapped_atoms(rdmol)
+            and all_Hs_are_explicit(rdmol)
+        ):
+        rdmol = Chem.MolFromSmarts(expanded_SMILES(smarts, kekulize=True)) # expand and kekulize query
+        
+    # check kekulization for good measure
+    if has_aromatic_bonds(rdmol):
+        Chem.SanitizeMol(rdmol, sanitizeOps=(Chem.SANITIZE_ALL & ~Chem.SANITIZE_SETAROMATICITY)) # sanitize everything EXCEPT reassignment of aromaticity
     
     # assign query info to atoms and bonds
     for atom in rdmol.GetAtoms():
