@@ -3,7 +3,7 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import Any, Optional, TypeVar, TypeAlias, Union
+from typing import Any, Callable, Generator, Optional, TypeVar, TypeAlias, Union
 from copy import deepcopy
 
 from rdkit import Chem
@@ -65,6 +65,26 @@ RDPROP_SETTERS = {
     float : 'SetDoubleProp'
 }
 
+# ATOM NEIGHBOR PROPERTY FACTORIES
+def _get_atom_neighbors_by_condition_factory(condition : Callable[[Atom], bool]) -> Callable[[Atom], Generator[Atom, None, None]]:
+    '''Factory function for generating neighbor-search functions over Atoms by a boolean condition'''
+    def neighbors_by_condition(atom : Atom) -> Generator[Atom, None, None]:
+        '''Generate all neighboring atoms satisfying a condition'''
+        for nb_atom in atom.GetNeighbors():
+            if condition(nb_atom):
+                yield nb_atom
+    return neighbors_by_condition
+
+def _has_atom_neighbors_by_condition_factory(condition : Callable[[Atom], bool]) -> Callable[[Atom], bool]:
+    '''Factory function for generating neighbor-search functions over Atoms by a boolean condition'''
+    def has_neighbors_by_condition(atom : Atom) -> bool:
+        '''Identify if any neighbors of an atom satisfy some condition'''
+        return any(
+            condition(nb_atom)
+                for nb_atom in atom.GetNeighbors()
+        )
+    return has_neighbors_by_condition
+
 # PROPERTY INSPECTION FUNCTIONS
 def detailed_rdobj_info(rdobj : RDObj) -> dict[str, Any]:
     '''Extract all get-able info about a particular RDKit atom. Does NOT include any non-default Prop values (e.g. atomMapNumber)'''
@@ -97,7 +117,6 @@ def aggregate_atom_prop(rdmol : Mol, prop : str, prop_type : T=str) -> dict[int,
             for atom_idx in atom_ids_with_prop(rdmol, prop_name=prop)
     }
 
-
 # PROPERTY TRANSFER FUNCTIONS
 def copy_rd_props(from_rdobj : RD, to_rdobj : RD) -> None: # NOTE : no need to incorporate typing info, as RDKit objects can correctly interpret typed strings
     '''For copying properties between a pair of RDKit Atoms or Mols'''
@@ -118,7 +137,6 @@ def assign_props_from_dict(prop_dict : dict[str, Any], rdobj : RDObj, preserve_t
             setter = getattr(rdobj, RDPROP_SETTERS[type(value)]) # use the atom's setter for the appropriate type
             setter(key, value) # pass key and value to setter method
 
-
 # PROPERTY REMOVAL FUNCTIONS
 @optional_in_place
 def clear_atom_props(rdmol : Mol) -> None:
@@ -126,7 +144,6 @@ def clear_atom_props(rdmol : Mol) -> None:
     for atom in rdmol.GetAtoms():
         for prop_name in atom.GetPropNames():
             atom.ClearProp(prop_name)
-
 
 # PROPERTY COMPARISON FUNCTIONS
 def difference_rdmol(rdmol_1 : Mol, rdmol_2 : Mol, prop : str='PartialCharge', remove_map_nums : bool=True) -> Mol:
