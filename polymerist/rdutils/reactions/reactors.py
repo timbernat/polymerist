@@ -63,8 +63,8 @@ class Reactor:
         '''Ensure bond order changes specified by the reaction are honored by RDKit'''
         for prod_bond_id, map_num_pair in product_info.mod_bond_ids_to_map_nums.items():
             target_bond = product_template.GetBondWithIdx(prod_bond_id)
-
             product_bond = get_bond_by_map_num_pair(product, map_num_pair, as_bond=True)
+
             assert(product_bond.GetBeginAtom().HasProp('_ReactionDegreeChanged')) 
             assert(product_bond.GetEndAtom().HasProp('_ReactionDegreeChanged')) # double check that the reaction agrees that the bond has changed
 
@@ -151,9 +151,6 @@ class PolymerizationReactor(Reactor):
             
             fragments : list[Mol] = []
             for i, product in enumerate(adducts):
-                if clear_map_nums:
-                    clear_atom_map_nums(product, in_place=True)
-                
                 fragments.extend( # list extension preserves insertion order at each step
                     clear_atom_props(fragment, in_place=False) # essential to avoid reaction mapping info from prior steps from contaminating future ones
                         for fragment in fragment_strategy.produce_fragments(
@@ -162,5 +159,8 @@ class PolymerizationReactor(Reactor):
                             separate=True
                         )
                 )
+                # NOTE : CRITICAL that this be done after fragmentation step, which RELIES on map numbes being present
+                if clear_map_nums:
+                    clear_atom_map_nums(product, in_place=True)
             yield adducts, fragments # yield the adduct Mol and any subsequent resulting reactive fragments
             reactants = fragments # set fragments from current round of polymerization as reactants for next round

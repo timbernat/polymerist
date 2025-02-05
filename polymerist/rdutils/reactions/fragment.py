@@ -11,6 +11,7 @@ from rdkit import Chem
 from rdkit.Chem import rdqueries, Mol
 
 from .reactions import RxnProductInfo
+from ..labeling.bondwise import get_bond_by_map_num_pair
 from ...genutils.iteration import sliding_window
 
 
@@ -67,8 +68,13 @@ IBIS = IntermonomerBondIdentificationStrategy # shorthand alias for convenience
 class ReseparateRGroups(IBIS):
     '''IBIS which cleaves any new bonds formed between atoms that were formerly the start of an R-group in the reaction template'''
     def _locate_intermonomer_bonds(self, product: Mol, product_info : RxnProductInfo) -> Generator[int, None, None]:
-        for bridgehead_id_pair in combinations(bridgehead_atom_ids(product), 2):                    # for every pair of R-group bridgehead atoms...
-            for new_bond_id in product_info.new_bond_ids_to_map_nums.keys():                        # find the path(s) with fewest bonds between the bridgeheads... 
-                if new_bond_id in get_shortest_path_bonds(product, *bridgehead_id_pair):   # and select for cutting any newly-formed bonds found along that path
+        print(product_info.new_bond_ids_to_map_nums.values())
+        new_bond_ids = [
+            get_bond_by_map_num_pair(product, map_num_pair, as_bond=False) # NOTE: CRITICAL that as_bond be False, to return index (not literal Bond object)
+                for map_num_pair in product_info.new_bond_ids_to_map_nums.values()
+        ]
+        for bridgehead_id_pair in combinations(bridgehead_atom_ids(product), 2):            # for every pair of R-group bridgehead atoms...
+            for new_bond_id in new_bond_ids:                                                # find the path(s) with fewest bonds between the bridgeheads... 
+                if new_bond_id in get_shortest_path_bonds(product, *bridgehead_id_pair):    # and select for cutting any newly-formed bonds found along that path
                     yield new_bond_id
                                                     
