@@ -15,13 +15,11 @@ from .molwise import get_atom_ids_by_map_nums
 # BOND ID QUERYING    
 def get_bonded_pairs(rdmol : Mol, *atom_ids : Iterable[int]) -> dict[int, tuple[int, int]]:
     '''Get bond and (begin,end) atom indices of all bonds which exist between any pair of atoms in an indexed list'''
-    bond_id_dict = {}
-    atom_id_pairs = combinations(atom_ids, 2)
-    for atom_id_pair in atom_id_pairs:
-        bond = rdmol.GetBondBetweenAtoms(*atom_id_pair)
-        if bond is not None:
-            bond_id_dict[bond.GetIdx()] = atom_id_pair
-    return bond_id_dict
+    return {
+        bond.GetIdx() : atom_id_pair
+            for atom_id_pair in combinations(atom_ids, 2)
+                if (bond := rdmol.GetBondBetweenAtoms(*atom_id_pair)) is not None
+    }
 
 def get_bonded_pairs_by_map_nums(rdmol : Mol, *atom_map_nums : Iterable[int]) -> dict[int, tuple[int, int]]:
     '''Obtain bonded pair dict by atom map numbers instead of IDs'''
