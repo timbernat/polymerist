@@ -17,11 +17,10 @@ from ...smileslib.sanitization import (
     is_valid_SMILES,
     Smarts,
     is_valid_SMARTS,
-    all_Hs_are_explicit,
-    has_aromatic_bonds,
     expanded_SMILES, # beyond being a necessary import, this also make importing expanded_SMILES from here backwards-compatible
 )
 from ...smileslib.primitives import RDKIT_QUERYBONDS_BY_BONDTYPE
+from ...rdutils.cheminspect import all_Hs_are_explicit, has_aromatic_bonds
 from ...rdutils.labeling.molwise import has_fully_mapped_atoms, has_uniquely_mapped_atoms
 
 

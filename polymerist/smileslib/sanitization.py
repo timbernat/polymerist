@@ -22,9 +22,9 @@ def is_valid_SMILES(smiles : Smiles) -> bool:
     return (Chem.MolFromSmiles(smiles) is not None)
 
 # SANITIZATION (IN THE RDKit SENSE)
-# TODO: add decorator for sanitization flag inject of functions which return mols
+# TODO: add decorator for sanitization flag injection over outputs of functions which return mols
 
-# CANONICALIZATION
+# CANONICALIZATION AND STRUCTURE EXPANSION
 def canonical_SMILES_from_mol(mol : Chem.Mol) -> str:
     '''
     Cast Mol to a "canonical" SMILES format -
@@ -32,22 +32,6 @@ def canonical_SMILES_from_mol(mol : Chem.Mol) -> str:
     '''
     return Chem.CanonSmiles(Chem.MolToSmiles(mol, canonical=True))
 
-# STRUCTURAL DETERMINANTS
-def all_Hs_are_explicit(mol : Chem.Mol) -> bool:
-    '''Determine whether an RDKit Mol has all hydrogens explicitly present'''
-    return all(
-        atom.GetNumImplicitHs() == 0
-            for atom in mol.GetAtoms()
-    )
-    
-def has_aromatic_bonds(mol : Chem.Mol) -> bool:
-    '''Determine whether an RDKit Mol has any aromatic bonds present'''
-    return any(
-        bond.GetBondType() == Chem.BondType.AROMATIC
-            for bond in mol.GetBonds()
-    )
-    
-# STRUCTURE EXPANSION
 def expanded_SMILES(
         smiles : str,
         assign_map_nums : bool=True,
