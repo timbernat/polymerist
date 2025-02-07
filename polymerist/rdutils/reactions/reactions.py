@@ -49,13 +49,13 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     @classmethod
     def from_smarts(cls, rxn_smarts : str) -> 'AnnotatedReaction':
         '''Iinstantiate reaction from mapped SMARTS string'''
-        return cls(rdChemReactions.ReactionFromSmarts(rxn_smarts))
+        return cls(rdChemReactions.ReactionFromSmarts(rxn_smarts.replace('#0', '*'))) # clean up any wild-atom conversion artifacts from porting a SMARTS through SMILES
     
     # NOTE : cannot analogous implement "from_smiles" classmethod, as rdChemreactions does not support initialization from SMILES (only SMARTS)
 
     def to_smarts(self) -> str:
-        '''Export reaction as mapped SMARTS string'''
-        return rdChemReactions.ReactionToSmarts(self) # TODO : implement * -> R replacement here (rather than in rxn file I/O)
+        '''Export reaction as mapped SMARTS string''' # TODO : implement * -> R replacement here (rather than in rxn file I/O)
+        return rdChemReactions.ReactionToSmarts(self).replace('#0', '*') # clean up any wild-atom conversion artifacts from porting a SMARTS through SMILES 
 
     @property
     def smarts(self) -> str:
