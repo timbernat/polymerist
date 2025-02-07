@@ -176,12 +176,11 @@ class PolymerizationReactor(Reactor):
                 break
             
             fragments : list[Mol] = []
-            for i, product in enumerate(adducts):
+            for product in adducts: # DEVNOTE: consider doing fragmentation on the combined molecule made up of all products?
                 fragments.extend( # list extension preserves insertion order at each step
                     clear_bond_props(clear_atom_props(fragment, in_place=False), in_place=False) # essential to avoid reaction mapping info from prior steps from contaminating future ones
                         for fragment in fragment_strategy.produce_fragments(
                             product,
-                            product_info=self.rxn_schema.product_info_maps[i],
                             separate=True
                         )
                 )
