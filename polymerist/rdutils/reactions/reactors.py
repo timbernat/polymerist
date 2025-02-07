@@ -16,6 +16,8 @@ from .reactions import AnnotatedReaction, RxnProductInfo
 from .fragment import IBIS, ReseparateRGroups
 
 from ..rdprops.atomprops import atom_ids_with_prop, clear_atom_props
+from ..rdprops.bondprops import clear_bond_props
+
 from ..labeling.bondwise import get_bond_by_map_num_pair
 from ..labeling.molwise import clear_atom_map_nums
 from ...genutils.decorators.functional import optional_in_place
@@ -26,7 +28,8 @@ from ...genutils.decorators.functional import optional_in_place
 class Reactor:
     '''Class for executing a reaction template on collections of RDKit Mol "reactants"'''
     rxn_schema : AnnotatedReaction
-    _ridx_prop_name : ClassVar[str] = field(init=False, default='reactant_idx') # name of the property to assign reactant indices to; set for entire class
+    _atom_ridx_prop_name : ClassVar[str] = field(init=False, default='reactant_idx') # name of the property to assign reactant indices to; set for entire class
+    _bond_change_prop_name : ClassVar[str] = field(init=False, default='bond_changed')
 
     # PRE-REACTION PREPARATION METHODS
     def _activate_reaction(self) -> None:
@@ -61,8 +64,8 @@ class Reactor:
     @optional_in_place
     def _clean_up_bond_orders(product : Mol, product_template : Mol, product_info : RxnProductInfo) -> None:
         '''Ensure bond order changes specified by the reaction are honored by RDKit'''
-        for prod_bond_id, map_num_pair in product_info.mod_bond_ids_to_map_nums.items():
-            target_bond = product_template.GetBondWithIdx(prod_bond_id)
+        for prod_templ_bond_id, map_num_pair in product_info.mod_bond_ids_to_map_nums.items():
+            target_bond = product_template.GetBondWithIdx(prod_templ_bond_id)
             product_bond = get_bond_by_map_num_pair(product, map_num_pair, as_bond=True)
 
             assert(product_bond.GetBeginAtom().HasProp('_ReactionDegreeChanged')) 
@@ -70,29 +73,52 @@ class Reactor:
 
             product_bond.SetBondType(target_bond.GetBondType()) # set bond type to what it *should* be from the reaction schema
 
+    @staticmethod
+    @optional_in_place
+    def _label_new_and_modified_bonds(product : Mol, changed_bond_label : str, product_info : RxnProductInfo) -> None:
+        '''Mark any bonds which were changed or added in the product'''
+        _bond_change_labellers : dict[str, dict[int, tuple[int, int]]] = {
+             'new_bond' : product_info.new_bond_ids_to_map_nums,
+             'modified_bond' : product_info.mod_bond_ids_to_map_nums,
+        }
+        for bond_prop_value, changed_bond_dict in _bond_change_labellers.items():
+            for map_num_pair in changed_bond_dict.values():
+                product_bond = get_bond_by_map_num_pair(product, map_num_pair, as_bond=True)
+                product_bond.SetProp(changed_bond_label, bond_prop_value)
+
     # REACTION EXECUTION METHODS
     def react(self, reactants : Iterable[Mol], repetitions : int=1, clear_props : bool=False, sanitize_ops : SanitizeFlags=SANITIZE_ALL) -> list[Mol]:
         '''Execute reaction over a collection of reactants and generate product molecule(s)
-        Does NOT require the reactants to match the order of the reacion template (only that some order fits)'''
+        Does NOT require the reactants to match the order of the reaction template (only that some order fits)'''
         reactants = self.rxn_schema.valid_reactant_ordering(reactants, as_mols=True) # check that the reactants are compatible with the reaction
         if reactants is None:
             raise ReactantTemplateMismatch(f'Reactants provided to {self.__class__.__name__} are incompatible with reaction schema defined')
-        reactants = self._label_reactants(reactants, reactant_label=self._ridx_prop_name, in_place=False) # assign reactant indices (not in-place)
+        reactants = self._label_reactants(reactants, reactant_label=self._atom_ridx_prop_name, in_place=False) # assign reactant indices (not in-place)
         
         products : list[Mol] = []
         raw_products = self.rxn_schema.RunReactants(reactants, maxProducts=repetitions) # obtain unfiltered RDKit reaction output. TODO : generalize to work when more than 1 repetition is requested
         for i, product in enumerate(chain.from_iterable(raw_products)): # clean up products into a usable form
+            product_info = self.rxn_schema.product_info_maps[i]
+            
             self._relabel_reacted_atoms(
                 product,
-                reactant_label=self._ridx_prop_name,
+                reactant_label=self._atom_ridx_prop_name,
                 reactant_map_nums=self.rxn_schema.map_nums_to_reactant_nums,
                 in_place=True
             )
-            self._clean_up_bond_orders(product,
+            self._clean_up_bond_orders(
+                product,
                 product_template=self.rxn_schema.GetProductTemplate(i),
-                product_info=self.rxn_schema.product_info_maps[i],
+                product_info=product_info,
                 in_place=True
             )
+            self._label_new_and_modified_bonds(
+                product,
+                changed_bond_label=self._bond_change_prop_name,
+                product_info=product_info,
+                in_place=True
+            )
+            
             if clear_props:
                 clear_atom_props(product, in_place=True)
             Chem.SanitizeMol(product, sanitizeOps=sanitize_ops) # perform sanitization as-specified by the user
@@ -152,7 +178,7 @@ class PolymerizationReactor(Reactor):
             fragments : list[Mol] = []
             for i, product in enumerate(adducts):
                 fragments.extend( # list extension preserves insertion order at each step
-                    clear_atom_props(fragment, in_place=False) # essential to avoid reaction mapping info from prior steps from contaminating future ones
+                    clear_bond_props(clear_atom_props(fragment, in_place=False), in_place=False) # essential to avoid reaction mapping info from prior steps from contaminating future ones
                         for fragment in fragment_strategy.produce_fragments(
                             product,
                             product_info=self.rxn_schema.product_info_maps[i],
