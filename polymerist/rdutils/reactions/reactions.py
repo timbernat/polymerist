@@ -203,8 +203,12 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         return SymbolInventory(fn_group_sym_inv)
        
     def reactants_are_compatible(self, reactants : Sequence[Mol], allow_resampling : bool=False) -> bool:
-        '''Determine if a sequence of reactant RDKit is compatible with the reactant templates defined by this reaction'''
+        '''
+        Determine if a sequence of reactant RDKit is compatible with the reactant templates defined by this reaction
+        If allow_resampling=False, each reactant will only be allowed to contribute exactly 1 of its functional groups 1 to any solution 
+        '''
         num_reactant_templates_required = self.GetNumReactantTemplates()
+        
         # when if preventing each molecule from contributing more than 1 functional group, can quickly discount a bad reactant sequence prior simply by a quick counting check
         if (not allow_resampling) and ((num_reactants_provided := len(reactants)) != num_reactant_templates_required):
             raise BadNumberReactants(f'{self.__class__.__name__} expected {num_reactant_templates_required} reactants, but {num_reactants_provided} were provided')
@@ -228,6 +232,8 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         * a single NoneType if no such ordering exists
         * tuples of Chem.Mol objects if as_mols=True
         * tuples of indices of reactants in the passed sequence if as_mols=False
+        
+        If allow_resampling=False, each reactant will only be allowed to contribute exactly 1 of its functional groups 1 to any solution 
         '''
         # If number of fragments is correct, perform more complex of whether a molecule-unique substructure selection exists
         if not self.reactants_are_compatible(reactants, allow_resampling=allow_resampling):
@@ -253,6 +259,8 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         * a single NoneType if no such ordering exists
         * a tuple of Chem.Mol objects if as_mols=True
         * a tuple of indices of reactants in the passed sequence if as_mols=False
+        
+        If allow_resampling=False, each reactant will only be allowed to contribute exactly 1 of its functional groups 1 to any solution 
         '''
         return next(self.enumerate_valid_reactant_orderings(
             reactants,
