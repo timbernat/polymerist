@@ -202,47 +202,60 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         
         return SymbolInventory(fn_group_sym_inv)
        
-    def reactants_are_compatible(self, reactants : Sequence[Mol]) -> bool:
+    def reactants_are_compatible(self, reactants : Sequence[Mol], allow_resampling : bool=False) -> bool:
         '''Determine if a sequence of reactant RDKit is compatible with the reactant templates defined by this reaction'''
-        # Preliminary check on number of reactants; can quickly discount a bad reactant sequence prior to the more expensive DISCERNMENT check
-        num_reactants_provided = len(reactants)
         num_reactant_templates_required = self.GetNumReactantTemplates()
-        if num_reactants_provided != num_reactant_templates_required:
+        # when if preventing each molecule from contributing more than 1 functional group, can quickly discount a bad reactant sequence prior simply by a quick counting check
+        if (not allow_resampling) and ((num_reactants_provided := len(reactants)) != num_reactant_templates_required):
             raise BadNumberReactants(f'{self.__class__.__name__} expected {num_reactant_templates_required} reactants, but {num_reactants_provided} were provided')
 
         # If number of fragments is correct, perform more complex of whether a molecule-unique substructure selection exists
         target_word : list[int] = [templ_idx for templ_idx in range(num_reactant_templates_required)]
         reactant_ordering_planner = DISCERNMENTSolver(self.compile_functional_group_inventory(reactants, label_reactants_with_smiles=False)) # use indices of reactants to allow direct lookup of reactants from solution
         
-        return reactant_ordering_planner.solution_exists(target_word, unique_bins=True)
+        return reactant_ordering_planner.solution_exists(target_word, unique_bins=not allow_resampling)
         
-    def enumerate_valid_reactant_orderings(self, reactants : Sequence[Mol], as_mols : bool=True) -> Generator[Union[None, tuple[int], tuple[Mol]], None, None]:
+    def enumerate_valid_reactant_orderings(
+            self,
+            reactants : Sequence[Mol],
+            as_mols : bool=True,
+            allow_resampling : bool=False
+        ) -> Generator[Union[None, tuple[int], tuple[Mol]], None, None]:
         '''
         Enumerates all orderings of reactants compatible with the reactant templates defined in this reaction
+
+        Yields:
+        * a single NoneType if no such ordering exists
+        * tuples of Chem.Mol objects if as_mols=True
+        * tuples of indices of reactants in the passed sequence if as_mols=False
+        '''
+        # If number of fragments is correct, perform more complex of whether a molecule-unique substructure selection exists
+        if not self.reactants_are_compatible(reactants, allow_resampling=allow_resampling):
+            yield None 
+        
+        reactant_ordering_planner = DISCERNMENTSolver(self.compile_functional_group_inventory(reactants, label_reactants_with_smiles=False)) 
+        for reactant_ordering in reactant_ordering_planner.enumerate_choices( # implicitly, if no solution exists, will not yield anything beyond the initial None in the pre-clause
+            word=[templ_idx for templ_idx in range(self.GetNumReactantTemplates())], # use indices of reactants to allow direct lookup of reactants from solution
+            unique_bins=not allow_resampling, # if one is OK with the same reactant being used for multiple functional groups, ignore its functional group multiplicities
+        ):                                          
+            yield tuple(reactants[i] for i in reactant_ordering) if as_mols else tuple(reactant_ordering)
+    
+    def valid_reactant_ordering(
+            self,
+            reactants : Sequence[Mol],
+            as_mols : bool=True,
+            allow_resampling : bool=False
+        ) -> Union[None, tuple[int], tuple[Mol]]:
+        '''
+        Get first ordering of reactants compatible with the reactant templates defined in this reaction
 
         Yields:
         * a single NoneType if no such ordering exists
         * a tuple of Chem.Mol objects if as_mols=True
         * a tuple of indices of reactants in the passed sequence if as_mols=False
         '''
-        # If number of fragments is correct, perform more complex of whether a molecule-unique substructure selection exists
-        if not self.reactants_are_compatible(reactants):
-            yield None 
-        
-        reactant_ordering_planner = DISCERNMENTSolver(self.compile_functional_group_inventory(reactants, label_reactants_with_smiles=False)) 
-        for reactant_ordering in reactant_ordering_planner.enumerate_choices(
-            word=[templ_idx for templ_idx in range(self.GetNumReactantTemplates())], # use indices of reactants to allow direct lookup of reactants from solution
-            unique_bins=True,   # need to have unique bins so a single reactant is not taken more than once
-        ):                      # implicitly, if no solution exists, will not yield anything beyond the initial None in the pre-clause
-            yield tuple(reactants[i] for i in reactant_ordering) if as_mols else tuple(reactant_ordering)
-    
-    def valid_reactant_ordering(self, reactants : Sequence[Mol], as_mols : bool=True) -> Union[None, tuple[int], tuple[Mol]]:
-        '''
-        Get first ordering of reactants compatible with the reactant templates defined in this reaction
-
-        Returns NoneType if no such ordering exists
-        * The first found orderings (as a tuple) if return_first_only=True (default)
-        * All possible orderings (as a tuple of tuples) if return_first_only=False
-        Ordering returned as list of Chem.Mol objects if as_mols=True, or as list of reactant indices as they appear in the passed sequence of Mols otherwise
-        '''
-        return next(self.enumerate_valid_reactant_orderings(reactants, as_mols=as_mols))
+        return next(self.enumerate_valid_reactant_orderings(
+            reactants,
+            as_mols=as_mols,
+            allow_resampling=allow_resampling
+        )) # DEVNOTE: enumeration guarantees a NoneType is returned when no solution exists (no edge-case handling needed!)
