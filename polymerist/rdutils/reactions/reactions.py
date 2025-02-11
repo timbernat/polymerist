@@ -251,9 +251,9 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
             allow_resampling=allow_resampling
         )) # DEVNOTE: enumeration guarantees a NoneType is returned when no solution exists (no edge-case handling needed!)
         
-    def compatible_with_subset_of_reactants(self, reactants : Sequence[Mol], allow_resampling : bool=False) -> bool:
+    def has_reactable_subset(self, reactants : Sequence[Mol], allow_resampling : bool=False) -> bool:
         '''
-        Determine if a sequence of reactant RDKit is compatible with the reactant templates defined by this reaction
+        Determine if a sequence of reactants Mols contains any subset of Mols which are compatible with the reactant templates defined by this reaction
         If allow_resampling=False, each reactant will only be allowed to contribute exactly 1 of its functional groups 1 to any solution 
         '''
         return self.valid_reactant_ordering(reactants=reactants, as_mols=False, allow_resampling=allow_resampling) is not None
