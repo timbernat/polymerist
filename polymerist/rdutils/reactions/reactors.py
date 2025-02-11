@@ -11,7 +11,7 @@ from rdkit import Chem
 from rdkit.Chem.rdchem import Mol
 from rdkit.Chem.rdmolops import SanitizeFlags, SANITIZE_ALL
 
-from .reactexc import ReactantTemplateMismatch
+from .reactexc import BadNumberReactants, ReactantTemplateMismatch
 from .reactions import AnnotatedReaction, RxnProductInfo
 from .fragment import IBIS, ReseparateRGroups
 
@@ -90,11 +90,15 @@ class Reactor:
     def react(self, reactants : Iterable[Mol], repetitions : int=1, clear_props : bool=False, sanitize_ops : SanitizeFlags=SANITIZE_ALL) -> list[Mol]:
         '''Execute reaction over a collection of reactants and generate product molecule(s)
         Does NOT require the reactants to match the order of the reaction template (only that some order fits)'''
+        # can quickly discount a bad reactant sequence by a simple counting check, prior to the more expensive reactant order determination
+        if (num_reactants_provided := len(reactants)) != (num_reactant_templates_required := self.rxn_schema.GetNumReactantTemplates()):
+            raise BadNumberReactants(f'{self.__class__.__name__} expected {num_reactant_templates_required} reactants, but {num_reactants_provided} were provided')
+        
         reactants = self.rxn_schema.valid_reactant_ordering(reactants, as_mols=True) # check that the reactants are compatible with the reaction
         if reactants is None:
             raise ReactantTemplateMismatch(f'Reactants provided to {self.__class__.__name__} are incompatible with reaction schema defined')
-        reactants = self._label_reactants(reactants, reactant_label=self._atom_ridx_prop_name, in_place=False) # assign reactant indices (not in-place)
         
+        reactants = self._label_reactants(reactants, reactant_label=self._atom_ridx_prop_name, in_place=False) # assign reactant indices (not in-place)
         products : list[Mol] = []
         raw_products = self.rxn_schema.RunReactants(reactants, maxProducts=repetitions) # obtain unfiltered RDKit reaction output. TODO : generalize to work when more than 1 repetition is requested
         for i, product in enumerate(chain.from_iterable(raw_products)): # clean up products into a usable form
