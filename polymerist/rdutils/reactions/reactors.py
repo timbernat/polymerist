@@ -107,7 +107,7 @@ class Reactor:
             self._relabel_reacted_atoms(
                 product,
                 reactant_label=self._atom_ridx_prop_name,
-                reactant_map_nums=self.rxn_schema.map_nums_to_reactant_nums,
+                reactant_map_nums=self.rxn_schema.map_nums_to_reactant_idxs,
                 in_place=True
             )
             self._clean_up_bond_orders(

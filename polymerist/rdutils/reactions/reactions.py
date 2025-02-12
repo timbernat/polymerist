@@ -136,6 +136,32 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
 
     # RXN INFO METHODS
     @cached_property
+    def map_nums_to_reactant_idxs(self) -> dict[int, int]:
+        '''
+        Map from all nonzero atom map numbers present to the index
+        of the reactant template the corresponding atom appears in
+        '''
+        return {
+            map_num : reactant_template_idx
+                for reactant_template_idx, reactant_template in enumerate(self.GetReactants())
+                    for atom in reactant_template.GetAtoms()
+                        if (map_num := atom.GetAtomMapNum()) != 0
+        }
+
+    @cached_property
+    def map_nums_to_product_idxs(self) -> dict[int, int]:
+        '''
+        Map from all nonzero atom map numbers present to the index
+        of the product template the corresponding atom appears in
+        '''
+        return {
+            map_num : product_template_idx
+                for product_template_idx, product in enumerate(self.GetReactants())
+                    for atom in product.GetAtoms()
+                        if (map_num := atom.GetAtomMapNum()) != 0
+        }
+    
+    @cached_property
     def reacting_atom_map_nums(self) -> list[int]:
         '''List of the map numbers of all reactant atoms which participate in the reaction'''
         return [
@@ -143,16 +169,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
                 for reactant_id, reacting_atom_ids in enumerate(self.GetReactingAtoms())
                     for atom_id in reacting_atom_ids
         ]
-    
-    @cached_property
-    def map_nums_to_reactant_nums(self) -> dict[int, int]:
-        '''Back-map yielding the index of the source reactant for the atom of each map number'''
-        return {
-            atom.GetAtomMapNum() : i
-                for i, react_template in enumerate(self.GetReactants())
-                    for atom in react_template.GetAtoms()
-        }
-    
+        
     @cached_property
     def product_info_maps(self) -> dict[int, RxnProductInfo]:
         '''Map from product index to information about reactive atoms and bonds in that product'''
@@ -172,7 +189,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
                         for atom_id in atom_id_pair
                 )
                 
-                if self.map_nums_to_reactant_nums[map_num_1] == self.map_nums_to_reactant_nums[map_num_2]: # if reactant IDs across bond match, the bond must have been modified (i.e. both from single reactant...)
+                if self.map_nums_to_reactant_idxs[map_num_1] == self.map_nums_to_reactant_idxs[map_num_2]: # if reactant IDs across bond match, the bond must have been modified (i.e. both from single reactant...)
                     prod_info.mod_bond_ids_to_map_nums[bond_id] = map_num_pair
                 else: # otherwise, bond must be newly formed (spans between previously disjoint monomers) 
                     prod_info.new_bond_ids_to_map_nums[bond_id] = map_num_pair
