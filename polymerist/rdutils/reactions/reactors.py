@@ -133,34 +133,6 @@ class Reactor:
 
 # REACTOR SUBCLASSES
 @dataclass
-class AdditionReactor(Reactor):
-    '''Special case of Reactor with two reactant species forming one product'''
-    def __post_init__(self) -> None:
-        assert(self.rxn_schema.GetNumReactantTemplates() == 2)
-        assert(self.rxn_schema.GetNumProductTemplates() == 1)
-
-        return super().__post_init__()
-    
-    @property
-    def product_info(self) -> Mol:
-        return self.rxn_schema.product_info_maps[0]
-
-    def react(self, reactants : Iterable[Mol], repetitions : int = 1, clear_props : bool = False, sanitize_ops : SanitizeFlags=SANITIZE_ALL) -> Optional[Mol]:
-        products = super().react(
-            reactants,
-            repetitions=repetitions,
-            clear_props=clear_props,
-            sanitize_ops=sanitize_ops,
-        ) # return first (and only) product as standalone molecule
-        if products: # gracefully handle NoneType return for imcomplete reaction template matches
-            return products[0]
-
-@dataclass
-class CondensationReactor(Reactor):
-    '''Special case of Reactor with two reactant species forming one product plus a small-molecule side product'''
-    pass # TODO : implement behavior here
-
-@dataclass
 class PolymerizationReactor(Reactor):
     '''Reactor which exhaustively generates monomers fragments according to a given a polymerization mechanism'''
     def propagate(
