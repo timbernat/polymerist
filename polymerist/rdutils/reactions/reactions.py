@@ -156,7 +156,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         '''
         return {
             map_num : product_template_idx
-                for product_template_idx, product in enumerate(self.GetReactants())
+                for product_template_idx, product in enumerate(self.GetProducts())
                     for atom in product.GetAtoms()
                         if (map_num := atom.GetAtomMapNum()) != 0
         }
