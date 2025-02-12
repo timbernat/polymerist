@@ -3,7 +3,7 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import Callable, Concatenate, Union
+from typing import Callable, Concatenate, Container, Union
 from operator import (
     xor,
     xor as logical_xor, # alias for consistency
@@ -16,18 +16,6 @@ from rdkit import Chem
 # CHEMICAL OBJECT TYPEHINTS
 AtomCondition = Callable[Concatenate[Chem.Atom, ...], bool]
 BondCondition = Callable[Concatenate[Chem.Bond, ...], bool]
-
-# PREDEFINED CONDITIONS
-def bond_condition_by_atom_condition_factory(atom_condition : AtomCondition, binary_operator : Callable[[bool, bool], bool]=logical_or) -> BondCondition:
-    '''
-    Dynamically define a bond condition based on an atom condition applied to the pair of atom a bond connects
-    
-    Evaluation over bond determined by a specified atom condition and a binary logical comparison made between the pair of atom condition evaluations
-    By default, this binary condition is OR (i.e. the bond will evaluate True if either of its atoms meets the atom condition)
-    '''
-    def bond_condition(bond : Chem.Bond) -> bool:
-        return binary_operator(atom_condition(bond.GetBeginAtom()), atom_condition(bond.GetEndAtom()))
-    return bond_condition
 
 # CONDITIONAL SELECTION FUNCTIONS
 def atoms_by_condition(
@@ -106,3 +94,35 @@ def bonds_by_condition(
                 selected_bonds.add(bond.GetIdx() if as_indices else bond)
                     
     return selected_bonds
+
+# PREDEFINED CONDITIONS
+def bond_condition_by_atom_condition_factory(atom_condition : AtomCondition, binary_operator : Callable[[bool, bool], bool]=logical_or) -> BondCondition:
+    '''
+    Dynamically define a bond condition based on an atom condition applied to the pair of atom a bond connects
+    
+    Evaluation over bond determined by a specified atom condition and a binary logical comparison made between the pair of atom condition evaluations
+    By default, this binary condition is OR (i.e. the bond will evaluate True if either of its atoms meets the atom condition)
+    '''
+    def bond_condition(bond : Chem.Bond) -> bool:
+        return binary_operator(atom_condition(bond.GetBeginAtom()), atom_condition(bond.GetEndAtom()))
+    return bond_condition
+
+# QUERIES BY SPECIFIC CONDITIONS
+def get_bonded_pairs(
+        mol : Chem.Mol,
+        *atom_idxs : Container[int],
+        as_indices : bool=True,
+        as_pairs : bool=True,
+    ) -> Union[set[int], set[Chem.Bond], set[tuple[int, int]], set[tuple[Chem.Atom, Chem.Atom]]]:
+    '''Returns all bonds in a Mol which connect a pair of atoms whose indices both lie within the given atom indices'''
+    return bonds_by_condition(
+        mol,
+        condition=bond_condition_by_atom_condition_factory(
+            atom_condition=lambda atom : atom.GetIdx() in atom_idxs,
+            binary_operator=logical_and,
+        ),
+        as_indices=as_indices,
+        as_pairs=as_pairs,
+        negate=False,
+    )
+    ...
