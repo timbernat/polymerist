@@ -6,7 +6,7 @@ __email__ = 'timotej.bernat@colorado.edu'
 import pytest
 
 from rdkit import Chem
-from polymerist.rdutils.reactions.reactions import AnnotatedReaction, RxnProductInfo
+from polymerist.rdutils.reactions.reactions import AnnotatedReaction
 
 
 # DEFINING REACTIONS

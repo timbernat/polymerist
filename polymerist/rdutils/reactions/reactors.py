@@ -28,8 +28,8 @@ from ...genutils.decorators.functional import optional_in_place
 class Reactor:
     '''Class for executing a reaction template on collections of RDKit Mol "reactants"'''
     rxn_schema : AnnotatedReaction
-    _atom_ridx_prop_name : ClassVar[str] = field(init=False, default='reactant_idx') # name of the property to assign reactant indices to; set for entire class
-    _bond_change_prop_name : ClassVar[str] = field(init=False, default='bond_changed')
+    _atom_ridx_prop_name   : ClassVar[str] = field(init=False, default='reactant_idx') # name of the property to assign reactant indices to; set for entire class
+    _bond_change_prop_name : ClassVar[str] = field(init=False, default='bond_changed') # name of property to set on bonds to indicated they have changed in a reaction
 
     # PRE-REACTION PREPARATION METHODS
     def _activate_reaction(self) -> None:
@@ -78,8 +78,8 @@ class Reactor:
     def _label_new_and_modified_bonds(product : Mol, changed_bond_label : str, product_info : RxnProductInfo) -> None:
         '''Mark any bonds which were changed or added in the product'''
         _bond_change_labellers : dict[str, dict[int, tuple[int, int]]] = {
-             'new_bond' : product_info.new_bond_ids_to_map_nums,
-             'modified_bond' : product_info.mod_bond_ids_to_map_nums,
+            'new_bond' : product_info.new_bond_ids_to_map_nums,
+            'modified_bond' : product_info.mod_bond_ids_to_map_nums,
         }
         for bond_prop_value, changed_bond_dict in _bond_change_labellers.items():
             for map_num_pair in changed_bond_dict.values():
