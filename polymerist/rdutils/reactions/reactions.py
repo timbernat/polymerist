@@ -27,6 +27,15 @@ from ...genutils.sequences.discernment import DISCERNMENTSolver, SymbolInventory
 
 # REACTION INFORMATICS CLASSES
 @dataclass
+class ActiveAtomInfo:
+    '''For encapsulating origin and destination information about a reactive atom'''
+    map_num : int
+    reactant_idx : int      # index of the reactantn template within a reaction
+    reactant_atom_idx : int # index of the target atom WITHIN the above template
+    product_idx : int
+    product_atom_idx : int
+   
+@dataclass
 class RxnProductInfo:
     '''For storing atom map numbers associated with product atoms and bonds participating in a reaction'''
     prod_num : int
@@ -161,6 +170,32 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
                         if (map_num := atom.GetAtomMapNum()) != 0
         }
     
+    @cached_property
+    def active_atom_info(self) -> list[ActiveAtomInfo]:
+        '''Compile reactant origin and product destination of all active, mapped atoms'''
+        map_nums_to_product_dest : dict[int, tuple[int, int]] = {
+            map_num : (product_template_idx, atom.GetIdx())
+                for product_template_idx, product in enumerate(self.GetProducts())
+                    for atom in product.GetAtoms()
+                        if (map_num := atom.GetAtomMapNum()) != 0
+        }
+        
+        active_atom_infos : list[ActiveAtomInfo] = []
+        for reactant_idx, reacting_atom_idxs in enumerate(self.GetReactingAtoms(mappedAtomsOnly=True)):
+            reactant_template = self.GetReactantTemplate(reactant_idx)
+            for atom_idx in reacting_atom_idxs:
+                reacting_atom = reactant_template.GetAtomWithIdx(atom_idx)
+                product_idx, product_atom_idx = map_nums_to_product_dest[map_num]
+                
+                active_atom_infos.append(ActiveAtomInfo(
+                    map_num=reacting_atom.GetAtomMapNum(),
+                    reactant_idx=reactant_idx,
+                    reactant_atom_idx=atom_idx,
+                    product_idx=product_idx,
+                    product_atom_idx=product_atom_idx,
+                ))
+        return active_atom_infos
+        
     @cached_property
     def reacting_atom_map_nums(self) -> list[int]:
         '''List of the map numbers of all reactant atoms which participate in the reaction'''
