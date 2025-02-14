@@ -28,8 +28,6 @@ from ...genutils.decorators.functional import optional_in_place
 class Reactor:
     '''Class for executing a reaction template on collections of RDKit Mol "reactants"'''
     rxn_schema : AnnotatedReaction
-    _atom_ridx_prop_name   : ClassVar[str] = field(init=False, default='reactant_idx') # name of the property to assign reactant indices to; set for entire class
-    _bond_change_prop_name : ClassVar[str] = field(init=False, default='bond_changed') # name of property to set on bonds to indicated they have changed in a reaction
 
     # PRE-REACTION PREPARATION METHODS
     def _activate_reaction(self) -> None:
@@ -41,29 +39,30 @@ class Reactor:
         self._activate_reaction()
 
     @staticmethod
-    @optional_in_place
-    def _label_reactants(reactants : Iterable[Mol], reactant_label : str) -> None:
+    def _label_reactants(rxn : AnnotatedReaction, reactants : Iterable[Mol]) -> None:
         '''Assigns "reactant_idx" Prop to all reactants to help track where atoms go during the reaction'''
         for i, reactant in enumerate(reactants):
             for atom in reactant.GetAtoms():
-                atom.SetIntProp(reactant_label, i)
+                atom.SetIntProp(rxn._atom_ridx_prop_name, i)
 
     # POST-REACTION CLEANUP METHODS
     @staticmethod
-    @optional_in_place
-    def _relabel_reacted_atoms(product : Mol, reactant_label : str, reactant_map_nums : dict[int, int]) -> None:
+    def _relabel_reacted_atoms(rxn : AnnotatedReaction, product : Mol) -> None:
         '''Re-assigns "reactant_idx" Prop to modified reacted atoms to re-complete atom-to-reactant numbering'''
-        for atom_id in atom_ids_with_prop(product, 'old_mapno'):
-            atom = product.GetAtomWithIdx(atom_id)
-            map_num = atom.GetIntProp('old_mapno')
-
-            atom.SetIntProp(reactant_label, reactant_map_nums[map_num])
-            atom.SetAtomMapNum(map_num)
+        for atom in product.GetAtoms():
+            if atom.HasProp('old_mapno'):
+                map_num = atom.GetIntProp('old_mapno')
+                reactant_idx, reactant_atom_idx = rxn.reactant_idxs_by_map_num[map_num]
+               
+                atom.SetIntProp(rxn._atom_ridx_prop_name, reactant_idx)
+                atom.SetAtomMapNum(map_num)
 
     @staticmethod
-    @optional_in_place
-    def _clean_up_bond_orders(product : Mol, product_template : Mol, product_info : RxnProductInfo) -> None:
+    def _clean_up_bond_orders(rxn : AnnotatedReaction, product : Mol, product_idx : int) -> None:
         '''Ensure bond order changes specified by the reaction are honored by RDKit'''
+        product_info = rxn.product_info_maps[product_idx]
+        product_template = rxn.GetProductTemplate(product_idx)
+        
         for prod_templ_bond_id, map_num_pair in product_info.mod_bond_ids_to_map_nums.items():
             target_bond = product_template.GetBondWithIdx(prod_templ_bond_id)
             product_bond = get_bond_by_map_num_pair(product, map_num_pair, as_bond=True)
@@ -74,9 +73,10 @@ class Reactor:
             product_bond.SetBondType(target_bond.GetBondType()) # set bond type to what it *should* be from the reaction schema
 
     @staticmethod
-    @optional_in_place
-    def _label_new_and_modified_bonds(product : Mol, changed_bond_label : str, product_info : RxnProductInfo) -> None:
+    def _label_new_and_modified_bonds(rxn : AnnotatedReaction, product : Mol, product_idx : int) -> None:
         '''Mark any bonds which were changed or added in the product'''
+        product_info = rxn.product_info_maps[product_idx]
+        
         _bond_change_labellers : dict[str, dict[int, tuple[int, int]]] = {
             'new_bond' : product_info.new_bond_ids_to_map_nums,
             'modified_bond' : product_info.mod_bond_ids_to_map_nums,
@@ -84,7 +84,7 @@ class Reactor:
         for bond_prop_value, changed_bond_dict in _bond_change_labellers.items():
             for map_num_pair in changed_bond_dict.values():
                 product_bond = get_bond_by_map_num_pair(product, map_num_pair, as_bond=True)
-                product_bond.SetProp(changed_bond_label, bond_prop_value)
+                product_bond.SetProp(rxn._bond_change_prop_name, bond_prop_value)
 
     # REACTION EXECUTION METHODS
     def react(self, reactants : Iterable[Mol], repetitions : int=1, clear_props : bool=False, sanitize_ops : SanitizeFlags=SANITIZE_ALL) -> list[Mol]:
@@ -98,31 +98,29 @@ class Reactor:
         if reactants is None:
             raise ReactantTemplateMismatch(f'Reactants provided to {self.__class__.__name__} are incompatible with reaction schema defined')
         
-        reactants = self._label_reactants(reactants, reactant_label=self._atom_ridx_prop_name, in_place=False) # assign reactant indices (not in-place)
+        reactants = [Chem.Mol(reactant) for reactant in reactants] # make a copy to avoid preserve read-onliness of inputted reactant Mols
+        self._label_reactants(
+            self.rxn_schema,
+            reactants=reactants,
+        ) # assign reactant indices (not in-place)
+        
         products : list[Mol] = []
         raw_products = self.rxn_schema.RunReactants(reactants, maxProducts=repetitions) # obtain unfiltered RDKit reaction output. TODO : generalize to work when more than 1 repetition is requested
         for i, product in enumerate(chain.from_iterable(raw_products)): # clean up products into a usable form
-            product_info = self.rxn_schema.product_info_maps[i]
-            
             self._relabel_reacted_atoms(
-                product,
-                reactant_label=self._atom_ridx_prop_name,
-                reactant_map_nums=self.rxn_schema.map_nums_to_reactant_idxs,
-                in_place=True
+                self.rxn_schema,
+                product=product,
             )
             self._clean_up_bond_orders(
-                product,
-                product_template=self.rxn_schema.GetProductTemplate(i),
-                product_info=product_info,
-                in_place=True
+                self.rxn_schema,
+                product=product,
+                product_idx=i,
             )
             self._label_new_and_modified_bonds(
-                product,
-                changed_bond_label=self._bond_change_prop_name,
-                product_info=product_info,
-                in_place=True
+                self.rxn_schema,
+                product=product,
+                product_idx=i,
             )
-            
             if clear_props:
                 clear_atom_props(product, in_place=True)
             Chem.SanitizeMol(product, sanitizeOps=sanitize_ops) # perform sanitization as-specified by the user
