@@ -47,7 +47,6 @@ def annotate_atom_ids(rdmol : Mol, atom_id_remap : Optional[dict[int, int]]=None
     for atom in rdmol.GetAtoms():
         atom.SetIntProp('atomNote', atom_id_remap.get(atom.GetIdx(), atom.GetIdx())) # check if map value exists, if not default to index
 
-            
 @optional_in_place
 def annotate_atom_prop(rdmol : Mol, prop : str, prop_type : T=str, annotate_precision : Optional[int]=None) -> None:
     '''Labels the desired Prop for all atoms in a Mol which have it'''
@@ -64,6 +63,17 @@ def clear_atom_annotations(rdmol : Mol) -> None:
     '''Removes atom annotations over their positions when displaying a Mol'''
     for atom in rdmol.GetAtoms():
         atom.ClearProp('atomNote')
+        
+def label_linkers(mol : Mol, label_prop : str='_displayLabel', naming_funct : Optional[Callable[[int], str]]=None) -> None:
+    '''Labels wild-type ("*") atoms in a Mol for display'''
+    if naming_funct is None:
+        naming_funct = lambda map_num : f'R<sub>{map_num or ""}<sub>' # will be just "R" if atom is unmapped
+    
+    for atom in mol.GetAtoms():
+        if atom.GetAtomicNum() == 0:
+            map_num = atom.GetAtomMapNum()
+            atom.SetProp(label_prop, naming_funct(map_num))
+label_R_groups = label_linkers
 
 # ATOM NEIGHBOR SEARCH
 def _get_atom_neighbors_by_condition_factory(condition : Callable[[Atom], bool]) -> Callable[[Atom], Generator[Atom, None, None]]:
