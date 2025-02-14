@@ -44,6 +44,7 @@ class RxnProductInfo:
     new_bond_ids_to_map_nums : dict[int, tuple[int, int]] = field(default_factory=dict)
     mod_bond_ids_to_map_nums : dict[int, tuple[int, int]] = field(default_factory=dict)
     
+    
 RXNNAME_RE = re.compile(r'^\t*(?P<rxnname>.*?)\n$')
 class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     '''
@@ -52,7 +53,9 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     '''
     # line number in .rxn file where (optional) name of reaction should be located (per the CTFile spec https://discover.3ds.com/sites/default/files/2020-08/biovia_ctfileformats_2020.pdf) 
     _RXNNAME_LINE_NO : ClassVar[int] = 1
-    
+    _atom_ridx_prop_name   : ClassVar[str] = 'reactant_idx' # name of the property to assign reactant indices to; set for entire class
+    _bond_change_prop_name : ClassVar[str] = 'bond_changed' # name of property to set on bonds to indicated they have changed in a reaction
+
     # LOADING/EXPORT METHODS
     @classmethod
     def from_smarts(cls, rxn_smarts : str) -> 'AnnotatedReaction':
@@ -145,55 +148,57 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
 
     # RXN INFO METHODS
     @cached_property
-    def map_nums_to_reactant_idxs(self) -> dict[int, int]:
+    def reactant_idxs_by_map_num(self) -> dict[int, tuple[int, int]]:
         '''
-        Map from all nonzero atom map numbers present to the index
-        of the reactant template the corresponding atom appears in
+        Associates map numbers of all mapped atoms to the pair of reactant index and
+        the atom index with that reactant, respectively, that the mapped atom apears in 
+        
+        Keyed by map number, with values of (reactant index, atom index) tuples
         '''
         return {
-            map_num : reactant_template_idx
+            map_number : (reactant_template_idx, atom.GetIdx())
                 for reactant_template_idx, reactant_template in enumerate(self.GetReactants())
                     for atom in reactant_template.GetAtoms()
-                        if (map_num := atom.GetAtomMapNum()) != 0
+                        if (map_number := atom.GetAtomMapNum()) != 0
         }
 
     @cached_property
-    def map_nums_to_product_idxs(self) -> dict[int, int]:
+    def product_idxs_by_map_num(self) -> dict[int, tuple[int, int]]:
+        '''
+        Associates map numbers of all mapped atoms to the pair of product index and
+        the atom index with that product, respectively, that the mapped atom apears in 
+        
+        Keyed by map number, with values of (product index, atom index) tuples
+        '''
         '''
         Map from all nonzero atom map numbers present to the index
         of the product template the corresponding atom appears in
         '''
         return {
-            map_num : product_template_idx
-                for product_template_idx, product in enumerate(self.GetProducts())
-                    for atom in product.GetAtoms()
-                        if (map_num := atom.GetAtomMapNum()) != 0
+            map_number : (product_template_idx, atom.GetIdx())
+                for product_template_idx, product_template in enumerate(self.GetProducts())
+                    for atom in product_template.GetAtoms()
+                        if (map_number := atom.GetAtomMapNum()) != 0
         }
     
     @cached_property
-    def active_atom_info(self) -> list[ActiveAtomInfo]:
+    def active_atom_info(self) -> dict[int, ActiveAtomInfo]:
         '''Compile reactant origin and product destination of all active, mapped atoms'''
-        map_nums_to_product_dest : dict[int, tuple[int, int]] = {
-            map_num : (product_template_idx, atom.GetIdx())
-                for product_template_idx, product in enumerate(self.GetProducts())
-                    for atom in product.GetAtoms()
-                        if (map_num := atom.GetAtomMapNum()) != 0
-        }
-        
-        active_atom_infos : list[ActiveAtomInfo] = []
+        active_atom_infos : dict[int, ActiveAtomInfo] = {}
         for reactant_idx, reacting_atom_idxs in enumerate(self.GetReactingAtoms(mappedAtomsOnly=True)):
             reactant_template = self.GetReactantTemplate(reactant_idx)
             for atom_idx in reacting_atom_idxs:
                 reacting_atom = reactant_template.GetAtomWithIdx(atom_idx)
-                product_idx, product_atom_idx = map_nums_to_product_dest[map_num]
+                map_num = reacting_atom.GetAtomMapNum()
+                product_idx, product_atom_idx = self.product_idxs_by_map_num[map_num]
                 
-                active_atom_infos.append(ActiveAtomInfo(
-                    map_num=reacting_atom.GetAtomMapNum(),
+                active_atom_infos[map_num] = ActiveAtomInfo(
+                    map_num=map_num,
                     reactant_idx=reactant_idx,
                     reactant_atom_idx=atom_idx,
                     product_idx=product_idx,
                     product_atom_idx=product_atom_idx,
-                ))
+                )
         return active_atom_infos
         
     @cached_property
@@ -224,7 +229,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
                         for atom_id in atom_id_pair
                 )
                 
-                if self.map_nums_to_reactant_idxs[map_num_1] == self.map_nums_to_reactant_idxs[map_num_2]: # if reactant IDs across bond match, the bond must have been modified (i.e. both from single reactant...)
+                if self.reactant_idxs_by_map_num[map_num_1][0] == self.reactant_idxs_by_map_num[map_num_2][0]: # if reactant IDs across bond match, the bond must have been modified (i.e. both from single reactant...)
                     prod_info.mod_bond_ids_to_map_nums[bond_id] = map_num_pair
                 else: # otherwise, bond must be newly formed (spans between previously disjoint monomers) 
                     prod_info.new_bond_ids_to_map_nums[bond_id] = map_num_pair
