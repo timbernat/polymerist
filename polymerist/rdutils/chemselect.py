@@ -17,13 +17,16 @@ from rdkit import Chem
 AtomCondition = Callable[Concatenate[Chem.Atom, ...], bool]
 BondCondition = Callable[Concatenate[Chem.Bond, ...], bool]
 
+AtomCollections = Union[set[int], set[Chem.Atom]]
+BondCollections = Union[set[int], set[Chem.Bond], set[tuple[int, int]], set[tuple[Chem.Atom, Chem.Atom]]]
+
 # CONDITIONAL SELECTION FUNCTIONS
 def atoms_by_condition(
         mol : Chem.Mol,
         condition : AtomCondition=lambda atom : True,
         as_indices : bool=False,
         negate : bool=False,
-    ) -> Union[set[int], set[Chem.Atom]]:
+    ) -> AtomCollections:
     '''
     Select a subset of atoms in a Mol based on a condition
     
@@ -34,7 +37,7 @@ def atoms_by_condition(
     condition : Callable[[Chem.Atom], bool], default lambda atom : True
         Condition on atoms which returns bool; 
         Always returns True if unset
-    as_indices : bool, default True
+    as_indices : bool, default False
         Whether to return results as their indices (default) or as Atom objects
     negate : bool, default False
         Whether to invert the condition provided (by default False)
@@ -56,7 +59,7 @@ def bonds_by_condition(
         as_indices : bool=True,
         as_pairs : bool=True,
         negate : bool=False,
-    ) -> Union[set[int], set[Chem.Bond], set[tuple[int, int]], set[tuple[Chem.Atom, Chem.Atom]]]:
+    ) -> BondCollections:
     '''
     Select a subset of bonds in a Mol based on a condition
     
@@ -108,12 +111,21 @@ def bond_condition_by_atom_condition_factory(atom_condition : AtomCondition, bin
     return bond_condition
 
 # QUERIES BY SPECIFIC CONDITIONS
+def get_mapped_atoms(mol : Chem.Mol, as_indices : bool=False) -> AtomCollections:
+    '''Return all atoms (either as Atom objects or as indices) which have been assigned a nonzero atom map number'''
+    return atoms_by_condition(
+        mol,
+        condition=lambda atom : atom.GetAtomMapNum() == 0,
+        as_indices=as_indices,
+        negate=True,
+    )
+
 def get_bonded_pairs(
         mol : Chem.Mol,
         *atom_idxs : Container[int],
         as_indices : bool=True,
         as_pairs : bool=True,
-    ) -> Union[set[int], set[Chem.Bond], set[tuple[int, int]], set[tuple[Chem.Atom, Chem.Atom]]]:
+    ) -> BondCollections:
     '''Returns all bonds in a Mol which connect a pair of atoms whose indices both lie within the given atom indices'''
     return bonds_by_condition(
         mol,
