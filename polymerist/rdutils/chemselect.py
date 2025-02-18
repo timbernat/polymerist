@@ -90,7 +90,7 @@ def bonds_by_condition(
     '''
     selected_bonds = set()
     for bond in mol.GetBonds():
-        if xor(condition(bond), negate): # XOR
+        if xor(condition(bond), negate):
             if as_pairs:
                 selected_bonds.add((bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()) if as_indices else (bond.GetBeginAtom(), bond.GetEndAtom()))
             else:
@@ -99,7 +99,10 @@ def bonds_by_condition(
     return selected_bonds
 
 # PREDEFINED CONDITIONS
-def bond_condition_by_atom_condition_factory(atom_condition : AtomCondition, binary_operator : Callable[[bool, bool], bool]=logical_or) -> BondCondition:
+def bond_condition_by_atom_condition_factory(
+        atom_condition : AtomCondition,
+        binary_operator : Callable[[bool, bool], bool]=logical_or,
+    ) -> BondCondition:
     '''
     Dynamically define a bond condition based on an atom condition applied to the pair of atom a bond connects
     
@@ -110,14 +113,15 @@ def bond_condition_by_atom_condition_factory(atom_condition : AtomCondition, bin
         return binary_operator(atom_condition(bond.GetBeginAtom()), atom_condition(bond.GetEndAtom()))
     return bond_condition
 
+
 # QUERIES BY SPECIFIC CONDITIONS
 def get_mapped_atoms(mol : Chem.Mol, as_indices : bool=False) -> AtomCollections:
     '''Return all atoms (either as Atom objects or as indices) which have been assigned a nonzero atom map number'''
     return atoms_by_condition(
         mol,
-        condition=lambda atom : atom.GetAtomMapNum() == 0,
+        condition=lambda atom : atom.GetAtomMapNum() != 0,
         as_indices=as_indices,
-        negate=True,
+        negate=False,
     )
 
 def get_bonded_pairs(
@@ -135,6 +139,23 @@ def get_bonded_pairs(
         ),
         as_indices=as_indices,
         as_pairs=as_pairs,
-        negate=False,
+        negate=False, # NOTE: negate doesn't behave exactly as one might expect here due to de Morgan's laws (i.e. ~(A^B) != (~A^~B))
     )
     ...
+    
+def get_bonds_between_mapped_atoms(
+        mol : Chem.Mol,
+        as_indices : bool=True,
+        as_pairs : bool=True,
+    ) -> BondCollections:
+    '''Returns all bonds spanning between two mapped (i.e. nonzero atom map number) atoms'''
+    return bonds_by_condition(
+        mol,
+        condition=bond_condition_by_atom_condition_factory(
+            atom_condition=lambda atom : atom.GetAtomMapNum() != 0,
+            binary_operator=logical_and, # only return bond when BOTH atoms are unmapped
+        ),
+        as_indices=as_indices,
+        as_pairs=as_pairs,
+        negate=False, # NOTE: negate doesn't behave exactly as one might expect here due to de Morgan's laws (i.e. ~(A^B) != (~A^~B))
+    )
