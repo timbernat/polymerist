@@ -15,6 +15,7 @@ from collections import defaultdict, Counter
 
 from rdkit.Chem import rdChemReactions, Mol
 
+from ..chemselect import get_mapped_atoms
 from ..bonding._bonding import combined_rdmol
 from ..labeling.molwise import ordered_map_nums
 from ..labeling.bondwise import get_bonded_pairs_by_map_nums
@@ -26,14 +27,14 @@ from ...genutils.sequences.discernment import DISCERNMENTSolver, SymbolInventory
 
 
 # REACTION INFORMATICS CLASSES
-@dataclass
-class ActiveAtomInfo:
-    '''For encapsulating origin and destination information about a reactive atom'''
+@dataclass(frozen=True)
+class MappedAtomInfo:
+    '''For encapsulating information about the origin and destination of a mapped atom traced through a reaction'''
     map_num : int
-    reactant_idx : int      # index of the reactantn template within a reaction
-    reactant_atom_idx : int # index of the target atom WITHIN the above template
-    product_idx : int
-    product_atom_idx : int
+    reactant_idx : int      # index of the reactant template within a reaction
+    reactant_atom_idx : int # index of the target atom WITHIN the above reactant template
+    product_idx : int       # index of the product template within a reaction
+    product_atom_idx : int  # index of the target atom WITHIN the above product template
    
 @dataclass
 class RxnProductInfo:
@@ -59,7 +60,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     # LOADING/EXPORT METHODS
     @classmethod
     def from_smarts(cls, rxn_smarts : str) -> 'AnnotatedReaction':
-        '''Iinstantiate reaction from mapped SMARTS string'''
+        '''Instantiate reaction from mapped SMARTS string'''
         return cls(rdChemReactions.ReactionFromSmarts(rxn_smarts.replace('#0', '*'))) # clean up any wild-atom conversion artifacts from porting a SMARTS through SMILES
     
     # NOTE : cannot analogous implement "from_smiles" classmethod, as rdChemreactions does not support initialization from SMILES (only SMARTS)
@@ -156,10 +157,9 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         Keyed by map number, with values of (reactant index, atom index) tuples
         '''
         return {
-            map_number : (reactant_template_idx, atom.GetIdx())
+            atom.GetAtomMapNum() : (reactant_template_idx, atom.GetIdx())
                 for reactant_template_idx, reactant_template in enumerate(self.GetReactants())
-                    for atom in reactant_template.GetAtoms()
-                        if (map_number := atom.GetAtomMapNum()) != 0
+                    for atom in get_mapped_atoms(reactant_template, as_indices=False)
         }
 
     @cached_property
@@ -170,36 +170,38 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         
         Keyed by map number, with values of (product index, atom index) tuples
         '''
-        '''
-        Map from all nonzero atom map numbers present to the index
-        of the product template the corresponding atom appears in
-        '''
         return {
-            map_number : (product_template_idx, atom.GetIdx())
+            atom.GetAtomMapNum() : (product_template_idx, atom.GetIdx())
                 for product_template_idx, product_template in enumerate(self.GetProducts())
-                    for atom in product_template.GetAtoms()
-                        if (map_number := atom.GetAtomMapNum()) != 0
+                    for atom in get_mapped_atoms(product_template, as_indices=False)
         }
     
     @cached_property
-    def active_atom_info(self) -> dict[int, ActiveAtomInfo]:
-        '''Compile reactant origin and product destination of all active, mapped atoms'''
-        active_atom_infos : dict[int, ActiveAtomInfo] = {}
-        for reactant_idx, reacting_atom_idxs in enumerate(self.GetReactingAtoms(mappedAtomsOnly=True)):
+    def mapped_atom_info(self) -> dict[int, MappedAtomInfo]:
+        '''Compile reactant origin and product destination of all mapped atoms'''
+        mapped_atom_infos : dict[int, MappedAtomInfo] = {}
+        for map_number, (reactant_idx, reactant_atom_idx) in self.reactant_idxs_by_map_num.items():
+            product_idx, product_atom_idx = self.product_idxs_by_map_num[map_number]
+            mapped_atom_infos[map_number] = MappedAtomInfo(
+                map_num=map_number, # DEVNOTE: am aware this information seems redundant, but this duplication allows one to vary the level of coupling to the returned dict
+                reactant_idx=reactant_idx,
+                reactant_atom_idx=reactant_atom_idx,
+                product_idx=product_idx,
+                product_atom_idx=product_atom_idx,
+            )
+        return mapped_atom_infos
+        
+    @cached_property
+    def reactive_atom_info(self) -> dict[int, MappedAtomInfo]:
+        '''Compile reactant origin and product destination of all mapped atoms which are changed by the reaction'''
+        reactive_atom_infos : dict[int, MappedAtomInfo] = {}
+        for reactant_idx, reactant_atom_idxs in enumerate(self.GetReactingAtoms(mappedAtomsOnly=True)):
             reactant_template = self.GetReactantTemplate(reactant_idx)
-            for atom_idx in reacting_atom_idxs:
-                reacting_atom = reactant_template.GetAtomWithIdx(atom_idx)
-                map_num = reacting_atom.GetAtomMapNum()
-                product_idx, product_atom_idx = self.product_idxs_by_map_num[map_num]
-                
-                active_atom_infos[map_num] = ActiveAtomInfo(
-                    map_num=map_num,
-                    reactant_idx=reactant_idx,
-                    reactant_atom_idx=atom_idx,
-                    product_idx=product_idx,
-                    product_atom_idx=product_atom_idx,
-                )
-        return active_atom_infos
+            for reactant_atom_idx in reactant_atom_idxs:
+                map_num = reactant_template.GetAtomWithIdx(reactant_atom_idx).GetAtomMapNum()
+                reactive_atom_infos[map_num] = self.mapped_atom_info[map_num]
+        
+        return reactive_atom_infos
         
     @cached_property
     def reacting_atom_map_nums(self) -> list[int]:

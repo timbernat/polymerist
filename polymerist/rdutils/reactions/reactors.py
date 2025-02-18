@@ -52,9 +52,7 @@ class Reactor:
         for atom in product.GetAtoms():
             if atom.HasProp('old_mapno'):
                 map_num = atom.GetIntProp('old_mapno')
-                reactant_idx, reactant_atom_idx = rxn.reactant_idxs_by_map_num[map_num]
-               
-                atom.SetIntProp(rxn._atom_ridx_prop_name, reactant_idx)
+                atom.SetIntProp(rxn._atom_ridx_prop_name, rxn.mapped_atom_info[map_num].reactant_idx)
                 atom.SetAtomMapNum(map_num)
 
     @staticmethod
