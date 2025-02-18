@@ -13,7 +13,6 @@ from rdkit.Chem.rdmolops import SanitizeFlags, SANITIZE_ALL
 from .reactions import AnnotatedReaction
 from ..labeling.molwise import (
     assign_contiguous_atom_map_nums,
-    ordered_map_nums,
     relabel_map_nums,
 )
 from ..bonding._bonding import combined_rdmol
@@ -76,7 +75,7 @@ class ReactionAssembler:
         '''Partitions map numbers present in the product(s) by whether or not they belong to a collection of side products
         Returns a set of map numbers NOT in a side product and set set which are'''
         return [
-            set(ordered_map_nums(product_mol)) if (product_mol is not None) else set()
+            set(atom.GetAtomMapNum() for atom in product_mol.GetAtoms()) if (product_mol is not None) else set()
                 for product_mol in self.products_by_importance(combined=True, show_steps=False, sanitize_ops=SANITIZE_ALL) # CRITICAL that mols be combined here
         ]
 

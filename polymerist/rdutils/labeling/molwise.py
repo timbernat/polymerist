@@ -9,6 +9,33 @@ from rdkit.Chem.rdchem import Mol
 from ...genutils.decorators.functional import optional_in_place
 
 
+# CHECKING FUNCTIONS
+def has_fully_mapped_atoms(rdmol : Mol) -> bool:
+    '''Check whether an RDKit Mol has a map number explicitly assigned to each member Atom'''
+    for atom in rdmol.GetAtoms():
+        if atom.GetAtomMapNum() == 0:
+            return False
+    else:
+        return True
+    
+def has_uniquely_mapped_atoms(rdmol : Mol, skip_unmapped : bool=False) -> bool: 
+    '''
+    Check whether an RDKit Mol has distinct atom map numbers for each member Atom
+    If skip_unmapped=False (default), will check map numbers on ALL atoms;
+    If skip_unmapped=True, however, will only check uniqueness of NONZERO map number (i.e. explicitly-mapped) atoms
+    '''
+    seen_map_numbers = set()
+    for atom in rdmol.GetAtoms():
+        map_num = atom.GetAtomMapNum()
+        if (map_num == 0) and skip_unmapped:
+            continue
+        
+        if map_num in seen_map_numbers:
+            return False
+        seen_map_numbers.add(map_num)
+    else:
+        return True
+    
 # READING FUNCTIONS
 def get_isotopes(rdmol : Mol, unique : bool=True) -> Union[set[int], list[int]]:
     '''Return all isotope IDs present in an RDKit Mol. Can optionally return only the unique IDs'''
@@ -22,33 +49,19 @@ def ordered_map_nums(rdmol : Mol) -> list[int]:
     '''Get assigned atom map numbers, in the same order as the internal RDKit Mol atom IDs'''
     return [atom.GetAtomMapNum() for atom in rdmol.GetAtoms()]
 
-def get_atom_map_nums_by_ids(rdmol : Mol, *query_atom_ids : list[int]) -> Generator[Optional[int], None, None]: # TODO : generalize this to handle case where multiple atoms have the same map num
+def get_map_nums_by_atom_idxs(rdmol : Mol, *atom_idxs : list[int]) -> Generator[Optional[int], None, None]: # TODO : generalize this to handle case where multiple atoms have the same map num
     '''Get assigned atom map numbers for a collection of atom ids, in the same order as the internal RDKit Mol atom IDs'''
-    for atom_id in query_atom_ids:
-        yield(rdmol.GetAtomWithIdx(atom_id).GetAtomMapNum())
+    for atom_idx in atom_idxs:
+        yield(rdmol.GetAtomWithIdx(atom_idx).GetAtomMapNum())
 
-def get_atom_ids_by_map_nums(rdmol : Mol, *query_map_nums : list[int]) -> Generator[Optional[int], None, None]: # TODO : generalize this to handle case where multiple atoms have the same map num
+def get_atom_idxs_by_map_nums(rdmol : Mol, *map_numbers : list[int]) -> Generator[Optional[int], None, None]: # TODO : generalize this to handle case where multiple atoms have the same map num
     '''Returns the first occurences of the atom IDs of any number of atoms, indexed by atom map number'''
-    present_map_nums : list[int] = ordered_map_nums(rdmol)
-    for map_num in query_map_nums:
+    present_map_nums : list[int] = [atom.GetAtomMapNum() for atom in rdmol.GetAtoms()]
+    for map_num in map_numbers:
         try:
             yield present_map_nums.index(map_num)
         except ValueError: # if the provided map number is not found, return NoneType
             yield None
-
-# CHECKING FUNCTIONS
-def has_fully_mapped_atoms(rdmol : Mol) -> bool:
-    '''Check whether an RDKit Mol has a map number explicitly assigned to each member Atom'''
-    for atom in rdmol.GetAtoms():
-        if atom.GetAtomMapNum() == 0:
-            return False
-    else:
-        return True
-    
-def has_uniquely_mapped_atoms(rdmol : Mol) -> bool: # TODO: use genutils.sequences.seqops uniqueness check here
-    '''Check whether an RDKit Mol has distinct atom map numbers for each member Atom'''
-    map_nums = ordered_map_nums(rdmol)
-    return (len(map_nums) == len(set(map_nums))) # NOTE : not using rdmol.GetNumAtoms() as reference to avoid ambiguity with SMILES without explicit Hs
 
 # WRITING FUNCTIONS
 @optional_in_place    
@@ -85,9 +98,9 @@ def relabel_map_nums(rdmol : Mol, relabeling : dict[int, int]) -> None:
     assign_atom_map_nums_by_ids(
         rdmol,
         map_nums_by_ids={ # recast keys from current atom map nums to current atom ids (if even present)
-            atom_id : new_map_num
-                for atom_id, new_map_num in zip(get_atom_ids_by_map_nums(rdmol, *relabeling.keys()), relabeling.values())
-                    if atom_id is not None # TOSELF : consider adding check for duplicate remapping?
+            atom_idx : new_map_num
+                for atom_idx, new_map_num in zip(get_atom_idxs_by_map_nums(rdmol, *relabeling.keys()), relabeling.values())
+                    if atom_idx is not None # TOSELF : consider adding check for duplicate remapping?
         },
         in_place=True, # assign_atom_map_nums_by_ids() already makes optional copies, so there's no need to make a second-order copy
     ) 
