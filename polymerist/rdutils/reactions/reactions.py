@@ -212,6 +212,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
                     for atom_id in reacting_atom_ids
         ]
         
+        
     @cached_property
     def product_info_maps(self) -> dict[int, RxnProductInfo]:
         '''Map from product index to information about reactive atoms and bonds in that product'''
