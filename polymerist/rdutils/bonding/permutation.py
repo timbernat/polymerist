@@ -15,7 +15,7 @@ from IPython.display import display # for Jupyter display support
 from . import portlib
 from .formation import increase_bond_order
 from .dissolution import decrease_bond_order
-from ..labeling.molwise import get_isotopes, get_atom_idxs_by_map_nums
+from ..labeling.molwise import get_atom_idxs_by_map_nums
 
 from ...genutils.sequences.seqops import int_complement
 from ...genutils.decorators.functional import optional_in_place
@@ -51,7 +51,10 @@ def swap_bonds(rwmol : RWMol, bond_derangement : dict[int, tuple[int, int]], sho
         raise ValueError('Invalid interatomic bond derangement provided')
 
     # determine non-interfering port flavors for new bonds (preserves parity between permutation sets)
-    available_port_flavors = int_complement(get_isotopes(rwmol), bounded=False) # ensures newly-created temporary ports don't clash with any existing ones
+    available_port_flavors = int_complement( # ensures newly-created temporary ports don't clash with any existing ones
+        set(atom.GetIsotope() for atom in rwmol.GetAtoms()),
+        bounded=False,
+    ) 
     flavor_pair = (next(available_port_flavors), next(available_port_flavors)) # grab first two available flavors
     portlib.Port.bondable_flavors.insert(flavor_pair) # temporarily register pair as bondable
 

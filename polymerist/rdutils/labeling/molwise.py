@@ -37,14 +37,6 @@ def has_uniquely_mapped_atoms(rdmol : Mol, skip_unmapped : bool=False) -> bool:
         return True
     
 # READING FUNCTIONS
-def get_isotopes(rdmol : Mol, unique : bool=True) -> Union[set[int], list[int]]:
-    '''Return all isotope IDs present in an RDKit Mol. Can optionally return only the unique IDs'''
-    isotope_ids = [atom.GetIsotope() for atom in rdmol.GetAtoms()]
-
-    if unique:
-        return set(isotope_ids)
-    return isotope_ids
-
 def ordered_map_nums(rdmol : Mol) -> list[int]:
     '''Get assigned atom map numbers, in the same order as the internal RDKit Mol atom IDs'''
     return [atom.GetAtomMapNum() for atom in rdmol.GetAtoms()]
