@@ -4,7 +4,7 @@ __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
 from typing import Generator, Iterable, Optional, Union
-from rdkit.Chem.rdchem import Mol
+from rdkit.Chem.rdchem import Mol, Bond
 
 from ...genutils.decorators.functional import optional_in_place
 
@@ -54,6 +54,18 @@ def get_atom_idxs_by_map_nums(rdmol : Mol, *map_numbers : list[int]) -> Generato
             yield present_map_nums.index(map_num)
         except ValueError: # if the provided map number is not found, return NoneType
             yield None
+            
+def get_bond_by_map_num_pair(rdmol : Mol, map_num_pair : tuple[int, int], as_bond : bool=True) -> Optional[Union[int, Bond]]:
+    '''
+    Get the bond spanning a pair of atoms with given pair of atom map numbers
+    Returns the RDkit.Bond object if as_bond=True, and the index of the bond if as_bond=False
+    
+    If no bond exists between the atoms, will return None regardless of the value of "as_bond"
+    '''
+    bond = rdmol.GetBondBetweenAtoms(*get_atom_idxs_by_map_nums(rdmol, *map_num_pair))
+    if (not as_bond) and (bond is not None):
+        return bond.GetIdx()
+    return bond # returns bond or, implicitly, NoneType if no bond is found
 
 # WRITING FUNCTIONS
 @optional_in_place    

@@ -3,8 +3,8 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import ClassVar, Generator, Iterable, Optional
-from dataclasses import dataclass, field
+from typing import Generator, Iterable
+from dataclasses import dataclass
 from itertools import chain
 
 from rdkit import Chem
@@ -12,15 +12,12 @@ from rdkit.Chem.rdchem import Mol
 from rdkit.Chem.rdmolops import SanitizeFlags, SANITIZE_ALL
 
 from .reactexc import BadNumberReactants, ReactantTemplateMismatch
-from .reactions import AnnotatedReaction, RxnProductInfo
+from .reactions import AnnotatedReaction
 from .fragment import IBIS, ReseparateRGroups
 
 from ..rdprops.atomprops import atom_ids_with_prop, clear_atom_props
 from ..rdprops.bondprops import clear_bond_props
-
-from ..labeling.bondwise import get_bond_by_map_num_pair
-from ..labeling.molwise import clear_atom_map_nums
-from ...genutils.decorators.functional import optional_in_place
+from ..labeling.molwise import clear_atom_map_nums, get_bond_by_map_num_pair
 
 
 # REACTOR BASE CLASS 

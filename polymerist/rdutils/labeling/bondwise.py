@@ -25,14 +25,4 @@ def get_bonded_pairs_by_map_nums(rdmol : Mol, *atom_map_nums : Iterable[int]) ->
     '''Obtain bonded pair dict by atom map numbers instead of IDs'''
     return get_bonded_pairs(rdmol, *get_atom_idxs_by_map_nums(rdmol, *atom_map_nums))
 
-def get_bond_by_map_num_pair(rdmol : Mol, map_num_pair : tuple[int, int], as_bond : bool=True) -> Optional[Union[int, Bond]]:
-    '''
-    Get the bond spanning a pair of atoms with given pair of atom map numbers
-    Returns the RDkit.Bond object if as_bond=True, and the index of the bond if as_bond=False
-    
-    If no bond exists between the atoms, will return None regardless of the value of "as_bond"
-    '''
-    bond = rdmol.GetBondBetweenAtoms(*get_atom_idxs_by_map_nums(rdmol, *map_num_pair))
-    if (not as_bond) and (bond is not None):
-        return bond.GetIdx()
-    return bond # returns bond or, implicitly, NoneType if no bond is found
+
