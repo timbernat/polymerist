@@ -74,23 +74,3 @@ def label_linkers(mol : Mol, label_prop : str='_displayLabel', naming_funct : Op
             map_num = atom.GetAtomMapNum()
             atom.SetProp(label_prop, naming_funct(map_num))
 label_R_groups = label_linkers
-
-# ATOM NEIGHBOR SEARCH
-def _get_atom_neighbors_by_condition_factory(condition : Callable[[Atom], bool]) -> Callable[[Atom], Generator[Atom, None, None]]:
-    '''Factory function for generating neighbor-search functions over Atoms by a boolean condition'''
-    def neighbors_by_condition(atom : Atom) -> Generator[Atom, None, None]:
-        '''Generate all neighboring atoms satisfying a condition'''
-        for nb_atom in atom.GetNeighbors():
-            if condition(nb_atom):
-                yield nb_atom
-    return neighbors_by_condition
-
-def _has_atom_neighbors_by_condition_factory(condition : Callable[[Atom], bool]) -> Callable[[Atom], bool]:
-    '''Factory function for generating neighbor-search functions over Atoms by a boolean condition'''
-    def has_neighbors_by_condition(atom : Atom) -> bool:
-        '''Identify if any neighbors of an atom satisfy some condition'''
-        return any(
-            condition(nb_atom)
-                for nb_atom in atom.GetNeighbors()
-        )
-    return has_neighbors_by_condition
