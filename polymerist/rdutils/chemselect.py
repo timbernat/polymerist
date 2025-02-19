@@ -18,44 +18,54 @@ from rdkit.Chem.rdchem import Mol, Bond, Atom
 AtomCondition = Callable[Concatenate[Atom, ...], bool]
 BondCondition = Callable[Concatenate[Bond, ...], bool]
 
-AtomCollections = Union[set[int], set[Atom]]
-BondCollections = Union[set[int], set[Bond], set[tuple[int, int]], set[tuple[Atom, Atom]]]
+AtomLike = Union[set[int], set[Atom]]
+BondLike = Union[set[int], set[Bond], set[tuple[int, int]], set[tuple[Atom, Atom]]]
 
-# PREDEFINED CONDITIONS
-def bond_condition_by_atom_condition_factory(
-        atom_condition : AtomCondition,
-        binary_operator : Callable[[bool, bool], bool]=logical_or,
-    ) -> BondCondition:
-    '''
-    Dynamically define a bond condition based on an atom condition applied to the pair of atom a bond connects
-    
-    Evaluation over bond determined by a specified atom condition and a binary logical comparison made between the pair of atom condition evaluations
-    By default, this binary condition is OR (i.e. the bond will evaluate True if either of its atoms meets the atom condition)
-    '''
-    def bond_condition(bond : Bond) -> bool:
-        return binary_operator(atom_condition(bond.GetBeginAtom()), atom_condition(bond.GetEndAtom()))
-    return bond_condition
 
 # CONDITIONAL SELECTION FUNCTIONS
 ## ATOM NEIGHBOR SEARCH
-def _get_atom_neighbors_by_condition_factory(condition : Callable[[Atom], bool]) -> Callable[[Atom], Generator[Atom, None, None]]:
-    '''Factory function for generating neighbor-search functions over Atoms by a boolean condition'''
-    def neighbors_by_condition(atom : Atom) -> Generator[Atom, None, None]:
-        '''Generate all neighboring atoms satisfying a condition'''
-        for nb_atom in atom.GetNeighbors():
-            if condition(nb_atom):
-                yield nb_atom
-    return neighbors_by_condition
+def atom_neighbors(
+        atom : Atom,
+        condition : AtomCondition=lambda atom : True,
+        as_indices : bool=False,
+        negate : bool=False,
+    ) -> Generator[AtomLike, None, None]:
+    '''
+    Generate all neighboring atoms (i.e. atoms bonded to the passed atom) satisfying a condition
+    
+    Parameters
+    ----------
+    atom : Chem.Atom
+        An atom object whose neighbors are to be inspected
+    condition : Callable[[Chem.Atom], bool], default lambda atom : True
+        Condition on atoms which returns bool; 
+        Always returns True if unset
+    as_indices : bool, default False
+        Whether to return results as their indices (default) or as Atom objects
+    negate : bool, default False
+        Whether to invert the condition provided (by default False)
+    
+    Returns
+    -------
+    selected_atoms : Union[set[int], set[Chem.Atom]]
+        A set of the atoms meeting the chosen condition
+    '''
+    for nb_atom in atom.GetNeighbors():
+        if xor(condition(nb_atom), negate):
+            yield nb_atom.GetIdx() if as_indices else nb_atom
 
-def _has_atom_neighbors_by_condition_factory(condition : Callable[[Atom], bool]) -> Callable[[Atom], bool]:
-    '''Factory function for generating neighbor-search functions over Atoms by a boolean condition'''
-    def has_neighbors_by_condition(atom : Atom) -> bool:
-        '''Identify if any neighbors of an atom satisfy some condition'''
-        return any(
-            condition(nb_atom)
-                for nb_atom in atom.GetNeighbors()
-        )
-    return has_neighbors_by_condition
+def has_atom_neighbors(
+        atom : Atom,
+        condition : AtomCondition=lambda atom : True,
+        negate : bool=False,
+    ) -> bool:
+    '''Identify if any neighbors of an atom satisfy some condition'''
+    try: 
+        next(atom_neighbors(atom, condition=condition, negate=negate))
+    except StopIteration:
+        return False
+    else:
+        return True
 
 ## WHOLE-MOLECULE SEARCH
 def atoms_by_condition(
@@ -63,7 +73,7 @@ def atoms_by_condition(
         condition : AtomCondition=lambda atom : True,
         as_indices : bool=False,
         negate : bool=False,
-    ) -> AtomCollections:
+    ) -> AtomLike:
     '''
     Select a subset of atoms in a Mol based on a condition
     
@@ -96,7 +106,7 @@ def bonds_by_condition(
         as_indices : bool=True,
         as_pairs : bool=True,
         negate : bool=False,
-    ) -> BondCollections:
+    ) -> BondLike:
     '''
     Select a subset of bonds in a Mol based on a condition
     
@@ -125,7 +135,7 @@ def bonds_by_condition(
         * 2-tuples of Atom objects
         * 2-tuples of atom indices
     '''
-    selected_bonds = set()
+    selected_bonds = set() 
     for bond in mol.GetBonds():
         if xor(condition(bond), negate):
             if as_pairs:
@@ -135,8 +145,22 @@ def bonds_by_condition(
                     
     return selected_bonds
 
-# QUERIES BY SPECIFIC CONDITIONS
-def get_mapped_atoms(mol : Mol, as_indices : bool=False) -> AtomCollections:
+def bond_condition_by_atom_condition_factory(
+        atom_condition : AtomCondition,
+        binary_operator : Callable[[bool, bool], bool]=logical_or,
+    ) -> BondCondition:
+    '''
+    Dynamically define a bond condition based on an atom condition applied to the pair of atom a bond connects
+    
+    Evaluation over bond determined by a specified atom condition and a binary logical comparison made between the pair of atom condition evaluations
+    By default, this binary condition is OR (i.e. the bond will evaluate True if either of its atoms meets the atom condition)
+    '''
+    def bond_condition(bond : Bond) -> bool:
+        return binary_operator(atom_condition(bond.GetBeginAtom()), atom_condition(bond.GetEndAtom()))
+    return bond_condition
+
+# QUERIES BY PREDEFINED CONDITIONS
+def get_mapped_atoms(mol : Mol, as_indices : bool=False) -> AtomLike:
     '''Return all atoms (either as Atom objects or as indices) which have been assigned a nonzero atom map number'''
     return atoms_by_condition(
         mol,
@@ -150,7 +174,7 @@ def get_bonded_pairs(
         *atom_idxs : Container[int],
         as_indices : bool=True,
         as_pairs : bool=True,
-    ) -> BondCollections:
+    ) -> BondLike:
     '''Returns all bonds in a Mol which connect a pair of atoms whose indices both lie within the given atom indices'''
     return bonds_by_condition(
         mol,
@@ -162,13 +186,12 @@ def get_bonded_pairs(
         as_pairs=as_pairs,
         negate=False, # NOTE: negate doesn't behave exactly as one might expect here due to de Morgan's laws (i.e. ~(A^B) != (~A^~B))
     )
-    ...
     
 def get_bonds_between_mapped_atoms(
         mol : Mol,
         as_indices : bool=True,
         as_pairs : bool=True,
-    ) -> BondCollections:
+    ) -> BondLike:
     '''Returns all bonds spanning between two mapped (i.e. nonzero atom map number) atoms'''
     return bonds_by_condition(
         mol,
