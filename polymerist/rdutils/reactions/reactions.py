@@ -5,6 +5,7 @@ __email__ = 'timotej.bernat@colorado.edu'
 
 from typing import ClassVar, Generator, Iterable, Optional, Sequence, Union
 from dataclasses import dataclass, field
+from enum import StrEnum, auto
 
 import re
 from io import StringIO
@@ -13,7 +14,7 @@ from pathlib import Path
 from functools import cached_property
 from collections import defaultdict, Counter
 
-from rdkit.Chem import rdChemReactions, Mol
+from rdkit.Chem import rdChemReactions, Mol, BondType
 
 from ..chemselect import get_mapped_atoms
 from ..bonding._bonding import combined_rdmol
@@ -27,15 +28,33 @@ from ...genutils.sequences.discernment import DISCERNMENTSolver, SymbolInventory
 
 
 # REACTION INFORMATICS CLASSES
+class BondChange(StrEnum):
+    '''For indicating how a bond which changed in a reaction was altered'''
+    ADDED = auto()
+    DELETED = auto()
+    MODIFIED = auto() # specifically, when bond order is modified but the bond persists
+    UNCHANGED = auto()
+
 @dataclass(frozen=True)
-class MappedAtomInfo:
-    '''For encapsulating information about the origin and destination of a mapped atom traced through a reaction'''
+class AtomTraceInfo:
+    '''For encapsulating information about the origin and destination of a mapped atom, traced through a reaction'''
     map_num : int
-    reactant_idx : int      # index of the reactant template within a reaction
+    reactant_idx      : int # index of the reactant template within a reaction in which the atom occurs
     reactant_atom_idx : int # index of the target atom WITHIN the above reactant template
-    product_idx : int       # index of the product template within a reaction
-    product_atom_idx : int  # index of the target atom WITHIN the above product template
+    product_idx       : int # index of the product template within a reaction in which the atom occurs
+    product_atom_idx  : int # index of the target atom WITHIN the above product template
    
+@dataclass(frozen=True)
+class BondTraceInfo:
+    '''For encapsulating information about bonds which are between mapped atoms and which change during a reaction'''
+    map_nums : tuple[int, int] # map numbers of the pair of atoms the bond connects
+    # NOTE: reactant index doesn't make much sense, since the atoms the bond spans might have comes from two distinct reactant templates
+    product_idx      : int # index of the reactant template within a reaction in which the modified bond occurs
+    product_bond_idx : int # index of the target bond WITHIN the above product template
+    change_type  : Union[str, BondChange]
+    bond_order   : Union[float, BondType] # bond order in the product (i.e. AFTER the change)
+    
+
 @dataclass
 class RxnProductInfo:
     '''For storing atom map numbers associated with product atoms and bonds participating in a reaction'''
@@ -46,6 +65,7 @@ class RxnProductInfo:
     mod_bond_ids_to_map_nums : dict[int, tuple[int, int]] = field(default_factory=dict)
     
     
+# REACTION CLASS
 RXNNAME_RE = re.compile(r'^\t*(?P<rxnname>.*?)\n$')
 class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     '''
@@ -56,6 +76,9 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     _RXNNAME_LINE_NO : ClassVar[int] = 1
     _atom_ridx_prop_name   : ClassVar[str] = 'reactant_idx' # name of the property to assign reactant indices to; set for entire class
     _bond_change_prop_name : ClassVar[str] = 'bond_changed' # name of property to set on bonds to indicated they have changed in a reaction
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
 
     # LOADING/EXPORT METHODS
     @classmethod
@@ -147,7 +170,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
                 else:
                     rxnfile.write(line)
 
-    # RXN INFO METHODS
+    # INFO FOR TRACING ATOMS THROUGH REACTIONS
     @cached_property
     def reactant_idxs_by_map_num(self) -> dict[int, tuple[int, int]]:
         '''
@@ -177,12 +200,12 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         }
     
     @cached_property
-    def mapped_atom_info(self) -> dict[int, MappedAtomInfo]:
+    def mapped_atom_info(self) -> dict[int, AtomTraceInfo]:
         '''Compile reactant origin and product destination of all mapped atoms'''
-        mapped_atom_infos : dict[int, MappedAtomInfo] = {}
+        mapped_atom_infos = {}
         for map_number, (reactant_idx, reactant_atom_idx) in self.reactant_idxs_by_map_num.items():
             product_idx, product_atom_idx = self.product_idxs_by_map_num[map_number]
-            mapped_atom_infos[map_number] = MappedAtomInfo(
+            mapped_atom_infos[map_number] = AtomTraceInfo(
                 map_num=map_number, # DEVNOTE: am aware this information seems redundant, but this duplication allows one to vary the level of coupling to the returned dict
                 reactant_idx=reactant_idx,
                 reactant_atom_idx=reactant_atom_idx,
@@ -190,11 +213,11 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
                 product_atom_idx=product_atom_idx,
             )
         return mapped_atom_infos
-        
+           
     @cached_property
-    def reactive_atom_info(self) -> dict[int, MappedAtomInfo]:
+    def reactive_atom_info(self) -> dict[int, AtomTraceInfo]:
         '''Compile reactant origin and product destination of all mapped atoms which are changed by the reaction'''
-        reactive_atom_infos : dict[int, MappedAtomInfo] = {}
+        reactive_atom_infos = {}
         for reactant_idx, reactant_atom_idxs in enumerate(self.GetReactingAtoms(mappedAtomsOnly=True)):
             reactant_template = self.GetReactantTemplate(reactant_idx)
             for reactant_atom_idx in reactant_atom_idxs:
@@ -211,7 +234,6 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
                 for reactant_id, reacting_atom_ids in enumerate(self.GetReactingAtoms())
                     for atom_id in reacting_atom_ids
         ]
-        
         
     @cached_property
     def product_info_maps(self) -> dict[int, RxnProductInfo]:
