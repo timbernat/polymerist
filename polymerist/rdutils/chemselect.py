@@ -18,13 +18,13 @@ from rdkit.Chem.rdchem import Mol, Bond, Atom
 AtomCondition = Callable[Concatenate[Atom, ...], bool]
 BondCondition = Callable[Concatenate[Bond, ...], bool]
 
-AtomLike = Union[set[int], set[Atom]]
-BondLike = Union[set[int], set[Bond], set[tuple[int, int]], set[tuple[Atom, Atom]]]
+AtomLike = Union[int, Atom]
+BondLike = Union[int, Bond, tuple[int, int], tuple[Atom, Atom]]
 
 
 # CONDITIONAL SELECTION FUNCTIONS
 ## ATOM NEIGHBOR SEARCH
-def atom_neighbors(
+def atom_neighbors_by_condition(
         atom : Atom,
         condition : AtomCondition=lambda atom : True,
         as_indices : bool=False,
@@ -47,21 +47,21 @@ def atom_neighbors(
     
     Returns
     -------
-    selected_atoms : Union[set[int], set[Chem.Atom]]
-        A set of the atoms meeting the chosen condition
+    selected_atoms : Generator[Union[int, Chem.Atom]]
+        An iterable Generator of the atoms meeting the chosen condition
     '''
     for nb_atom in atom.GetNeighbors():
         if xor(condition(nb_atom), negate):
             yield nb_atom.GetIdx() if as_indices else nb_atom
 
-def has_atom_neighbors(
+def has_atom_neighbors_by_condition(
         atom : Atom,
         condition : AtomCondition=lambda atom : True,
         negate : bool=False,
     ) -> bool:
     '''Identify if any neighbors of an atom satisfy some condition'''
     try: 
-        next(atom_neighbors(atom, condition=condition, negate=negate))
+        next(atom_neighbors_by_condition(atom, condition=condition, negate=negate))
     except StopIteration:
         return False
     else:
@@ -73,9 +73,9 @@ def atoms_by_condition(
         condition : AtomCondition=lambda atom : True,
         as_indices : bool=False,
         negate : bool=False,
-    ) -> AtomLike:
+    ) -> Generator[AtomLike, None, None]:
     '''
-    Select a subset of atoms in a Mol based on a condition
+    Generate a subset of atoms in a Mol based on a condition
     
     Parameters
     ----------
@@ -91,14 +91,12 @@ def atoms_by_condition(
     
     Returns
     -------
-    selected_atoms : Union[set[int], set[Chem.Atom]]
-        A set of the atoms meeting the chosen condition
+    selected_atoms : Generator[Union[int, Chem.Atom]]
+        An iterable Generator of the atoms meeting the chosen condition
     '''
-    return set(
-        atom.GetIdx() if as_indices else atom
-            for atom in mol.GetAtoms()
-                if xor(condition(atom), negate)
-    )
+    for atom in mol.GetAtoms():
+        if xor(condition(atom), negate):
+            yield atom.GetIdx() if as_indices else atom
 
 def bonds_by_condition(
         mol : Mol,
@@ -106,7 +104,7 @@ def bonds_by_condition(
         as_indices : bool=True,
         as_pairs : bool=True,
         negate : bool=False,
-    ) -> BondLike:
+    ) -> Generator[BondLike, None, None]:
     '''
     Select a subset of bonds in a Mol based on a condition
     
@@ -127,7 +125,7 @@ def bonds_by_condition(
     
     Returns
     -------
-    selected_bonds : Union[set[int], set[Chem.Bond]]
+    selected_bonds : Generator[Union[int, Bond, tuple[int, int], tuple[Atom, Atom]]]
         A set of the bonds meeting the chosen condition
         Depending on flags set, bond will be represented as:
         * Bond indices
@@ -135,15 +133,12 @@ def bonds_by_condition(
         * 2-tuples of Atom objects
         * 2-tuples of atom indices
     '''
-    selected_bonds = set() 
     for bond in mol.GetBonds():
         if xor(condition(bond), negate):
             if as_pairs:
-                selected_bonds.add((bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()) if as_indices else (bond.GetBeginAtom(), bond.GetEndAtom()))
+                yield (bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()) if as_indices else (bond.GetBeginAtom(), bond.GetEndAtom())
             else:
-                selected_bonds.add(bond.GetIdx() if as_indices else bond)
-                    
-    return selected_bonds
+                yield bond.GetIdx() if as_indices else bond
 
 def bond_condition_by_atom_condition_factory(
         atom_condition : AtomCondition,
@@ -159,8 +154,9 @@ def bond_condition_by_atom_condition_factory(
         return binary_operator(atom_condition(bond.GetBeginAtom()), atom_condition(bond.GetEndAtom()))
     return bond_condition
 
+
 # QUERIES BY PREDEFINED CONDITIONS
-def get_mapped_atoms(mol : Mol, as_indices : bool=False) -> AtomLike:
+def mapped_atoms(mol : Mol, as_indices : bool=False) -> Generator[AtomLike, None, None]:
     '''Return all atoms (either as Atom objects or as indices) which have been assigned a nonzero atom map number'''
     return atoms_by_condition(
         mol,
@@ -169,12 +165,7 @@ def get_mapped_atoms(mol : Mol, as_indices : bool=False) -> AtomLike:
         negate=False,
     )
 
-def get_bonded_pairs(
-        mol : Mol,
-        *atom_idxs : Container[int],
-        as_indices : bool=True,
-        as_pairs : bool=True,
-    ) -> BondLike:
+def bonded_pairs(mol : Mol, *atom_idxs : Container[int], as_indices : bool=True, as_pairs : bool=True) -> Generator[BondLike, None, None]:
     '''Returns all bonds in a Mol which connect a pair of atoms whose indices both lie within the given atom indices'''
     return bonds_by_condition(
         mol,
@@ -187,11 +178,7 @@ def get_bonded_pairs(
         negate=False, # NOTE: negate doesn't behave exactly as one might expect here due to de Morgan's laws (i.e. ~(A^B) != (~A^~B))
     )
     
-def get_bonds_between_mapped_atoms(
-        mol : Mol,
-        as_indices : bool=True,
-        as_pairs : bool=True,
-    ) -> BondLike:
+def bonds_between_mapped_atoms(mol : Mol, as_indices : bool=True, as_pairs : bool=True) -> Generator[BondLike, None, None]:
     '''Returns all bonds spanning between two mapped (i.e. nonzero atom map number) atoms'''
     return bonds_by_condition(
         mol,
@@ -203,3 +190,9 @@ def get_bonds_between_mapped_atoms(
         as_pairs=as_pairs,
         negate=False, # NOTE: negate doesn't behave exactly as one might expect here due to de Morgan's laws (i.e. ~(A^B) != (~A^~B))
     )
+    
+# ALIASES FOR CONVENIENCE
+atoms = atoms_by_condition 
+bonds = bonds_by_condition
+atom_neighbors = atom_neighbors_by_condition
+has_atom_neighbors = has_atom_neighbors_by_condition
