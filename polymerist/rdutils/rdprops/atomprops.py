@@ -38,16 +38,6 @@ def clear_atom_props(rdmol : Mol) -> None:
 
 # ATOM PROP ANNOTATION
 @optional_in_place
-def annotate_atom_ids(rdmol : Mol, atom_id_remap : Optional[dict[int, int]]=None) -> None:
-    '''Draws atom indices over their positions when displaying a Mol. 
-    Can optionally provide a dict mapping atom indices to some other integers'''
-    if atom_id_remap is None:
-        atom_id_remap = {} # avoid mutable default
-
-    for atom in rdmol.GetAtoms():
-        atom.SetIntProp('atomNote', atom_id_remap.get(atom.GetIdx(), atom.GetIdx())) # check if map value exists, if not default to index
-
-@optional_in_place
 def annotate_atom_prop(rdmol : Mol, prop : str, prop_type : T=str, annotate_precision : Optional[int]=None) -> None:
     '''Labels the desired Prop for all atoms in a Mol which have it'''
     getter_type = RDPROP_GETTERS[prop_type]
@@ -58,6 +48,16 @@ def annotate_atom_prop(rdmol : Mol, prop : str, prop_type : T=str, annotate_prec
             prop_val = round(prop_val, annotate_precision)
         atom.SetProp('atomNote', str(prop_val)) # need to convert to string, as double is susceptible to float round display errors (shows all decimal places regardless of rounding)
     
+@optional_in_place
+def annotate_atom_ids(rdmol : Mol, atom_id_remap : Optional[dict[int, int]]=None) -> None:
+    '''Draws atom indices over their positions when displaying a Mol. 
+    Can optionally provide a dict mapping atom indices to some other integers'''
+    if atom_id_remap is None:
+        atom_id_remap = {} # avoid mutable default
+
+    for atom in rdmol.GetAtoms():
+        atom.SetIntProp('atomNote', atom_id_remap.get(atom.GetIdx(), atom.GetIdx())) # check if map value exists, if not default to index
+
 @optional_in_place
 def clear_atom_annotations(rdmol : Mol) -> None:
     '''Removes atom annotations over their positions when displaying a Mol'''
