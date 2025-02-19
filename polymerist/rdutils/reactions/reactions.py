@@ -16,7 +16,7 @@ from collections import defaultdict, Counter
 
 from rdkit.Chem import rdChemReactions, Mol, BondType
 
-from ..chemselect import get_mapped_atoms
+from ..chemselect import mapped_atoms
 from ..bonding._bonding import combined_rdmol
 from ..labeling.molwise import ordered_map_nums
 from ..labeling.bondwise import get_bonded_pairs_by_map_nums
@@ -38,7 +38,7 @@ class BondChange(StrEnum):
 @dataclass(frozen=True)
 class AtomTraceInfo:
     '''For encapsulating information about the origin and destination of a mapped atom, traced through a reaction'''
-    map_num : int
+    map_number : int
     reactant_idx      : int # index of the reactant template within a reaction in which the atom occurs
     reactant_atom_idx : int # index of the target atom WITHIN the above reactant template
     product_idx       : int # index of the product template within a reaction in which the atom occurs
@@ -182,7 +182,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         return {
             atom.GetAtomMapNum() : (reactant_template_idx, atom.GetIdx())
                 for reactant_template_idx, reactant_template in enumerate(self.GetReactants())
-                    for atom in get_mapped_atoms(reactant_template, as_indices=False)
+                    for atom in mapped_atoms(reactant_template, as_indices=False)
         }
 
     @cached_property
@@ -196,23 +196,51 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         return {
             atom.GetAtomMapNum() : (product_template_idx, atom.GetIdx())
                 for product_template_idx, product_template in enumerate(self.GetProducts())
-                    for atom in get_mapped_atoms(product_template, as_indices=False)
+                    for atom in mapped_atoms(product_template, as_indices=False)
         }
     
     @cached_property
-    def mapped_atom_info(self) -> dict[int, AtomTraceInfo]:
+    def mapped_atom_info(self) -> set[AtomTraceInfo]:
         '''Compile reactant origin and product destination of all mapped atoms'''
-        mapped_atom_infos = {}
-        for map_number, (reactant_idx, reactant_atom_idx) in self.reactant_idxs_by_map_num.items():
-            product_idx, product_atom_idx = self.product_idxs_by_map_num[map_number]
-            mapped_atom_infos[map_number] = AtomTraceInfo(
-                map_num=map_number, # DEVNOTE: am aware this information seems redundant, but this duplication allows one to vary the level of coupling to the returned dict
-                reactant_idx=reactant_idx,
-                reactant_atom_idx=reactant_atom_idx,
-                product_idx=product_idx,
-                product_atom_idx=product_atom_idx,
+        mapped_atom_infos = set()
+        for map_num, (reactant_idx, reactant_atom_idx) in self.reactant_idxs_by_map_num.items():
+            product_idx, product_atom_idx = self.product_idxs_by_map_num[map_num]
+            mapped_atom_infos.add(
+                AtomTraceInfo(
+                    map_number=map_num,
+                    reactant_idx=reactant_idx,
+                    reactant_atom_idx=reactant_atom_idx,
+                    product_idx=product_idx,
+                    product_atom_idx=product_atom_idx,
+                )
             )
         return mapped_atom_infos
+           
+    @cached_property
+    def mapped_atom_info_by_map_number(self) -> dict[int, AtomTraceInfo]:
+        '''Mapped atom information keyed by atom map numbers'''
+        return {
+            atom_info.map_number : atom_info
+                for atom_info in self.mapped_atom_info
+        }
+        
+    @cached_property
+    def mapped_atom_info_by_reactant_idx(self) -> dict[int, list[AtomTraceInfo]]:
+        '''Mapped atom information collections, keyed by the index of the reactant template they appear in'''
+        atom_info_by_reactant_idx = defaultdict(list)
+        for atom_info in self.mapped_atom_info:
+            atom_info_by_reactant_idx[atom_info.reactant_idx].append(atom_info)
+            
+        return dict(atom_info_by_reactant_idx) # convert back to "regular" dict for typing
+        
+    @cached_property
+    def mapped_atom_info_by_product_idx(self) -> dict[int, list[AtomTraceInfo]]:
+        '''Mapped atom information collections, keyed by the index of the reactant template they appear in'''
+        atom_info_by_product_idx = defaultdict(list)
+        for atom_info in self.mapped_atom_info:
+            atom_info_by_product_idx[atom_info.product_idx].append(atom_info)
+            
+        return dict(atom_info_by_product_idx) # convert back to "regular" dict for typing
            
     @cached_property
     def reactive_atom_info(self) -> dict[int, AtomTraceInfo]:
@@ -221,8 +249,8 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         for reactant_idx, reactant_atom_idxs in enumerate(self.GetReactingAtoms(mappedAtomsOnly=True)):
             reactant_template = self.GetReactantTemplate(reactant_idx)
             for reactant_atom_idx in reactant_atom_idxs:
-                map_num = reactant_template.GetAtomWithIdx(reactant_atom_idx).GetAtomMapNum()
-                reactive_atom_infos[map_num] = self.mapped_atom_info[map_num]
+                map_number = reactant_template.GetAtomWithIdx(reactant_atom_idx).GetAtomMapNum()
+                reactive_atom_infos[map_number] = self.mapped_atom_info_by_map_number[map_number]
         
         return reactive_atom_infos
         
@@ -243,9 +271,9 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         for i, product_template in enumerate(self.GetProducts()):
             prod_info = RxnProductInfo(i)
             prod_info.reactive_atom_map_nums = [
-                map_num
-                    for map_num in self.reacting_atom_map_nums
-                        if map_num in ordered_map_nums(product_template)
+                map_number
+                    for map_number in self.reacting_atom_map_nums
+                        if map_number in ordered_map_nums(product_template)
             ]
 
             for bond_id, atom_id_pair in get_bonded_pairs_by_map_nums(product_template, *prod_info.reactive_atom_map_nums).items(): # consider each pair of reactive atoms
