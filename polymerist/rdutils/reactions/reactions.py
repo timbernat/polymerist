@@ -14,9 +14,9 @@ from pathlib import Path
 from functools import cached_property
 from collections import defaultdict, Counter
 
-from rdkit.Chem import rdChemReactions, Mol, BondType
+from rdkit.Chem import rdChemReactions, Mol, Atom, Bond, BondType
 
-from ..chemselect import mapped_atoms
+from ..chemselect import mapped_atoms, mapped_neighbors
 from ..bonding._bonding import combined_rdmol
 from ..labeling.molwise import ordered_map_nums
 from ..labeling.bondwise import get_bonded_pairs_by_map_nums
@@ -47,14 +47,15 @@ class AtomTraceInfo:
 @dataclass(frozen=True)
 class BondTraceInfo:
     '''For encapsulating information about bonds which are between mapped atoms and which change during a reaction'''
-    map_nums : tuple[int, int] # map numbers of the pair of atoms the bond connects
+    map_nums : Union[tuple[int, int], frozenset[int]] # map numbers of the pair of atoms the bond connects
     # NOTE: reactant index doesn't make much sense, since the atoms the bond spans might have comes from two distinct reactant templates
-    product_idx      : int # index of the reactant template within a reaction in which the modified bond occurs
-    product_bond_idx : int # index of the target bond WITHIN the above product template
-    change_type  : Union[str, BondChange]
-    bond_order   : Union[float, BondType] # bond order in the product (i.e. AFTER the change)
+    # product index is also debatable, since deleted bonds may place atoms into separate products in general
+    product_idx       : Optional[int] # index of the reactant template within a reaction in which the modified bond occurs
+    product_bond_idx  : Optional[int] # index of the target bond WITHIN the above product template
+    bond_change_type  : Union[str, BondChange]
+    initial_bond_type : Union[float, BondType] # bond order in the reactant (i.e. BEFORE the change)
+    final_bond_type   : Union[float, BondType] # bond order in the product (i.e. AFTER the change)
     
-
 @dataclass
 class RxnProductInfo:
     '''For storing atom map numbers associated with product atoms and bonds participating in a reaction'''
@@ -63,7 +64,18 @@ class RxnProductInfo:
 
     new_bond_ids_to_map_nums : dict[int, tuple[int, int]] = field(default_factory=dict)
     mod_bond_ids_to_map_nums : dict[int, tuple[int, int]] = field(default_factory=dict)
-    
+
+
+# HELPER FUNCTIONS
+def map_numbers_to_neighbor_bonds(mol : Mol, atom_idx : int) -> dict[int, BondType]:
+    '''
+    Given an atom, get a mapping from the atom map numbers of explicitly-mapped
+    neighbor atoms to the bond types of the bonds connecting the atoms
+    '''
+    return {
+        neighbor_atom.GetAtomMapNum() : mol.GetBondBetweenAtoms(atom_idx, neighbor_atom.GetIdx())
+            for neighbor_atom in mapped_neighbors(mol.GetAtomWithIdx(atom_idx), as_indices=False)
+    }
     
 # REACTION CLASS
 RXNNAME_RE = re.compile(r'^\t*(?P<rxnname>.*?)\n$')
@@ -170,7 +182,8 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
                 else:
                     rxnfile.write(line)
 
-    # INFO FOR TRACING ATOMS THROUGH REACTIONS
+    # PROVENANCE OF CHEMICAL OBJECTS THROUGH THE REACTION
+    ## ATOMS
     @cached_property
     def reactant_idxs_by_map_num(self) -> dict[int, tuple[int, int]]:
         '''
@@ -201,7 +214,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     
     @cached_property
     def mapped_atom_info(self) -> set[AtomTraceInfo]:
-        '''Compile reactant origin and product destination of all mapped atoms'''
+        '''Compile provenance info about the reactant origin and product destination of all mapped atoms'''
         mapped_atom_infos = set()
         for map_num, (reactant_idx, reactant_atom_idx) in self.reactant_idxs_by_map_num.items():
             product_idx, product_atom_idx = self.product_idxs_by_map_num[map_num]
@@ -218,27 +231,27 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
            
     @cached_property
     def mapped_atom_info_by_map_number(self) -> dict[int, AtomTraceInfo]:
-        '''Mapped atom information keyed by atom map numbers'''
+        '''Mapped atom provenance information keyed by atom map numbers'''
         return {
             atom_info.map_number : atom_info
                 for atom_info in self.mapped_atom_info
         }
         
-    @cached_property
-    def mapped_atom_info_by_reactant_idx(self) -> dict[int, list[AtomTraceInfo]]:
-        '''Mapped atom information collections, keyed by the index of the reactant template they appear in'''
-        atom_info_by_reactant_idx = defaultdict(list)
+    @cached_property # DEVNOTE: flagged for potential deprecation
+    def mapped_atom_info_by_reactant_idx(self) -> dict[int, set[AtomTraceInfo]]:
+        '''Mapped atom provenance information, grouped by the index of the reactant template they appear in'''
+        atom_info_by_reactant_idx = defaultdict(set)
         for atom_info in self.mapped_atom_info:
-            atom_info_by_reactant_idx[atom_info.reactant_idx].append(atom_info)
+            atom_info_by_reactant_idx[atom_info.reactant_idx].add(atom_info)
             
         return dict(atom_info_by_reactant_idx) # convert back to "regular" dict for typing
         
-    @cached_property
-    def mapped_atom_info_by_product_idx(self) -> dict[int, list[AtomTraceInfo]]:
-        '''Mapped atom information collections, keyed by the index of the reactant template they appear in'''
-        atom_info_by_product_idx = defaultdict(list)
+    @cached_property # DEVNOTE: flagged for potential deprecation
+    def mapped_atom_info_by_product_idx(self) -> dict[int, set[AtomTraceInfo]]:
+        '''Mapped atom provenance information, grouped by the index of the reactant template they appear in'''
+        atom_info_by_product_idx = defaultdict(set)
         for atom_info in self.mapped_atom_info:
-            atom_info_by_product_idx[atom_info.product_idx].append(atom_info)
+            atom_info_by_product_idx[atom_info.product_idx].add(atom_info)
             
         return dict(atom_info_by_product_idx) # convert back to "regular" dict for typing
            
@@ -254,6 +267,63 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         
         return reactive_atom_infos
         
+    ## BONDS
+    @cached_property
+    def mapped_bond_info(self) -> set[BondTraceInfo]:
+        '''Compile provenance info about how bonds between mapped atoms (at least on of which is reactive) change over the reaction'''
+        mapped_bond_infos = set()
+        for map_number, atom_info in self.reactive_atom_info.items():
+            reactant_neighbor_bonds = map_numbers_to_neighbor_bonds(self.GetReactantTemplate(atom_info.reactant_idx), atom_info.reactant_atom_idx)
+            product_neighbor_bonds  = map_numbers_to_neighbor_bonds(self.GetProductTemplate(atom_info.product_idx), atom_info.product_atom_idx)
+            
+            # iterate over all mapped atoms that were, at any point in the reaction history, neighbors of the current reactive atom
+            for neighbor_map_number in (reactant_neighbor_bonds.keys() | product_neighbor_bonds.keys()):
+                # returns None either if the mapped atom is not present OR if it is present but not bonded to the target atom
+                initial_bond : Optional[Bond] = reactant_neighbor_bonds.get(neighbor_map_number) 
+                if initial_bond is None:
+                    initial_bond_type = None
+                else:
+                    initial_bond_type = initial_bond.GetBondType()
+
+                # returns None either if the mapped atom is not present OR if it is present but not bonded to the target atom
+                final_bond : Optional[Bond] = product_neighbor_bonds.get(neighbor_map_number) 
+                if final_bond is None:
+                    final_bond_type = BondType.ZERO 
+                    product_idx = None
+                    product_bond_idx = None
+                else:
+                    final_bond_type = final_bond.GetBondType()
+                    product_idx = atom_info.product_idx
+                    product_bond_idx = final_bond.GetIdx()
+
+                if initial_bond and final_bond:
+                    bond_change_type = BondChange.UNCHANGED if (initial_bond_type == final_bond_type) else BondChange.MODIFIED
+                elif initial_bond and not final_bond:
+                    bond_change_type = BondChange.DELETED
+                elif not initial_bond and final_bond:
+                    bond_change_type = BondChange.ADDED
+
+                mapped_bond_infos.add(
+                    BondTraceInfo( 
+                        map_nums=frozenset([map_number, neighbor_map_number]),
+                        product_idx=product_idx,
+                        product_bond_idx=product_bond_idx,
+                        bond_change_type=bond_change_type,
+                        initial_bond_type=initial_bond_type,
+                        final_bond_type=final_bond_type,
+                    )
+                )
+        return mapped_bond_infos
+
+    @cached_property
+    def mapped_bond_info_by_change_type(self) -> dict[Union[str, BondChange]]:
+        '''Mapped bond provenance information, grouped by the types of bond changes each bond experienced'''
+        bond_info_by_change_type = defaultdict(set)
+        for bond_info in self.mapped_bond_info:
+            bond_info_by_change_type[bond_info.bond_change_type].add(bond_info)
+
+        return dict(bond_info_by_change_type) # convert back to "regular" dict for typing
+
     @cached_property
     def reacting_atom_map_nums(self) -> list[int]:
         '''List of the map numbers of all reactant atoms which participate in the reaction'''
