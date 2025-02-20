@@ -37,10 +37,6 @@ def has_uniquely_mapped_atoms(rdmol : Mol, skip_unmapped : bool=False) -> bool:
         return True
     
 # READING FUNCTIONS
-def ordered_map_nums(rdmol : Mol) -> list[int]:
-    '''Get assigned atom map numbers, in the same order as the internal RDKit Mol atom IDs'''
-    return [atom.GetAtomMapNum() for atom in rdmol.GetAtoms()]
-
 def get_map_nums_by_atom_idxs(rdmol : Mol, *atom_idxs : list[int]) -> Generator[Optional[int], None, None]: # TODO : generalize this to handle case where multiple atoms have the same map num
     '''Get assigned atom map numbers for a collection of atom ids, in the same order as the internal RDKit Mol atom IDs'''
     for atom_idx in atom_idxs:
