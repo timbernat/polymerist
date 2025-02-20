@@ -6,7 +6,7 @@ __email__ = 'timotej.bernat@colorado.edu'
 from ._rdprops import (
     isrdobj,
     detailed_rdobj_info,
-    copy_rd_props,
+    copy_rdobj_props,
     assign_props_from_dict,
     RDMOL_MAGIC_PROPS,
     RDATOM_MAGIC_PROPS,

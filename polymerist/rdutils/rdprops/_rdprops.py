@@ -60,7 +60,7 @@ def detailed_rdobj_info(rdobj : RDObj) -> dict[str, Any]:
     '''Extract all get-able info about a particular RDKit atom. Does NOT include any non-default Prop values (e.g. atomMapNumber)'''
     return compile_argfree_getable_attrs(rdobj, getter_re='Get', repl_str='')
 
-def copy_rd_props(from_rdobj : RDObj, to_rdobj : RDObj) -> None: # NOTE : no need to incorporate typing info, as RDKit objects can correctly interpret typed strings
+def copy_rdobj_props(from_rdobj : RDObj, to_rdobj : RDObj) -> None: # NOTE : no need to incorporate typing info, as RDKit objects can correctly interpret typed strings
     '''For copying properties between a pair of RDKit Atoms or Mols'''
     # NOTE : avoid use of GetPropsAsDict() to avoid errors from restrictive C++ typing
     assert isrdobj(from_rdobj) and isrdobj(to_rdobj) # verify that both objects passed are RDKit objects...

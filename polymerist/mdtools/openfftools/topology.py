@@ -28,7 +28,7 @@ from ...genutils.iteration import asiterable
 from ...genutils.fileutils.pathutils import dotless
 from ...genutils.decorators.functional import allow_string_paths, optional_in_place
 
-from ...rdutils.rdprops import RDPROP_SETTERS, copy_rd_props
+from ...rdutils.rdprops import RDPROP_SETTERS, copy_rdobj_props
 from ...rdutils.rdcoords.tiling import tile_lattice_with_rdmol
 
 
@@ -116,7 +116,7 @@ def topology_from_molecule_onto_lattice(offmol : Molecule, lattice_points : np.n
     tiled_rdmol = tile_lattice_with_rdmol(offmol.to_rdkit(), lattice_points, rotate_randomly=rotate_randomly)
     tiled_offmols = [] 
     for mol_id, tiled_mol_copy in enumerate(Chem.GetMolFrags(tiled_rdmol, asMols=True, sanitizeFrags=False)):
-        copy_rd_props(tiled_rdmol, tiled_mol_copy) # ensure each individual fragment preserves the information of the parent molecule
+        copy_rdobj_props(tiled_rdmol, tiled_mol_copy) # ensure each individual fragment preserves the information of the parent molecule
         tiled_offmol = Molecule.from_rdkit(
             rdmol=tiled_mol_copy,
             allow_undefined_stereo=True,
