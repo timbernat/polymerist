@@ -27,13 +27,9 @@ from ...genutils.decorators.functional import allow_string_paths, allow_pathlib_
 from ...genutils.sequences.discernment import DISCERNMENTSolver, SymbolInventory
 
 
-# REACTION INFORMATICS CLASSES
-class BondChange(StrEnum):
-    '''For indicating how a bond which changed in a reaction was altered'''
-    ADDED = auto()
-    DELETED = auto()
-    MODIFIED = auto() # specifically, when bond order is modified but the bond persists
-    UNCHANGED = auto()
+# REACTION INFORMATICS CLASSES AND CONSTANTS
+REACTANT_INDEX_PROPNAME : str = 'reactant_idx' # name of the atom property to assign reactant template indices to
+BOND_CHANGE_PROPNAME : str = 'bond_change'  # name of bond property to set on bonds to indicate they have changed in a reaction
 
 @dataclass(frozen=True)
 class AtomTraceInfo:
@@ -43,7 +39,14 @@ class AtomTraceInfo:
     reactant_atom_idx : int # index of the target atom WITHIN the above reactant template
     product_idx       : int # index of the product template within a reaction in which the atom occurs
     product_atom_idx  : int # index of the target atom WITHIN the above product template
-   
+
+class BondChange(StrEnum):
+    '''For indicating how a bond which changed in a reaction was altered'''
+    ADDED = auto()
+    DELETED = auto()
+    MODIFIED = auto() # specifically, when bond order is modified but the bond persists
+    UNCHANGED = auto()
+
 @dataclass(frozen=True)
 class BondTraceInfo:
     '''For encapsulating information about bonds which are between mapped atoms and which change during a reaction'''
@@ -78,16 +81,14 @@ def map_numbers_to_neighbor_bonds(mol : Mol, atom_idx : int) -> dict[int, BondTy
     }
     
 # REACTION CLASS
-RXNNAME_RE = re.compile(r'^\t*(?P<rxnname>.*?)\n$')
 class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     '''
     RDKit ChemicalReaction subclass with additional useful information about product atom and bond mappings and reaction naming
     Initialization must be done either via AnnotatedReaction.from_smarts, AnnotatedReaction.from_rdmols, or AnnotatedReaction.from_rxnfile
     '''
     # line number in .rxn file where (optional) name of reaction should be located (per the CTFile spec https://discover.3ds.com/sites/default/files/2020-08/biovia_ctfileformats_2020.pdf) 
-    _RXNNAME_LINE_NO : ClassVar[int] = 1
-    _atom_ridx_prop_name   : ClassVar[str] = 'reactant_idx' # name of the property to assign reactant indices to; set for entire class
-    _bond_change_prop_name : ClassVar[str] = 'bond_changed' # name of property to set on bonds to indicated they have changed in a reaction
+    RXNNAME_LINE_NO : ClassVar[int] = 1
+    RXNNAME_RE : ClassVar[re.Pattern] = re.compile(r'^\t*(?P<rxnname>.*?)\n$')
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -146,8 +147,8 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         '''Extract the reaction name from a (properly-formatted) .RXN file'''
         with rxnfile_path.open('r') as file:
             for i, line in enumerate(file):
-                if i == cls._RXNNAME_LINE_NO:
-                    return re.match(RXNNAME_RE, line).group('rxnname')
+                if i == cls.RXNNAME_LINE_NO:
+                    return re.match(cls.RXNNAME_RE, line).group('rxnname')
                 
     @property
     def rxnname(self) -> str:
@@ -177,7 +178,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
 
         with rxnfile_path.open('w') as rxnfile:
             for i, line in enumerate(StringIO(rxn_block)):
-                if (i == self._RXNNAME_LINE_NO):
+                if (i == self.RXNNAME_LINE_NO):
                     rxnfile.write(f'\t\t\t{self.rxnname}\n')
                 else:
                     rxnfile.write(line)
@@ -325,6 +326,15 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         return dict(bond_info_by_change_type) # convert back to "regular" dict for typing
 
     @cached_property
+    def mapped_bond_info_by_product_idx(self) -> dict[Union[str, BondChange]]:
+        '''Mapped bond provenance information, grouped by the index of the product the bond ends up in'''
+        bond_info_by_product_idx = defaultdict(set)
+        for bond_info in self.mapped_bond_info:
+            bond_info_by_product_idx[bond_info.product_idx].add(bond_info)
+
+        return dict(bond_info_by_product_idx) # convert back to "regular" dict for typing
+
+    @cached_property
     def reacting_atom_map_nums(self) -> list[int]:
         '''List of the map numbers of all reactant atoms which participate in the reaction'''
         return [
@@ -437,3 +447,5 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         If allow_resampling=False, each reactant will only be allowed to contribute exactly 1 of its functional groups 1 to any solution 
         '''
         return self.valid_reactant_ordering(reactants=reactants, as_mols=False, allow_resampling=allow_resampling) is not None
+
+    # POST-REACTION CLEANUP METHODS
