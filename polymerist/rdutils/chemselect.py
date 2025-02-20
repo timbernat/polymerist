@@ -156,11 +156,22 @@ def bond_condition_by_atom_condition_factory(
 
 
 # QUERIES BY PREDEFINED CONDITIONS
+atom_is_mapped : AtomCondition = lambda atom : atom.GetAtomMapNum() != 0
+
 def mapped_atoms(mol : Mol, as_indices : bool=False) -> Generator[AtomLike, None, None]:
     '''Return all atoms (either as Atom objects or as indices) which have been assigned a nonzero atom map number'''
     return atoms_by_condition(
         mol,
-        condition=lambda atom : atom.GetAtomMapNum() != 0,
+        condition=atom_is_mapped,
+        as_indices=as_indices,
+        negate=False,
+    )
+
+def mapped_neighbors(atom : Atom, as_indices : bool=False) -> Generator[AtomLike, None, None]:
+    '''Return all mapped atoms that an atom is bonded to'''
+    return atom_neighbors_by_condition(
+        atom,
+        condition=atom_is_mapped,
         as_indices=as_indices,
         negate=False,
     )
@@ -183,7 +194,7 @@ def bonds_between_mapped_atoms(mol : Mol, as_indices : bool=True, as_pairs : boo
     return bonds_by_condition(
         mol,
         condition=bond_condition_by_atom_condition_factory(
-            atom_condition=lambda atom : atom.GetAtomMapNum() != 0,
+            atom_condition=atom_is_mapped,
             binary_operator=logical_and, # only return bond when BOTH atoms are unmapped
         ),
         as_indices=as_indices,
