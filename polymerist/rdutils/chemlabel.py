@@ -1,4 +1,4 @@
-'''For reading, writing, and clearing labels from all Atoms and/or Bonds in an RDKit molecule'''
+'''For reading, writing, and clearing labels from RDKit Atoms, Bonds, and Mols'''
 
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
@@ -6,7 +6,7 @@ __email__ = 'timotej.bernat@colorado.edu'
 from typing import Generator, Iterable, Optional, Union
 from rdkit.Chem.rdchem import Mol, Bond
 
-from ...genutils.decorators.functional import optional_in_place
+from ..genutils.decorators.functional import optional_in_place
 
 
 # CHECKING FUNCTIONS

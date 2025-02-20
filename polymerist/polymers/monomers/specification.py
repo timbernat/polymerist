@@ -21,7 +21,7 @@ from ...smileslib.sanitization import (
 )
 from ...smileslib.primitives import RDKIT_QUERYBONDS_BY_BONDTYPE
 from ...rdutils.cheminspect import all_Hs_are_explicit, has_aromatic_bonds
-from ...rdutils.labeling.molwise import has_fully_mapped_atoms, has_uniquely_mapped_atoms
+from ...rdutils.chemlabel import has_fully_mapped_atoms, has_uniquely_mapped_atoms
 
 
 # REGEX TEMPLATES FOR COMPLIANT SMARTS

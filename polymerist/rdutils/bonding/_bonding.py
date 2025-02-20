@@ -12,7 +12,7 @@ from functools import reduce
 from rdkit import Chem
 from rdkit.Chem.rdchem import Mol, RWMol
 
-from ..labeling.molwise import assign_contiguous_atom_map_nums
+from ..chemlabel import assign_contiguous_atom_map_nums
 
 
 class BondOrderModificationError(Exception):

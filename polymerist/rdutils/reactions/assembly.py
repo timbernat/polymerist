@@ -11,7 +11,7 @@ from rdkit.Chem.rdchem import Mol
 from rdkit.Chem.rdmolops import SanitizeFlags, SANITIZE_ALL
 
 from .reactions import AnnotatedReaction
-from ..labeling.molwise import (
+from ..chemlabel import (
     assign_contiguous_atom_map_nums,
     relabel_map_nums,
 )

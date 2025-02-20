@@ -15,7 +15,7 @@ from IPython.display import display # for Jupyter display support
 from . import portlib
 from .formation import increase_bond_order
 from .dissolution import decrease_bond_order
-from ..labeling.molwise import get_atom_idxs_by_map_nums
+from ..chemlabel import get_atom_idxs_by_map_nums
 
 from ...genutils.sequences.seqops import int_complement
 from ...genutils.decorators.functional import optional_in_place

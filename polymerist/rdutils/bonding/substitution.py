@@ -13,7 +13,7 @@ from .formation import increase_bond_order
 from .portlib import get_linker_ids, get_single_port
 from .identification import get_num_bondable_port_pairs, get_first_bondable_port_pair
 
-from ..labeling.molwise import (
+from ..chemlabel import (
     get_map_nums_by_atom_idxs,
     get_atom_idxs_by_map_nums,
     assign_ordered_atom_map_nums

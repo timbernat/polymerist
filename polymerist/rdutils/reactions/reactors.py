@@ -18,7 +18,7 @@ from .fragment import IBIS, ReseparateRGroups
 from ..rdprops import copy_rdobj_props
 from ..rdprops.atomprops import clear_atom_props
 from ..rdprops.bondprops import clear_bond_props
-from ..labeling.molwise import clear_atom_map_nums
+from ..chemlabel import clear_atom_map_nums
 
 
 # REACTOR BASE CLASS 
