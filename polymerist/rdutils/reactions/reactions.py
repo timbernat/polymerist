@@ -16,10 +16,8 @@ from collections import defaultdict, Counter
 
 from rdkit.Chem import rdChemReactions, Mol, Atom, Bond, BondType
 
+from ..bonding import combined_rdmol
 from ..chemselect import mapped_atoms, mapped_neighbors
-from ..bonding._bonding import combined_rdmol
-from ..labeling.molwise import ordered_map_nums
-from ..labeling.bondwise import get_bonded_pairs_by_map_nums
 
 from ...smileslib.sanitization import canonical_SMILES_from_mol
 from ...smileslib.substructures import num_substruct_queries_distinct
@@ -27,7 +25,18 @@ from ...genutils.decorators.functional import allow_string_paths, allow_pathlib_
 from ...genutils.sequences.discernment import DISCERNMENTSolver, SymbolInventory
 
 
-# REACTION INFORMATICS CLASSES AND CONSTANTS
+# HELPER FUNCTIONS
+def map_numbers_to_neighbor_bonds(mol : Mol, atom_idx : int) -> dict[int, BondType]:
+    '''
+    Given an atom, get a mapping from the atom map numbers of explicitly-mapped
+    neighbor atoms to the bond types of the bonds connecting the atoms
+    '''
+    return {
+        neighbor_atom.GetAtomMapNum() : mol.GetBondBetweenAtoms(atom_idx, neighbor_atom.GetIdx())
+            for neighbor_atom in mapped_neighbors(mol.GetAtomWithIdx(atom_idx), as_indices=False)
+    }
+    
+# REACTION INFO OBJECTS
 REACTANT_INDEX_PROPNAME : str = 'reactant_idx' # name of the atom property to assign reactant template indices to
 BOND_CHANGE_PROPNAME : str = 'bond_change'  # name of bond property to set on bonds to indicate they have changed in a reaction
 
@@ -58,29 +67,8 @@ class BondTraceInfo:
     bond_change_type  : Union[str, BondChange]
     initial_bond_type : Union[float, BondType] # bond order in the reactant (i.e. BEFORE the change)
     final_bond_type   : Union[float, BondType] # bond order in the product (i.e. AFTER the change)
-    
-@dataclass
-class RxnProductInfo:
-    '''For storing atom map numbers associated with product atoms and bonds participating in a reaction'''
-    prod_num : int
-    reactive_atom_map_nums : list[int] = field(default_factory=list)
 
-    new_bond_ids_to_map_nums : dict[int, tuple[int, int]] = field(default_factory=dict)
-    mod_bond_ids_to_map_nums : dict[int, tuple[int, int]] = field(default_factory=dict)
-
-
-# HELPER FUNCTIONS
-def map_numbers_to_neighbor_bonds(mol : Mol, atom_idx : int) -> dict[int, BondType]:
-    '''
-    Given an atom, get a mapping from the atom map numbers of explicitly-mapped
-    neighbor atoms to the bond types of the bonds connecting the atoms
-    '''
-    return {
-        neighbor_atom.GetAtomMapNum() : mol.GetBondBetweenAtoms(atom_idx, neighbor_atom.GetIdx())
-            for neighbor_atom in mapped_neighbors(mol.GetAtomWithIdx(atom_idx), as_indices=False)
-    }
-    
-# REACTION CLASS
+# REACTIONS PROPER
 class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     '''
     RDKit ChemicalReaction subclass with additional useful information about product atom and bond mappings and reaction naming
@@ -333,42 +321,6 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
             bond_info_by_product_idx[bond_info.product_idx].add(bond_info)
 
         return dict(bond_info_by_product_idx) # convert back to "regular" dict for typing
-
-    @cached_property
-    def reacting_atom_map_nums(self) -> list[int]:
-        '''List of the map numbers of all reactant atoms which participate in the reaction'''
-        return [
-            self.GetReactantTemplate(reactant_id).GetAtomWithIdx(atom_id).GetAtomMapNum()
-                for reactant_id, reacting_atom_ids in enumerate(self.GetReactingAtoms())
-                    for atom_id in reacting_atom_ids
-        ]
-        
-    @cached_property
-    def product_info_maps(self) -> dict[int, RxnProductInfo]:
-        '''Map from product index to information about reactive atoms and bonds in that product'''
-        # map reacting atoms and bonds for each product
-        prod_info_map = {}
-        for i, product_template in enumerate(self.GetProducts()):
-            prod_info = RxnProductInfo(i)
-            prod_info.reactive_atom_map_nums = [
-                map_number
-                    for map_number in self.reacting_atom_map_nums
-                        if map_number in ordered_map_nums(product_template)
-            ]
-
-            for bond_id, atom_id_pair in get_bonded_pairs_by_map_nums(product_template, *prod_info.reactive_atom_map_nums).items(): # consider each pair of reactive atoms
-                map_num_1, map_num_2 = map_num_pair = tuple(
-                    product_template.GetAtomWithIdx(atom_id).GetAtomMapNum()
-                        for atom_id in atom_id_pair
-                )
-                
-                if self.reactant_idxs_by_map_num[map_num_1][0] == self.reactant_idxs_by_map_num[map_num_2][0]: # if reactant IDs across bond match, the bond must have been modified (i.e. both from single reactant...)
-                    prod_info.mod_bond_ids_to_map_nums[bond_id] = map_num_pair
-                else: # otherwise, bond must be newly formed (spans between previously disjoint monomers) 
-                    prod_info.new_bond_ids_to_map_nums[bond_id] = map_num_pair
-            prod_info_map[i] = prod_info
-        
-        return prod_info_map
     
     # REACTANT PATHFINDING
     def compile_functional_group_inventory(self, reactants : Iterable[Mol], label_reactants_with_smiles : bool=False) -> SymbolInventory:

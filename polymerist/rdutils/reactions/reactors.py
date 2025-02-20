@@ -16,9 +16,9 @@ from .reactions import AnnotatedReaction, BondChange, REACTANT_INDEX_PROPNAME, B
 from .fragment import IBIS, ReseparateRGroups
 
 from ..rdprops import copy_rdobj_props
-from ..rdprops.atomprops import atom_ids_with_prop, clear_atom_props
+from ..rdprops.atomprops import clear_atom_props
 from ..rdprops.bondprops import clear_bond_props
-from ..labeling.molwise import clear_atom_map_nums, get_bond_by_map_num_pair
+from ..labeling.molwise import clear_atom_map_nums
 
 
 # REACTOR BASE CLASS 
