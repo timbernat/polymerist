@@ -36,51 +36,7 @@ class Reactor:
         '''Pre-processing of reaction and reactant Mols'''
         self._activate_reaction()
 
-    @staticmethod
-    def _label_reactants(rxn : AnnotatedReaction, reactants : Iterable[Mol]) -> None:
-        '''Assigns "reactant_idx" Prop to all reactants to help track where atoms go during the reaction'''
-        for i, reactant in enumerate(reactants):
-            for atom in reactant.GetAtoms():
-                atom.SetIntProp(rxn._atom_ridx_prop_name, i)
-
     # POST-REACTION CLEANUP METHODS
-    @staticmethod
-    def _relabel_reacted_atoms(rxn : AnnotatedReaction, product : Mol) -> None:
-        '''Re-assigns "reactant_idx" Prop to modified reacted atoms to re-complete atom-to-reactant numbering'''
-        for atom in product.GetAtoms():
-            if atom.HasProp('old_mapno'):
-                map_num = atom.GetIntProp('old_mapno')
-                atom.SetIntProp(rxn._atom_ridx_prop_name, rxn.mapped_atom_info[map_num].reactant_idx)
-                atom.SetAtomMapNum(map_num)
-
-    @staticmethod
-    def _clean_up_bond_orders(rxn : AnnotatedReaction, product : Mol, product_idx : int) -> None:
-        '''Ensure bond order changes specified by the reaction are honored by RDKit'''
-        product_info = rxn.product_info_maps[product_idx]
-        product_template = rxn.GetProductTemplate(product_idx)
-        
-        for prod_templ_bond_id, map_num_pair in product_info.mod_bond_ids_to_map_nums.items():
-            target_bond = product_template.GetBondWithIdx(prod_templ_bond_id)
-            product_bond = get_bond_by_map_num_pair(product, map_num_pair, as_bond=True)
-
-            assert(product_bond.GetBeginAtom().HasProp('_ReactionDegreeChanged')) 
-            assert(product_bond.GetEndAtom().HasProp('_ReactionDegreeChanged')) # double check that the reaction agrees that the bond has changed
-
-            product_bond.SetBondType(target_bond.GetBondType()) # set bond type to what it *should* be from the reaction schema
-
-    @staticmethod
-    def _label_new_and_modified_bonds(rxn : AnnotatedReaction, product : Mol, product_idx : int) -> None:
-        '''Mark any bonds which were changed or added in the product'''
-        product_info = rxn.product_info_maps[product_idx]
-        
-        _bond_change_labellers : dict[str, dict[int, tuple[int, int]]] = {
-            'new_bond' : product_info.new_bond_ids_to_map_nums,
-            'modified_bond' : product_info.mod_bond_ids_to_map_nums,
-        }
-        for bond_prop_value, changed_bond_dict in _bond_change_labellers.items():
-            for map_num_pair in changed_bond_dict.values():
-                product_bond = get_bond_by_map_num_pair(product, map_num_pair, as_bond=True)
-                product_bond.SetProp(rxn._bond_change_prop_name, bond_prop_value)
 
     # REACTION EXECUTION METHODS
     def react(
