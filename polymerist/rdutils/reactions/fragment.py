@@ -11,6 +11,7 @@ from rdkit import Chem
 from rdkit.Chem import rdqueries, Mol
 
 from ...genutils.iteration import sliding_window
+from .reactions import BOND_CHANGE_PROPNAME, BondChange
 
 
 # HELPER FUNCTIONS
@@ -68,11 +69,11 @@ class ReseparateRGroups(IBIS):
     def _locate_intermonomer_bonds(self, product: Mol) -> Generator[int, None, None]:
         new_bond_ids = [
             bond.GetIdx()
-                for bond in product.GetBonds()
-                    if bond.HasProp('bond_changed') and (bond.GetProp('bond_changed') == 'new_bond') # specifically exclude modified bonds; only cut new ones
+                for bond in product.GetBonds() # specifically exclude modified bonds; only cut new ones
+                    if bond.HasProp(BOND_CHANGE_PROPNAME) and (bond.GetProp(BOND_CHANGE_PROPNAME) == BondChange.ADDED) 
         ]
-        for bridgehead_id_pair in combinations(bridgehead_atom_ids(product), 2):            # for every pair of R-group bridgehead atoms...
-            for new_bond_id in new_bond_ids:                                                # find the path(s) with fewest bonds between the bridgeheads... 
-                if new_bond_id in get_shortest_path_bonds(product, *bridgehead_id_pair):    # and select for cutting any newly-formed bonds found along that path
+        for bridgehead_id_pair in combinations(bridgehead_atom_ids(product), 2):         # for every pair of R-group bridgehead atoms...
+            for new_bond_id in new_bond_ids:                                             # find the path(s) with fewest bonds between the bridgeheads... 
+                if new_bond_id in get_shortest_path_bonds(product, *bridgehead_id_pair): # and select for cutting any newly-formed bonds found along that path
                     yield new_bond_id
                                                     
