@@ -226,24 +226,6 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
                 for atom_info in self.mapped_atom_info
         }
         
-    @cached_property # DEVNOTE: flagged for potential deprecation
-    def mapped_atom_info_by_reactant_idx(self) -> dict[int, set[AtomTraceInfo]]:
-        '''Mapped atom provenance information, grouped by the index of the reactant template they appear in'''
-        atom_info_by_reactant_idx = defaultdict(set)
-        for atom_info in self.mapped_atom_info:
-            atom_info_by_reactant_idx[atom_info.reactant_idx].add(atom_info)
-            
-        return dict(atom_info_by_reactant_idx) # convert back to "regular" dict for typing
-        
-    @cached_property # DEVNOTE: flagged for potential deprecation
-    def mapped_atom_info_by_product_idx(self) -> dict[int, set[AtomTraceInfo]]:
-        '''Mapped atom provenance information, grouped by the index of the reactant template they appear in'''
-        atom_info_by_product_idx = defaultdict(set)
-        for atom_info in self.mapped_atom_info:
-            atom_info_by_product_idx[atom_info.product_idx].add(atom_info)
-            
-        return dict(atom_info_by_product_idx) # convert back to "regular" dict for typing
-           
     @cached_property
     def reactive_atom_info(self) -> dict[int, AtomTraceInfo]:
         '''Compile reactant origin and product destination of all mapped atoms which are changed by the reaction'''
@@ -305,7 +287,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         return mapped_bond_infos
 
     @cached_property
-    def mapped_bond_info_by_change_type(self) -> dict[Union[str, BondChange]]:
+    def mapped_bond_info_by_change_type(self) -> dict[Union[str, BondChange], set[BondTraceInfo]]:
         '''Mapped bond provenance information, grouped by the types of bond changes each bond experienced'''
         bond_info_by_change_type = defaultdict(set)
         for bond_info in self.mapped_bond_info:
@@ -314,7 +296,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         return dict(bond_info_by_change_type) # convert back to "regular" dict for typing
 
     @cached_property
-    def mapped_bond_info_by_product_idx(self) -> dict[Union[str, BondChange]]:
+    def mapped_bond_info_by_product_idx(self) -> dict[Union[str, BondChange], set[BondTraceInfo]]:
         '''Mapped bond provenance information, grouped by the index of the product the bond ends up in'''
         bond_info_by_product_idx = defaultdict(set)
         for bond_info in self.mapped_bond_info:
