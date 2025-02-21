@@ -15,7 +15,7 @@ from IPython.display import display # for Jupyter display support
 from . import portlib
 from .formation import increase_bond_order
 from .dissolution import decrease_bond_order
-from ..chemlabel import get_atom_idxs_by_map_nums
+from ..chemlabel import atom_idxs_by_map_numbers
 
 from ...genutils.sequences.seqops import int_complement
 from ...genutils.decorators.functional import optional_in_place
@@ -62,7 +62,7 @@ def swap_bonds(rwmol : RWMol, bond_derangement : dict[int, tuple[int, int]], sho
     for begin_map_num, (curr_end_map_num, _) in bond_derangement.items():
         decrease_bond_order(
             rwmol,
-            *get_atom_idxs_by_map_nums(rwmol, begin_map_num, curr_end_map_num),
+            *atom_idxs_by_map_numbers(rwmol, begin_map_num, curr_end_map_num),
             new_flavor_pair=flavor_pair,
             in_place=True # must be done in-place to allow optional_in_place decoration
         )
@@ -75,7 +75,7 @@ def swap_bonds(rwmol : RWMol, bond_derangement : dict[int, tuple[int, int]], sho
     for begin_map_num, (_, targ_end_map_num) in bond_derangement.items():
         increase_bond_order(
             rwmol,
-            *get_atom_idxs_by_map_nums(rwmol, begin_map_num, targ_end_map_num), 
+            *atom_idxs_by_map_numbers(rwmol, begin_map_num, targ_end_map_num), 
             flavor_pair=flavor_pair,
             in_place=True # must be done in-place to allow optional_in_place decoration
         )
