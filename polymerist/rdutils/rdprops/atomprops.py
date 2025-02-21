@@ -3,7 +3,7 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import Callable, Generator, Optional, TypeVar
+from typing import Callable, Iterable, Optional, TypeVar
 T = TypeVar('T')
 
 from rdkit.Chem import Atom, Mol
@@ -64,13 +64,19 @@ def clear_atom_annotations(rdmol : Mol) -> None:
     for atom in rdmol.GetAtoms():
         atom.ClearProp('atomNote')
         
-def label_linkers(mol : Mol, label_prop : str='_displayLabel', naming_funct : Optional[Callable[[int], str]]=None) -> None:
+def label_linkers(mol : Mol, label_props : Iterable[str]=None, naming_funct : Optional[Callable[[int], str]]=None) -> None:
     '''Labels wild-type ("*") atoms in a Mol for display'''
+    if label_props is None:
+        label_props = ('_displayLabel',) # by default, only set labels for display
+    
     if naming_funct is None:
         naming_funct = lambda map_num : f'R<sub>{map_num or ""}<sub>' # will be just "R" if atom is unmapped
     
     for atom in mol.GetAtoms():
-        if atom.GetAtomicNum() == 0:
-            map_num = atom.GetAtomMapNum()
+        if atom.GetAtomicNum() != 0:
+            continue # skip explicit atoms
+        
+        map_num = atom.GetAtomMapNum()
+        for label_prop in label_props:
             atom.SetProp(label_prop, naming_funct(map_num))
 label_R_groups = label_linkers
