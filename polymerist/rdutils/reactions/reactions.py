@@ -174,58 +174,39 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     # PROVENANCE OF CHEMICAL OBJECTS THROUGH THE REACTION
     ## ATOMS
     @cached_property
-    def reactant_idxs_by_map_num(self) -> dict[int, tuple[int, int]]:
-        '''
-        Associates map numbers of all mapped atoms to the pair of reactant index and
-        the atom index with that reactant, respectively, that the mapped atom apears in 
-        
-        Keyed by map number, with values of (reactant index, atom index) tuples
-        '''
+    def mapped_atom_info_by_map_number(self) -> dict[int, AtomTraceInfo]:
+        '''Provenance info about the reactant origin and product destination of all mapped atoms, keyed by atom map numbers'''
+        # 1) initialize and collect reactant side of atom info
+        atom_info_aggregator : dict[int, dict[str, int]] = {}
+        for reactant_idx, reactant_template in enumerate(self.GetReactants()):
+            for reactant_atom in mapped_atoms(reactant_template, as_indices=False):
+                map_number = reactant_atom.GetAtomMapNum()
+                atom_info_aggregator[map_number] = {
+                    'map_number' : map_number, # NOTE: need to make sure these match with the attribute names of AtomTraceInfo for now
+                    'reactant_idx' : reactant_idx,
+                    'reactant_atom_idx' : reactant_atom.GetIdx(),
+                }
+                
+        # 2) fill product side info into existing data 
+        for product_idx, product_template in enumerate(self.GetProducts()):
+            for product_atom in mapped_atoms(product_template, as_indices=False):
+                map_number = product_atom.GetAtomMapNum()
+                atom_info_aggregator[map_number].update({ # DEVNOTE: don't need defaultdict here, since atom map numbers are bijective across reactions (by RDKit stipulation)
+                    'product_idx' : product_idx,
+                    'product_atom_idx' : product_atom.GetIdx(),
+                })
+              
+        # 3) upnack collated info into (frozen) AtomTraceInfo objects
         return {
-            atom.GetAtomMapNum() : (reactant_template_idx, atom.GetIdx())
-                for reactant_template_idx, reactant_template in enumerate(self.GetReactants())
-                    for atom in mapped_atoms(reactant_template, as_indices=False)
-        }
-
-    @cached_property
-    def product_idxs_by_map_num(self) -> dict[int, tuple[int, int]]:
-        '''
-        Associates map numbers of all mapped atoms to the pair of product index and
-        the atom index with that product, respectively, that the mapped atom apears in 
-        
-        Keyed by map number, with values of (product index, atom index) tuples
-        '''
-        return {
-            atom.GetAtomMapNum() : (product_template_idx, atom.GetIdx())
-                for product_template_idx, product_template in enumerate(self.GetProducts())
-                    for atom in mapped_atoms(product_template, as_indices=False)
+            map_number : AtomTraceInfo(**info_dict)
+                for map_number, info_dict in atom_info_aggregator.items()
         }
     
     @cached_property
     def mapped_atom_info(self) -> set[AtomTraceInfo]:
         '''Compile provenance info about the reactant origin and product destination of all mapped atoms'''
-        mapped_atom_infos = set()
-        for map_num, (reactant_idx, reactant_atom_idx) in self.reactant_idxs_by_map_num.items():
-            product_idx, product_atom_idx = self.product_idxs_by_map_num[map_num]
-            mapped_atom_infos.add(
-                AtomTraceInfo(
-                    map_number=map_num,
-                    reactant_idx=reactant_idx,
-                    reactant_atom_idx=reactant_atom_idx,
-                    product_idx=product_idx,
-                    product_atom_idx=product_atom_idx,
-                )
-            )
-        return mapped_atom_infos
-           
-    @cached_property
-    def mapped_atom_info_by_map_number(self) -> dict[int, AtomTraceInfo]:
-        '''Mapped atom provenance information keyed by atom map numbers'''
-        return {
-            atom_info.map_number : atom_info
-                for atom_info in self.mapped_atom_info
-        }
-        
+        return set(self.mapped_atom_info_by_map_number.values())
+
     @cached_property
     def reactive_atom_info(self) -> dict[int, AtomTraceInfo]:
         '''Compile reactant origin and product destination of all mapped atoms which are changed by the reaction'''
@@ -241,7 +222,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     ## BONDS
     @cached_property
     def mapped_bond_info(self) -> set[BondTraceInfo]:
-        '''Compile provenance info about how bonds between mapped atoms (at least on of which is reactive) change over the reaction'''
+        '''All provenance info on how bonds between mapped atoms (at least one of which is reactive) change over the reaction'''
         mapped_bond_infos = set()
         for map_number, atom_info in self.reactive_atom_info.items():
             reactant_neighbor_bonds = map_numbers_to_neighbor_bonds(self.GetReactantTemplate(atom_info.reactant_idx), atom_info.reactant_atom_idx)
