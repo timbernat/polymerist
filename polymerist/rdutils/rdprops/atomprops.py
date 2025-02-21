@@ -64,7 +64,8 @@ def clear_atom_annotations(rdmol : Mol) -> None:
     for atom in rdmol.GetAtoms():
         atom.ClearProp('atomNote')
         
-def label_linkers(mol : Mol, label_props : Iterable[str]=None, naming_funct : Optional[Callable[[int], str]]=None) -> None:
+@optional_in_place
+def label_linkers(rdmol : Mol, label_props : Iterable[str]=None, naming_funct : Optional[Callable[[int], str]]=None) -> None:
     '''Labels wild-type ("*") atoms in a Mol for display'''
     if label_props is None:
         label_props = ('_displayLabel',) # by default, only set labels for display
@@ -72,7 +73,7 @@ def label_linkers(mol : Mol, label_props : Iterable[str]=None, naming_funct : Op
     if naming_funct is None:
         naming_funct = lambda map_num : f'R<sub>{map_num or ""}<sub>' # will be just "R" if atom is unmapped
     
-    for atom in mol.GetAtoms():
+    for atom in rdmol.GetAtoms():
         if atom.GetAtomicNum() != 0:
             continue # skip explicit atoms
         
