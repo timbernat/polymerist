@@ -10,7 +10,7 @@ from enum import StrEnum, auto
 import re
 from io import StringIO
 from pathlib import Path
-
+from random import shuffle
 from functools import cached_property
 from collections import defaultdict, Counter
 
@@ -286,7 +286,11 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         return dict(bond_info_by_product_idx) # convert back to "regular" dict for typing
     
     # REACTANT PATHFINDING
-    def compile_functional_group_inventory(self, reactants : Iterable[Mol], label_reactants_with_smiles : bool=False) -> SymbolInventory:
+    def compile_functional_group_inventory(
+            self,
+            reactants : Iterable[Mol],
+            label_reactants_with_smiles : bool=False,
+        ) -> SymbolInventory:
         '''
         Construct an inventory of numbers of functional groups (reactant templates) found in a sequence of reactant Mols,
         which can be evaluated as a DISCERNMENT-type problem to determine valid reactant ordering(s), if some exist
@@ -297,6 +301,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
             "magazine"    <-> an ordered collection of reactant molecules, which may contain any number of functional groups apiece each
             "word labels" <-> either the index of a reactant in the order it's passed or its canonical SMILES representation (depends on value of "label_reactants_with_smiles")
         '''
+
         fn_group_sym_inv = defaultdict(Counter) # TODO: add more "native" mechanism to instantiate SymbolInventory directly from counts (rather than sequences of bins)
         for reactant_idx, reactant in enumerate(reactants): # NOTE: placed first in case reactants are exhaustible (e.g. generator-like)
             for template_idx, reactant_template in enumerate(self.GetReactants()): 
@@ -310,7 +315,8 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
             self,
             reactants : Sequence[Mol],
             as_mols : bool=True,
-            allow_resampling : bool=False
+            allow_resampling : bool=False,
+            deterministic : bool=True,
         ) -> Generator[Union[None, tuple[int], tuple[Mol]], None, None]:
         '''
         Enumerates all orderings of reactants compatible with the reactant templates defined in this reaction
@@ -322,8 +328,14 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         
         If allow_resampling=False, each reactant will only be allowed to contribute exactly 1 of its functional groups 1 to any solution 
         '''
+        if not deterministic:
+            reactants = list(reactants) # make copy to avoid shuffling original
+            shuffle(reactants)
+
         reactant_orderings_found : bool = False
-        reactant_ordering_planner = DISCERNMENTSolver(self.compile_functional_group_inventory(reactants, label_reactants_with_smiles=False)) 
+        reactant_ordering_planner = DISCERNMENTSolver(
+            self.compile_functional_group_inventory(reactants, label_reactants_with_smiles=False)
+        )
         for reactant_ordering in reactant_ordering_planner.enumerate_choices(
             word=[templ_idx for templ_idx in range(self.GetNumReactantTemplates())], # use indices of reactants to allow direct lookup of reactants from solution
             unique_bins=not allow_resampling, # if one is OK with the same reactant being used for multiple functional groups, ignore its functional group multiplicities
@@ -338,7 +350,8 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
             self,
             reactants : Sequence[Mol],
             as_mols : bool=True,
-            allow_resampling : bool=False
+            allow_resampling : bool=False,
+            deterministic : bool=True,
         ) -> Union[None, tuple[int], tuple[Mol]]:
         '''
         Get first ordering of reactants compatible with the reactant templates defined in this reaction
@@ -353,7 +366,8 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         return next(self.enumerate_valid_reactant_orderings(
             reactants,
             as_mols=as_mols,
-            allow_resampling=allow_resampling
+            allow_resampling=allow_resampling,
+            deterministic=deterministic,
         )) # DEVNOTE: enumeration guarantees a NoneType is returned when no solution exists (no edge-case handling needed!)
         
     def has_reactable_subset(self, reactants : Sequence[Mol], allow_resampling : bool=False) -> bool:
@@ -361,6 +375,11 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         Determine if a sequence of reactants Mols contains any subset of Mols which are compatible with the reactant templates defined by this reaction
         If allow_resampling=False, each reactant will only be allowed to contribute exactly 1 of its functional groups 1 to any solution 
         '''
-        return self.valid_reactant_ordering(reactants=reactants, as_mols=False, allow_resampling=allow_resampling) is not None
+        return self.valid_reactant_ordering(
+            reactants=reactants,
+            as_mols=False,
+            allow_resampling=allow_resampling,
+            deterministic=True,
+        ) is not None
 
     # POST-REACTION CLEANUP METHODS
