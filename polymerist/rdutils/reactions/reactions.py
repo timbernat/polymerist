@@ -4,8 +4,6 @@ __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
 from typing import ClassVar, Generator, Iterable, Optional, Sequence, Union
-from dataclasses import dataclass, field
-from enum import StrEnum, auto
 
 import re
 from io import StringIO
@@ -16,11 +14,21 @@ from itertools import chain
 from functools import cached_property
 from collections import defaultdict, Counter
 
-from rdkit.Chem import rdChemReactions, Mol, Atom, Bond, BondType
+from rdkit.Chem.rdchem import Mol, Atom, Bond, BondType
 from rdkit.Chem.rdmolops import SanitizeMol, SanitizeFlags, SANITIZE_ALL
-
+from rdkit.Chem.rdChemReactions import (
+    ChemicalReaction,
+    ReactionFromSmarts,
+    ReactionToSmarts,
+    ReactionToSmiles,
+    ReactionFromRxnBlock,
+    ReactionFromRxnFile,
+    ReactionToRxnBlock,
+    ReactionFromMolecule,
+)
 from .reactexc import BadNumberReactants, ReactantTemplateMismatch
-from ..rdprops import copy_rdobj_props
+from .reactinfo import AtomTraceInfo, BondTraceInfo, BondChange, REACTANT_INDEX_PROPNAME
+
 from ..bonding import combined_rdmol
 from ..chemselect import mapped_atoms, mapped_neighbors
 
@@ -30,7 +38,7 @@ from ...genutils.decorators.functional import allow_string_paths, allow_pathlib_
 from ...genutils.sequences.discernment import DISCERNMENTSolver, SymbolInventory
 
 
-# HELPER FUNCTIONS
+# helper functions
 def map_numbers_to_neighbor_bonds(mol : Mol, atom_idx : int) -> dict[int, BondType]:
     '''
     Given an atom, get a mapping from the atom map numbers of explicitly-mapped
@@ -41,82 +49,7 @@ def map_numbers_to_neighbor_bonds(mol : Mol, atom_idx : int) -> dict[int, BondTy
             for neighbor_atom in mapped_neighbors(mol.GetAtomWithIdx(atom_idx), as_indices=False)
     }
     
-# REACTION INFO OBJECTS
-REACTANT_INDEX_PROPNAME : str = 'reactant_idx' # name of the atom property to assign reactant template indices to
-BOND_CHANGE_PROPNAME : str = 'bond_change'  # name of bond property to set on bonds to indicate they have changed in a reaction
-
-class BondChange(StrEnum):
-    '''For indicating how a bond which changed in a reaction was altered'''
-    ADDED = auto()
-    DELETED = auto()
-    MODIFIED = auto() # specifically, when bond order is modified but the bond persists
-    UNCHANGED = auto()
-    
-@dataclass(frozen=True)
-class AtomTraceInfo:
-    '''For encapsulating information about the origin and destination of a mapped atom, traced through a reaction'''
-    map_number : int
-    reactant_idx      : int # index of the reactant template within a reaction in which the atom occurs
-    reactant_atom_idx : int # index of the target atom WITHIN the above reactant template
-    product_idx       : int # index of the product template within a reaction in which the atom occurs
-    product_atom_idx  : int # index of the target atom WITHIN the above product template
-    
-    @staticmethod
-    def apply_atom_info_to_product(
-            product : Mol,
-            product_atom_infos : Iterable['AtomTraceInfo'],
-            reactants : Sequence[Mol],
-            apply_map_labels : bool=True,
-        ) -> None:
-        '''Transfer props and (if requested) map number information from atoms in reactant Mols to their corresponding atoms in a product Mol
-        Acts in-place on the "product" Mol instance'''
-        for atom_info in product_atom_infos:
-            product_atom = product.GetAtomWithIdx(atom_info.product_atom_idx)
-            assert product_atom.HasProp('old_mapno') # precisely the mapped atoms in the reaction template will have this property set on the product 
-            assert product_atom.GetIntProp('old_mapno') == atom_info.map_number # sanity check to make sure atom map identity has been preserved
-
-            corresp_reactant_atom = reactants[atom_info.reactant_idx].GetAtomWithIdx(atom_info.reactant_atom_idx) # product_atom.GetIntProp('react_atom_idx'))
-            copy_rdobj_props(from_rdobj=corresp_reactant_atom, to_rdobj=product_atom) # clone props from corresponding atom in reactant
-            
-            if apply_map_labels:
-                product_atom.SetAtomMapNum(atom_info.map_number)
-                product_atom.ClearProp('old_mapno')
-
-@dataclass(frozen=True)
-class BondTraceInfo:
-    '''For encapsulating information about bonds which are between mapped atoms and which change during a reaction'''
-    map_nums : Union[tuple[int, int], frozenset[int]] # map numbers of the pair of atoms the bond connects
-    # NOTE: reactant index doesn't make much sense, since the atoms the bond spans might have comes from two distinct reactant templates
-    # product index is also debatable, since deleted bonds may place atoms into separate products in general
-    product_idx       : Optional[int] # index of the reactant template within a reaction in which the modified bond occurs
-    product_bond_idx  : Optional[int] # index of the target bond WITHIN the above product template
-    bond_change_type  : Union[str, BondChange]
-    initial_bond_type : Union[float, BondType] # bond order in the reactant (i.e. BEFORE the change)
-    final_bond_type   : Union[float, BondType] # bond order in the product (i.e. AFTER the change)
-    
-    @staticmethod
-    def apply_bond_info_to_product(
-            product : Mol,
-            product_bond_infos : Iterable['BondTraceInfo'],
-        ) -> None:
-        '''Mark any changed bonds with bond props and clean up bond type info in places where bonds get modified
-        Acts in-place on the "product" Mol instance'''
-        for bond_info in product_bond_infos:
-            product_bond = product.GetBondWithIdx(bond_info.product_bond_idx)
-            
-            if bond_info.bond_change_type == BondChange.ADDED: # explicictly labl new or changed bonds
-                product_bond.SetProp(BOND_CHANGE_PROPNAME, BondChange.ADDED)
-    
-            if bond_info.bond_change_type == BondChange.MODIFIED:
-                product_bond.SetProp(BOND_CHANGE_PROPNAME, BondChange.MODIFIED)
-                assert(product_bond.GetBeginAtom().HasProp('_ReactionDegreeChanged')) # double check reaction agrees the bond has changed
-                assert(product_bond.GetEndAtom().HasProp('_ReactionDegreeChanged')) 
-
-                if bond_info.final_bond_type not in (BondType.ZERO, BondType.UNSPECIFIED): # if an explicit bond type is defined in the template...
-                    product_bond.SetBondType(bond_info.final_bond_type) # ...set the product's bond type to what it *should* be from the reaction schema
-
-# REACTION CLASS
-class AnnotatedReaction(rdChemReactions.ChemicalReaction):
+class AnnotatedReaction(ChemicalReaction):
     '''
     RDKit ChemicalReaction subclass with additional useful information about product atom and bond mappings and reaction naming
     Initialization must be done either via AnnotatedReaction.from_smarts, AnnotatedReaction.from_rdmols, or AnnotatedReaction.from_rxnfile
@@ -132,12 +65,12 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     @classmethod
     def from_smarts(cls, rxn_smarts : str) -> 'AnnotatedReaction':
         '''Instantiate reaction from mapped SMARTS string'''
-        return cls(rdChemReactions.ReactionFromSmarts(rxn_smarts.replace('#0', '*'))) # clean up any wild-atom conversion artifacts from porting a SMARTS through SMILES
+        return cls(ReactionFromSmarts(rxn_smarts.replace('#0', '*'))) # clean up any wild-atom conversion artifacts from porting a SMARTS through SMILES
     # NOTE : cannot analogous implement "from_smiles" classmethod, as rdChemreactions does not support initialization from SMILES (only SMARTS)
 
     def to_smarts(self) -> str:
         '''Export reaction as mapped SMARTS string''' # TODO : implement * -> R replacement here (rather than in rxn file I/O)
-        return rdChemReactions.ReactionToSmarts(self).replace('#0', '*') # clean up any wild-atom conversion artifacts from porting a SMARTS through SMILES 
+        return ReactionToSmarts(self).replace('#0', '*') # clean up any wild-atom conversion artifacts from porting a SMARTS through SMILES 
 
     @property
     def smarts(self) -> str:
@@ -146,7 +79,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
 
     def to_smiles(self) -> str:
         '''Export reaction as mapped SMILES string'''
-        return rdChemReactions.ReactionToSmiles(self) # TODO : implement * -> R replacement here (rather than in rxn file I/O)
+        return ReactionToSmiles(self) # TODO : implement * -> R replacement here (rather than in rxn file I/O)
 
     @property
     def smiles(self) -> str:
@@ -172,7 +105,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
                     atom.SetIntProp('molRxnRole', mol_rxn_role) 
         rxn_mol = combined_rdmol(*reactant_templates, *product_templates, *agent_templates, assign_map_nums=False, editable=False) # kwargs are explicitly needed here
 
-        return cls(rdChemReactions.ReactionFromMolecule(rxn_mol))
+        return cls(ReactionFromMolecule(rxn_mol))
 
     # MDL RXN FILE I/O
     @classmethod
@@ -198,7 +131,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     @allow_pathlib_paths
     def from_rxnfile(cls, rxnfile_path : Union[str, Path]) -> 'AnnotatedReaction':
         '''For instantiating reactions directly from MDL .rxn files'''
-        rxn = cls(rdChemReactions.ReactionFromRxnFile(rxnfile_path))
+        rxn = cls(ReactionFromRxnFile(rxnfile_path))
         rxn.rxnname = cls.rxnname_from_rxnfile(rxnfile_path)
 
         return rxn
@@ -206,7 +139,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     @allow_string_paths
     def to_rxnfile(self, rxnfile_path : Union[str, Path], wilds_to_R_groups : bool=True) -> None:
         '''Save reaction to an MDL .RXN file. Replaces ports with R-groups to enable proper loading'''
-        rxn_block = rdChemReactions.ReactionToRxnBlock(self)
+        rxn_block = ReactionToRxnBlock(self)
         if wilds_to_R_groups:
             rxn_block = rxn_block.replace('*', 'R')
 

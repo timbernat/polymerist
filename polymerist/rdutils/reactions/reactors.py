@@ -44,6 +44,7 @@ class PolymerizationReactor:
                 for fragment in self.fragment_strategy.produce_fragments(product, separate=True):
                     clear_atom_props(fragment, in_place=True) # essential to avoid reaction mapping info from prior steps from contaminating future ones
                     clear_bond_props(fragment, in_place=True)
+                    SanitizeMol(fragment, sanitizeOps=sanitize_ops)
                     fragments.append(fragment)
 
                 if clear_map_nums: # NOTE : CRITICAL that this be done after fragmentation step, which RELIES on map numbers being present
