@@ -3,7 +3,7 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import Generator, Iterable
+from typing import Generator, Iterable, Sequence
 from dataclasses import dataclass
 from itertools import chain
 
@@ -12,7 +12,7 @@ from rdkit.Chem.rdchem import Mol, BondType
 from rdkit.Chem.rdmolops import SanitizeFlags, SANITIZE_ALL
 
 from .reactexc import BadNumberReactants, ReactantTemplateMismatch
-from .reactions import AnnotatedReaction, BondChange, REACTANT_INDEX_PROPNAME, BOND_CHANGE_PROPNAME
+from .reactions import AnnotatedReaction, AtomTraceInfo, BondChange, BondTraceInfo, REACTANT_INDEX_PROPNAME, BOND_CHANGE_PROPNAME
 from .fragment import IBIS, ReseparateRGroups
 
 from ..rdprops import copy_rdobj_props
@@ -27,7 +27,7 @@ class Reactor:
     '''Class for executing a reaction template on collections of RDKit Mol "reactants"'''
     rxn_schema : AnnotatedReaction
 
-    # PRE-REACTION PREPARATION METHODS
+    ## PRE-REACTION PREPARATION METHODS
     def _activate_reaction(self) -> None:
         '''Check that the reaction schema provided is well defined and initialized'''
         pass
@@ -35,13 +35,11 @@ class Reactor:
     def __post_init__(self) -> None:
         '''Pre-processing of reaction and reactant Mols'''
         self._activate_reaction()
-
-    # POST-REACTION CLEANUP METHODS
-
-    # REACTION EXECUTION METHODS
+        
+    ## REACTION EXECUTION
     def react(
             self,
-            reactants : Iterable[Mol],
+            reactants : Sequence[Mol],
             repetitions : int=1,
             keep_map_labels : bool=True,
             sanitize_ops : SanitizeFlags=SANITIZE_ALL,
@@ -57,7 +55,7 @@ class Reactor:
             raise ReactantTemplateMismatch(f'Reactants provided to {self.__class__.__name__} are incompatible with reaction schema defined')
         
         # label reactant atoms with their respective reactant IDs 
-        reactants = [Chem.Mol(reactant) for reactant in reactants] # make a copy to avoid preserve read-onliness of inputted reactant Mols
+        reactants = [Chem.Mol(reactant) for reactant in reactants] # make a copy to avoid preserve read-onlyness of inputted reactant Mols
         for reactant_idx, reactant in enumerate(reactants):
             for atom in reactant.GetAtoms():
                 atom.SetIntProp(REACTANT_INDEX_PROPNAME, reactant_idx)

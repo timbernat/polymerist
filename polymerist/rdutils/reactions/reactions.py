@@ -16,6 +16,8 @@ from collections import defaultdict, Counter
 
 from rdkit.Chem import rdChemReactions, Mol, Atom, Bond, BondType
 
+from .reactexc import BadNumberReactants, ReactantTemplateMismatch
+from ..rdprops import copy_rdobj_props
 from ..bonding import combined_rdmol
 from ..chemselect import mapped_atoms, mapped_neighbors
 
@@ -40,6 +42,13 @@ def map_numbers_to_neighbor_bonds(mol : Mol, atom_idx : int) -> dict[int, BondTy
 REACTANT_INDEX_PROPNAME : str = 'reactant_idx' # name of the atom property to assign reactant template indices to
 BOND_CHANGE_PROPNAME : str = 'bond_change'  # name of bond property to set on bonds to indicate they have changed in a reaction
 
+class BondChange(StrEnum):
+    '''For indicating how a bond which changed in a reaction was altered'''
+    ADDED = auto()
+    DELETED = auto()
+    MODIFIED = auto() # specifically, when bond order is modified but the bond persists
+    UNCHANGED = auto()
+    
 @dataclass(frozen=True)
 class AtomTraceInfo:
     '''For encapsulating information about the origin and destination of a mapped atom, traced through a reaction'''
@@ -48,13 +57,6 @@ class AtomTraceInfo:
     reactant_atom_idx : int # index of the target atom WITHIN the above reactant template
     product_idx       : int # index of the product template within a reaction in which the atom occurs
     product_atom_idx  : int # index of the target atom WITHIN the above product template
-
-class BondChange(StrEnum):
-    '''For indicating how a bond which changed in a reaction was altered'''
-    ADDED = auto()
-    DELETED = auto()
-    MODIFIED = auto() # specifically, when bond order is modified but the bond persists
-    UNCHANGED = auto()
 
 @dataclass(frozen=True)
 class BondTraceInfo:
@@ -68,7 +70,7 @@ class BondTraceInfo:
     initial_bond_type : Union[float, BondType] # bond order in the reactant (i.e. BEFORE the change)
     final_bond_type   : Union[float, BondType] # bond order in the product (i.e. AFTER the change)
 
-# REACTIONS PROPER
+# REACTION CLASS
 class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     '''
     RDKit ChemicalReaction subclass with additional useful information about product atom and bond mappings and reaction naming
@@ -81,12 +83,11 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-    # LOADING/EXPORT METHODS
+    # INITIALIZATION/EXPORT TO SMARTS
     @classmethod
     def from_smarts(cls, rxn_smarts : str) -> 'AnnotatedReaction':
         '''Instantiate reaction from mapped SMARTS string'''
         return cls(rdChemReactions.ReactionFromSmarts(rxn_smarts.replace('#0', '*'))) # clean up any wild-atom conversion artifacts from porting a SMARTS through SMILES
-    
     # NOTE : cannot analogous implement "from_smiles" classmethod, as rdChemreactions does not support initialization from SMILES (only SMARTS)
 
     def to_smarts(self) -> str:
@@ -128,7 +129,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
 
         return cls(rdChemReactions.ReactionFromMolecule(rxn_mol))
 
-    # I/O METHODS
+    # MDL RXN FILE I/O
     @classmethod
     @allow_string_paths
     def rxnname_from_rxnfile(cls, rxnfile_path : Union[str, Path]) -> str:
@@ -171,7 +172,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
                 else:
                     rxnfile.write(line)
 
-    # PROVENANCE OF CHEMICAL OBJECTS THROUGH THE REACTION
+    # TRACING PROVENANCE OF CHEMICAL OBJECTS THROUGH THE REACTION
     ## ATOMS
     @cached_property
     def mapped_atom_info_by_map_number(self) -> dict[int, AtomTraceInfo]:
@@ -300,11 +301,11 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     # REACTANT PATHFINDING
     def compile_functional_group_inventory(
             self,
-            reactants : Iterable[Mol],
+            reactant_pool : Iterable[Mol],
             label_reactants_with_smiles : bool=False,
         ) -> SymbolInventory:
         '''
-        Construct an inventory of numbers of functional groups (reactant templates) found in a sequence of reactant Mols,
+        Construct an inventory of numbers of functional groups (reactant templates) found in an ordered pool of reactant Mols,
         which can be evaluated as a DISCERNMENT-type problem to determine valid reactant ordering(s), if some exist
         
         Isomorphisms to the DISCERNMENT problem in this instance are as follows:
@@ -313,9 +314,8 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
             "magazine"    <-> an ordered collection of reactant molecules, which may contain any number of functional groups apiece each
             "word labels" <-> either the index of a reactant in the order it's passed or its canonical SMILES representation (depends on value of "label_reactants_with_smiles")
         '''
-
         fn_group_sym_inv = defaultdict(Counter) # TODO: add more "native" mechanism to instantiate SymbolInventory directly from counts (rather than sequences of bins)
-        for reactant_idx, reactant in enumerate(reactants): # NOTE: placed first in case reactants are exhaustible (e.g. generator-like)
+        for reactant_idx, reactant in enumerate(reactant_pool): # NOTE: placed first in case reactants are exhaustible (e.g. generator-like)
             for template_idx, reactant_template in enumerate(self.GetReactants()): 
                 fn_group_sym_inv[template_idx][
                     canonical_SMILES_from_mol(reactant) if label_reactants_with_smiles else reactant_idx
@@ -325,7 +325,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         
     def enumerate_valid_reactant_orderings(
             self,
-            reactants : Sequence[Mol],
+            reactant_pool : Sequence[Mol],
             as_mols : bool=True,
             allow_resampling : bool=False,
             deterministic : bool=True,
@@ -341,18 +341,18 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         If allow_resampling=False, each reactant will only be allowed to contribute exactly 1 of its functional groups 1 to any solution 
         '''
         if not deterministic:
-            reactants = list(reactants) # make copy to avoid shuffling original
-            shuffle(reactants)
+            reactant_pool = list(reactant_pool) # make copy to avoid shuffling original
+            shuffle(reactant_pool)
 
         reactant_orderings_found : bool = False
         reactant_ordering_planner = DISCERNMENTSolver(
-            self.compile_functional_group_inventory(reactants, label_reactants_with_smiles=False)
+            self.compile_functional_group_inventory(reactant_pool, label_reactants_with_smiles=False)
         )
         for reactant_ordering in reactant_ordering_planner.enumerate_choices(
             word=[templ_idx for templ_idx in range(self.GetNumReactantTemplates())], # use indices of reactants to allow direct lookup of reactants from solution
             unique_bins=not allow_resampling, # if one is OK with the same reactant being used for multiple functional groups, ignore its functional group multiplicities
         ):                                          
-            yield tuple(reactants[i] for i in reactant_ordering) if as_mols else tuple(reactant_ordering)
+            yield tuple(reactant_pool[i] for i in reactant_ordering) if as_mols else tuple(reactant_ordering)
             reactant_orderings_found = True # flag that at least one ordering is possible
         
         if not reactant_orderings_found:  # if no solution exists, explicitly yield a single NoneType sentinel value (simplifies check for no solutions existing)
@@ -360,7 +360,7 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     
     def valid_reactant_ordering(
             self,
-            reactants : Sequence[Mol],
+            reactant_pool : Sequence[Mol],
             as_mols : bool=True,
             allow_resampling : bool=False,
             deterministic : bool=True,
@@ -376,22 +376,43 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         If allow_resampling=False, each reactant will only be allowed to contribute exactly 1 of its functional groups 1 to any solution 
         '''
         return next(self.enumerate_valid_reactant_orderings(
-            reactants,
+            reactant_pool=reactant_pool,
             as_mols=as_mols,
             allow_resampling=allow_resampling,
             deterministic=deterministic,
         )) # DEVNOTE: enumeration guarantees a NoneType is returned when no solution exists (no edge-case handling needed!)
         
-    def has_reactable_subset(self, reactants : Sequence[Mol], allow_resampling : bool=False) -> bool:
+    def has_reactable_subset(self, reactant_pool : Sequence[Mol], allow_resampling : bool=False) -> bool:
         '''
         Determine if a sequence of reactants Mols contains any subset of Mols which are compatible with the reactant templates defined by this reaction
         If allow_resampling=False, each reactant will only be allowed to contribute exactly 1 of its functional groups 1 to any solution 
         '''
         return self.valid_reactant_ordering(
-            reactants=reactants,
+            reactant_pool=reactant_pool,
             as_mols=False,
             allow_resampling=allow_resampling,
             deterministic=True,
         ) is not None
 
-    # POST-REACTION CLEANUP METHODS
+    # PERFORMING CHEMICAL REACTIONS ON MOLS
+    ## VALIDATION OF REACTANTS
+    def validate_reactants(self, reactants : Sequence[Mol], allow_resampling : bool=False) -> None:
+        '''Check whether a collection of reactant Mols can be reacted with this reaction definition'''
+        if (num_reactants_provided := len(reactants)) != (num_reactant_templates_required := self.rxn_schema.GetNumReactantTemplates()):
+            raise BadNumberReactants(f'{self.__class__.__name__} expected {num_reactant_templates_required} reactants, but {num_reactants_provided} were provided')
+        
+        if not self.has_reactable_subset(reactant_pool=reactants, allow_resampling=allow_resampling):  # check that the reactants are compatible with the reaction
+            raise ReactantTemplateMismatch(f'Reactants provided to {self.__class__.__name__} are incompatible with reaction schema defined')
+        
+    def reactants_are_compatible(self, reactants : Sequence[Mol]) -> bool:
+        '''Determine whether a collection of reactants can be reacted with this reaction or not'''
+        try:
+            self.validate_reactants(reactants)
+        except:
+            return False
+        else: 
+            return True
+    
+    ## REACTION PRODUCT CLEANUP
+    
+    ## REACTION EXECUTIONG
