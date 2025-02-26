@@ -206,6 +206,18 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
     def mapped_atom_info(self) -> set[AtomTraceInfo]:
         '''Compile provenance info about the reactant origin and product destination of all mapped atoms'''
         return set(self.mapped_atom_info_by_map_number.values())
+    
+    @cached_property
+    def mapped_atom_info_by_product_idx(self) -> dict[str, set[AtomTraceInfo]]:
+        '''
+        Sets of provenance info about the reactant origin and product destination of all mapped atoms
+        grouped by the indices of the products in which they appear
+        '''
+        atom_info_by_product_idx = defaultdict(set)
+        for atom_info in self.mapped_atom_info:
+            atom_info_by_product_idx[atom_info.product_idx].add(atom_info)
+
+        return dict(atom_info_by_product_idx) # convert back to "regular" dict for typing
 
     @cached_property
     def reactive_atom_info(self) -> dict[int, AtomTraceInfo]:
