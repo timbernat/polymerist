@@ -11,7 +11,7 @@ from rdkit import Chem
 from rdkit.Chem import rdqueries, Mol
 
 from ...genutils.iteration import sliding_window
-from .reactions import BOND_CHANGE_PROPNAME, BondChange
+from .reactinfo import BOND_CHANGE_PROPNAME, BondChange
 
 
 # HELPER FUNCTIONS
