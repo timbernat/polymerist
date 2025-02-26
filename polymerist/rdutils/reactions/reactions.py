@@ -10,11 +10,14 @@ from enum import StrEnum, auto
 import re
 from io import StringIO
 from pathlib import Path
+
 from random import shuffle
+from itertools import chain
 from functools import cached_property
 from collections import defaultdict, Counter
 
 from rdkit.Chem import rdChemReactions, Mol, Atom, Bond, BondType
+from rdkit.Chem.rdmolops import SanitizeMol, SanitizeFlags, SANITIZE_ALL
 
 from .reactexc import BadNumberReactants, ReactantTemplateMismatch
 from ..rdprops import copy_rdobj_props
@@ -49,7 +52,6 @@ class BondChange(StrEnum):
     MODIFIED = auto() # specifically, when bond order is modified but the bond persists
     UNCHANGED = auto()
     
-
 @dataclass(frozen=True)
 class AtomTraceInfo:
     '''For encapsulating information about the origin and destination of a mapped atom, traced through a reaction'''
@@ -437,13 +439,14 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
             deterministic=True,
         ) is not None
 
-    # PERFORMING CHEMICAL REACTIONS ON MOLS
-    ## VALIDATION OF REACTANTS
+    # RUNNING CHEMICAL REACTIONS
     def validate_reactants(self, reactants : Sequence[Mol], allow_resampling : bool=False) -> None:
         '''Check whether a collection of reactant Mols can be reacted with this reaction definition'''
-        if (num_reactants_provided := len(reactants)) != (num_reactant_templates_required := self.rxn_schema.GetNumReactantTemplates()):
+        # can quickly discount a bad reactant sequence by a simple counting check, prior to the more expensive reactant order determination
+        if (num_reactants_provided := len(reactants)) != (num_reactant_templates_required := self.GetNumReactantTemplates()):
             raise BadNumberReactants(f'{self.__class__.__name__} expected {num_reactant_templates_required} reactants, but {num_reactants_provided} were provided')
         
+        # otherwise, look for any solutions to combinatorial reactant search
         if not self.has_reactable_subset(reactant_pool=reactants, allow_resampling=allow_resampling):  # check that the reactants are compatible with the reaction
             raise ReactantTemplateMismatch(f'Reactants provided to {self.__class__.__name__} are incompatible with reaction schema defined')
         
@@ -456,6 +459,41 @@ class AnnotatedReaction(rdChemReactions.ChemicalReaction):
         else: 
             return True
     
-    ## REACTION PRODUCT CLEANUP
-    
-    ## REACTION EXECUTIONG
+    def react(
+            self,
+            reactants : Sequence[Mol],
+            repetitions : int=1,
+            keep_map_labels : bool=True,
+            sanitize_ops : SanitizeFlags=SANITIZE_ALL,
+        ) -> list[Mol]:
+        '''
+        Execute reaction over a collection of reactants and generate product molecule(s)
+        Does not require reactants to match the ORDER of the expected reactant templates by default 
+        (only to have the correct number of reactants)
+        '''
+        # validate and label reactants
+        self.validate_reactants(reactants, allow_resampling=False)
+        reactants = [Mol(reactant) for reactant in reactants] # make a copy to avoid preserve read-onlyness of inputted reactant Mols
+        for reactant_idx, reactant in enumerate(reactants):
+            for atom in reactant.GetAtoms():
+                atom.SetIntProp(REACTANT_INDEX_PROPNAME, reactant_idx) # label reactant atoms with their respective reactant IDs 
+        
+        # iterate over raw RDKit products, sanitizing and injecting information before yielding
+        products : list[Mol] = []
+        raw_products = self.RunReactants(reactants, maxProducts=repetitions) # obtain unfiltered RDKit reaction output. TODO : generalize to work when more than 1 repetition is requested
+        for product_idx, product in enumerate(chain.from_iterable(raw_products)): # clean up products into a usable form
+            AtomTraceInfo.apply_atom_info_to_product( # copy reactant atom props over to product atoms
+                product,
+                product_atom_infos=self.mapped_atom_info_by_product_idx[product_idx],
+                reactants=reactants,
+                apply_map_labels=keep_map_labels,
+            )
+            
+            ## indicate additions or modifications to product bonds
+            BondTraceInfo.apply_bond_info_to_product(
+                product,
+                product_bond_infos=self.mapped_bond_info_by_product_idx[product_idx],
+            )
+            SanitizeMol(product, sanitizeOps=sanitize_ops) # perform sanitization as-specified by the user
+            products.append(product)
+        return products
