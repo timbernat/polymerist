@@ -64,39 +64,18 @@ class Reactor:
         products : list[Mol] = []
         raw_products = self.rxn_schema.RunReactants(reactants, maxProducts=repetitions) # obtain unfiltered RDKit reaction output. TODO : generalize to work when more than 1 repetition is requested
         for product_idx, product in enumerate(chain.from_iterable(raw_products)): # clean up products into a usable form
-            ## copy reactant atom props over to product atoms
-            for product_atom in product.GetAtoms():
-                if not product_atom.HasProp('old_mapno'): # precisely the mapped atoms in the reaction template will have this property set on the product 
-                    continue
-                
-                map_number = product_atom.GetIntProp('old_mapno')
-                atom_info = self.rxn_schema.mapped_atom_info_by_map_number[map_number]
-                copy_rdobj_props( # clone props from corresponding atom in reactant
-                    from_rdobj=reactants[atom_info.reactant_idx].GetAtomWithIdx(atom_info.reactant_atom_idx),
-                    # from_rdobj=reactants[atom_info.reactant_idx].GetAtomWithIdx(product_atom.GetIntProp('react_atom_idx')),
-                    to_rdobj=product_atom
-                )
-                if keep_map_labels:
-                    product_atom.SetAtomMapNum(map_number)
-                    product_atom.ClearProp('old_mapno')
-
-            ## label added and modified bonds + clean up any modified bonds
-            for bond_info in self.rxn_schema.mapped_bond_info_by_product_idx[product_idx]:
-                assert bond_info.product_idx == product_idx # good sanity check, also helps to catch NoneType values for DELETED bonds
-                product_bond = product.GetBondWithIdx(bond_info.product_bond_idx)
-                bond_change_type : BondChange = bond_info.bond_change_type
-                
-                if bond_change_type in (BondChange.ADDED, BondChange.MODIFIED): # explicictly labl new or changed bonds
-                    product_bond.SetProp(BOND_CHANGE_PROPNAME, bond_change_type)
-     
-                if bond_change_type == BondChange.MODIFIED:
-                    ### double check that the reaction agrees that the bond has changed
-                    assert(product_bond.GetBeginAtom().HasProp('_ReactionDegreeChanged')) 
-                    assert(product_bond.GetEndAtom().HasProp('_ReactionDegreeChanged')) 
-
-                    if bond_info.final_bond_type not in (BondType.ZERO, BondType.UNSPECIFIED): # if an explicit bond type is defined in the template...
-                        product_bond.SetBondType(bond_info.final_bond_type) # ...set the product's bond type to what it *should* be from the reaction schema
+            AtomTraceInfo.apply_atom_info_to_product( # copy reactant atom props over to product atoms
+                product,
+                product_atom_infos=self.rxn_schema.mapped_atom_info_by_product_idx[product_idx],
+                reactants=reactants,
+                apply_map_labels=keep_map_labels,
+            )
             
+            ## indicate additions or modifications to product bonds
+            BondTraceInfo.apply_bond_info_to_product(
+                product,
+                product_bond_infos=self.rxn_schema.mapped_bond_info_by_product_idx[product_idx],
+            )
             Chem.SanitizeMol(product, sanitizeOps=sanitize_ops) # perform sanitization as-specified by the user
             products.append(product)
         return products
