@@ -5,18 +5,16 @@ __email__ = 'timotej.bernat@colorado.edu'
 
 from typing import Optional, Type, Union
 
-import PIL
-from PIL.Image import Image
-
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize, Colormap
+from PIL.Image import Image
 
 from rdkit.Chem.rdchem import Mol
 from rdkit.Chem.Draw import rdMolDraw2D, SimilarityMaps, MolsToGridImage, IPythonConsole
 
 from .rdprops.atomprops import aggregate_atom_prop, annotate_atom_prop
 from ..graphics import imageutils, plotutils
-from ..graphics.named_colors import WHITE
+from ..graphics.colors import WHITE
            
 
 # GLOBAL PREFERENCES
@@ -40,13 +38,11 @@ def disable_kekulized_drawing() -> None:
     '''Turns off automatic kekulization of aromatic bonds before drawing molecules in Jupyter Notebooks'''
     IPythonConsole.kekulizeStructures = False
 
-
 # SINGLE-MOLECULE DISPLAY OPTIONS
 def clear_highlights(rdmol : Mol) -> None:
     '''Removes the highlighted atoms flags from an RDKit Mol if present'''
     if hasattr(rdmol, '__sssAtoms'):
         del rdmol.__sssAtoms
-
 
 # PLOTTING
 def tight_norm_for_rdmol_prop(rdmol : Mol, prop : str, prop_type : Union[Type[int], Type[float]]) -> tuple[Normalize, tuple[int, ...]]:
@@ -58,7 +54,6 @@ def tight_norm_for_rdmol_prop(rdmol : Mol, prop : str, prop_type : Union[Type[in
     ticks = (norm.vmin, 0, norm.vmax)
 
     return norm, ticks
-
 
 def rdmol_prop_heatmap(rdmol : Mol, prop : str, cmap : Colormap, norm : Optional[Normalize]=None, annotate : bool=False, annotate_precision : int=5, img_size : tuple[int, int]=(1_000, 1_000)) -> Image:
     '''Take a charged RDKit Mol and color atoms based on the magnitude of a particular atomwise property'''
