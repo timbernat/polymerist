@@ -12,16 +12,17 @@ from rdkit.Chem import Mol
 from rdkit.Chem.rdmolops import SanitizeMol, SanitizeFlags, SANITIZE_ALL, SANITIZE_NONE
 from rdkit.Chem.rdmolops import AromaticityModel
 
+from ..genutils.decorators.meta import extend_to_methods
 
-def sanitize_mol_outputs(mol_func : Callable[P, Union[Mol, Iterable[Mol]]]) -> Callable[Concatenate[Union[None, int, SanitizeFlags], Optional[AromaticityModel], P], Union[Mol, tuple[Mol, ...]]]:
+
+@extend_to_methods
+def sanitizable_mol_outputs(mol_func : Callable[P, Union[Mol, Iterable[Mol]]]) -> Callable[Concatenate[Union[None, int, SanitizeFlags], Optional[AromaticityModel], P], Union[Mol, tuple[Mol, ...]]]:
     '''
     Decorator which injects molecule sanitization capability into a function which returns RDKit Mols
-    Acts on functions which are assumed to return a single mol object, or an iterable containing Mols
-    Will
-    
-    Decorated function will return a single mol in the former case, or a tuple of mols in the latter
-    
     By default, performs NO sanitization; all sanitization operations must be explicitly specified!
+    
+    Acts on functions which are assumed to return a single mol object, or an iterable containing Mols
+    Decorated function will return a single mol in the former case, or a tuple of mols in the latter
     '''
     @wraps(mol_func)
     def wrapped_func(
