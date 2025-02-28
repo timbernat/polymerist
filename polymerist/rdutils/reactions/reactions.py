@@ -15,7 +15,6 @@ from functools import cached_property
 from collections import defaultdict, Counter
 
 from rdkit.Chem.rdchem import Mol, Atom, Bond, BondType
-from rdkit.Chem.rdmolops import SanitizeMol, SanitizeFlags, SANITIZE_ALL
 from rdkit.Chem.rdChemReactions import (
     ChemicalReaction,
     ReactionFromSmarts,
@@ -30,6 +29,7 @@ from .reactexc import BadNumberReactants, ReactantTemplateMismatch
 from .reactinfo import AtomTraceInfo, BondTraceInfo, BondChange, REACTANT_INDEX_PROPNAME
 
 from ..bonding import combined_rdmol
+from ..sanitization import sanitizable_mol_outputs
 from ..chemselect import mapped_atoms, mapped_neighbors
 
 from ...smileslib.cleanup import canonical_SMILES_from_mol
@@ -392,12 +392,12 @@ class AnnotatedReaction(ChemicalReaction):
         else: 
             return True
     
+    @sanitizable_mol_outputs
     def react(
             self,
             reactants : Sequence[Mol],
             repetitions : int=1,
             keep_map_labels : bool=True,
-            sanitize_ops : SanitizeFlags=SANITIZE_ALL,
         ) -> list[Mol]:
         '''
         Execute reaction over a collection of reactants and generate product molecule(s)
@@ -427,6 +427,5 @@ class AnnotatedReaction(ChemicalReaction):
                 product,
                 product_bond_infos=self.mapped_bond_info_by_product_idx[product_idx],
             )
-            SanitizeMol(product, sanitizeOps=sanitize_ops) # perform sanitization as-specified by the user
             products.append(product)
         return products
