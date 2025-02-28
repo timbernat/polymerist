@@ -12,7 +12,7 @@ from typing import Union
 from rdkit import Chem
 from rdkit.Chem import QueryAtom
 
-from ...smileslib.sanitization import (
+from ...smileslib.cleanup import (
     Smiles, 
     is_valid_SMILES,
     Smarts,

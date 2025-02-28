@@ -32,7 +32,7 @@ from .reactinfo import AtomTraceInfo, BondTraceInfo, BondChange, REACTANT_INDEX_
 from ..bonding import combined_rdmol
 from ..chemselect import mapped_atoms, mapped_neighbors
 
-from ...smileslib.sanitization import canonical_SMILES_from_mol
+from ...smileslib.cleanup import canonical_SMILES_from_mol
 from ...smileslib.substructures import num_substruct_queries_distinct
 from ...genutils.decorators.functional import allow_string_paths, allow_pathlib_paths
 from ...genutils.sequences.discernment import DISCERNMENTSolver, SymbolInventory

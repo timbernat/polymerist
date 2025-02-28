@@ -3,7 +3,7 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from .sanitization import (
+from .cleanup import (
     Smiles,
     is_valid_SMILES,
     Smarts,

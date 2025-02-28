@@ -21,9 +21,6 @@ def is_valid_SMILES(smiles : Smiles) -> bool:
     '''Check if SMARTS string is valid (according to RDKit)'''
     return (Chem.MolFromSmiles(smiles) is not None)
 
-# SANITIZATION (IN THE RDKit SENSE)
-# TODO: add decorator for sanitization flag injection over outputs of functions which return mols
-
 # CANONICALIZATION AND STRUCTURE EXPANSION
 def canonical_SMILES_from_mol(mol : Chem.Mol) -> str:
     '''
