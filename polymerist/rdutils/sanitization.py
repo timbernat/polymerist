@@ -11,8 +11,34 @@ from rdkit.Chem import Mol
 from rdkit.Chem.rdmolops import SanitizeMol, SanitizeFlags, SANITIZE_ALL, SANITIZE_NONE
 from rdkit.Chem.rdmolops import AromaticityModel, SetAromaticity, Kekulize
 
+from ..genutils.decorators.functional import optional_in_place
 from ..genutils.decorators.meta import extend_to_methods
 
+
+@optional_in_place
+def sanitize(
+        mol : Mol,
+        sanitize_ops : Union[None, int, SanitizeFlags]=SANITIZE_NONE,
+        aromaticity_model : Optional[AromaticityModel]=None,
+    ) -> None:
+    '''Apply chemical sanitization operations, including bond aromaticity
+    By default, performs NO sanitization; all sanitization operations must be explicitly specified!
+    '''
+    # enforce correct typing from deliberate (or accidental) NoneType pass
+    if sanitize_ops is None: 
+        sanitize_ops = SANITIZE_NONE
+    
+    # aromaticity determination
+    if aromaticity_model is not None:
+        sanitize_ops = sanitize_ops & ~SanitizeFlags.SANITIZE_KEKULIZE & ~SanitizeFlags.SANITIZE_SETAROMATICITY # prevents final SanitizeMol call from undoing aromatcity model
+        Kekulize(mol, clearAromaticFlags=True)
+        SetAromaticity(mol, model=aromaticity_model)
+        
+    # hydrogen handling?
+    ...
+           
+    # miscellaneous sanitization operations
+    SanitizeMol(mol, sanitizeOps=sanitize_ops) # regardless of settings, sanitization should be done last to give greatest likelihodd of molecule validity
 
 @extend_to_methods
 def sanitizable_mol_outputs(mol_func : Callable[P, Union[Mol, Iterable[Mol]]]) -> Callable[Concatenate[Union[None, int, SanitizeFlags], Optional[AromaticityModel], P], Union[Mol, tuple[Mol, ...]]]:
@@ -30,13 +56,6 @@ def sanitizable_mol_outputs(mol_func : Callable[P, Union[Mol, Iterable[Mol]]]) -
             aromaticity_model : Optional[AromaticityModel]=None,
             **kwargs : P.kwargs,
         ) -> Union[Mol, tuple[Mol, ...]]:
-        # ensure sanitize operation specification is valid for target inputs
-        if sanitize_ops is None: # enforce correct typing from deliberate (or accidental) NoneType pass
-            sanitize_ops = SANITIZE_NONE
-        
-        if aromaticity_model is not None: # unset since sanitization will always be the LAST step before returning (don't want to undo aromaticity model setting)
-            sanitize_ops = sanitize_ops & ~SanitizeFlags.SANITIZE_KEKULIZE & ~SanitizeFlags.SANITIZE_SETAROMATICITY
-            
         # determine if return is singular, iterable, or invalid
         outputs = mol_func(*args, **kwargs)
         if isinstance(outputs, Mol):
@@ -50,12 +69,9 @@ def sanitizable_mol_outputs(mol_func : Callable[P, Union[Mol, Iterable[Mol]]]) -
         
         # perform sanitization
         for mol in outputs:
-            if not isinstance(mol, Mol):
-                continue # for now, tolerates other types of objects in output stream
-            
-            if aromaticity_model is not None:
-                Kekulize(mol, clearAromaticFlags=True)
-                SetAromaticity(mol, model=aromaticity_model)
-            SanitizeMol(mol, sanitizeOps=sanitize_ops)
+            if isinstance(mol, Mol): # for now, tolerates other types of objects in output stream by skipping over them
+                sanitize(mol, sanitize_ops=sanitize_ops, aromaticity_model=aromaticity_model, in_place=True)
+                continue 
+
         return outputs[0] if is_singular else outputs
     return wrapped_func
