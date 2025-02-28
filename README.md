@@ -86,7 +86,7 @@ One can mix-and-match installing any combination of the toolkits below to taste 
 mamba activate polymerist-env
 mamba install -c openeye openeye-toolkits
 mamba install -c conda-forge espaloma_charge
-mamba install -c conda-forge openff-nagl
+mamba install -c conda-forge openff-nagl "torchdata<=0.9.0"
 ```
 
 #### 2.1) [OpenEye toolkits (closed-source)](https://docs.eyesopen.com/toolkits/python/intro.html)
