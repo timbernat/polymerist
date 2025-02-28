@@ -7,10 +7,9 @@ from typing import Callable, Concatenate, Generator, Iterable, Optional, ParamSp
 P = ParamSpec('P')
 from functools import wraps
 
-from rdkit import Chem
 from rdkit.Chem import Mol
 from rdkit.Chem.rdmolops import SanitizeMol, SanitizeFlags, SANITIZE_ALL, SANITIZE_NONE
-from rdkit.Chem.rdmolops import AromaticityModel
+from rdkit.Chem.rdmolops import AromaticityModel, SetAromaticity, Kekulize
 
 from ..genutils.decorators.meta import extend_to_methods
 
@@ -55,8 +54,8 @@ def sanitizable_mol_outputs(mol_func : Callable[P, Union[Mol, Iterable[Mol]]]) -
                 continue # for now, tolerates other types of objects in output stream
             
             if aromaticity_model is not None:
-                Chem.Kekulize(mol, clearAromaticFlags=True)
-                Chem.SetAromaticity(mol, model=aromaticity_model)
-            Chem.SanitizeMol(mol, sanitizeOps=sanitize_ops)
+                Kekulize(mol, clearAromaticFlags=True)
+                SetAromaticity(mol, model=aromaticity_model)
+            SanitizeMol(mol, sanitizeOps=sanitize_ops)
         return outputs[0] if is_singular else outputs
     return wrapped_func
