@@ -398,7 +398,7 @@ class AnnotatedReaction(ChemicalReaction):
             reactants : Sequence[Mol],
             repetitions : int=1,
             keep_map_labels : bool=True,
-        ) -> list[Mol]:
+        ) -> Generator[Mol, None, None]:
         '''
         Execute reaction over a collection of reactants and generate product molecule(s)
         Does not require reactants to match the ORDER of the expected reactant templates by default 
@@ -412,7 +412,6 @@ class AnnotatedReaction(ChemicalReaction):
                 atom.SetIntProp(REACTANT_INDEX_PROPNAME, reactant_idx) # label reactant atoms with their respective reactant IDs 
         
         # iterate over raw RDKit products, sanitizing and injecting information before yielding
-        products : list[Mol] = []
         raw_products = self.RunReactants(reactants, maxProducts=repetitions) # obtain unfiltered RDKit reaction output. TODO : generalize to work when more than 1 repetition is requested
         for product_idx, product in enumerate(chain.from_iterable(raw_products)): # clean up products into a usable form
             AtomTraceInfo.apply_atom_info_to_product( # copy reactant atom props over to product atoms
@@ -427,5 +426,4 @@ class AnnotatedReaction(ChemicalReaction):
                 product,
                 product_bond_infos=self.mapped_bond_info_by_product_idx[product_idx],
             )
-            products.append(product)
-        return products
+            yield product
