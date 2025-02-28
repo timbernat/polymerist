@@ -398,14 +398,18 @@ class AnnotatedReaction(ChemicalReaction):
             reactants : Sequence[Mol],
             repetitions : int=1,
             keep_map_labels : bool=True,
+            _suppress_reactant_validation : bool=False,
         ) -> Generator[Mol, None, None]:
         '''
         Execute reaction over a collection of reactants and generate product molecule(s)
         Does not require reactants to match the ORDER of the expected reactant templates by default 
         (only to have the correct number of reactants)
         '''
+        # validate reactants
+        if not _suppress_reactant_validation:
+            self.validate_reactants(reactants, allow_resampling=False) # NOTE: reactants here are expected to match templates 1:1, so resampling should never be necessary
+        
         # validate and label reactants
-        self.validate_reactants(reactants, allow_resampling=False)
         reactants = [Mol(reactant) for reactant in reactants] # make a copy to avoid preserve read-onlyness of inputted reactant Mols
         for reactant_idx, reactant in enumerate(reactants):
             for atom in reactant.GetAtoms():
@@ -420,9 +424,7 @@ class AnnotatedReaction(ChemicalReaction):
                 reactants=reactants,
                 apply_map_labels=keep_map_labels,
             )
-            
-            ## indicate additions or modifications to product bonds
-            BondTraceInfo.apply_bond_info_to_product(
+            BondTraceInfo.apply_bond_info_to_product( # indicate additions or modifications to product bonds
                 product,
                 product_bond_infos=self.mapped_bond_info_by_product_idx[product_idx],
             )
