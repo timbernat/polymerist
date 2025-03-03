@@ -8,16 +8,16 @@ from abc import ABC, abstractmethod
 from itertools import combinations
 
 from rdkit import Chem
-from rdkit.Chem import rdqueries, Mol
+from rdkit.Chem import rdqueries, Mol, Bond
 
-from ...genutils.iteration import sliding_window
 from .reactinfo import BOND_CHANGE_PROPNAME, BondChange
+from ..selection import BondCondition, bonds_by_condition
+from ...genutils.iteration import sliding_window
 
 
 # HELPER FUNCTIONS
 HEAVY_FORMER_LINKER_QUERY_ATOM : Chem.QueryAtom = rdqueries.HasPropQueryAtom('was_dummy') # query for atoms with the property "was_dummy" set
 HEAVY_FORMER_LINKER_QUERY_ATOM.ExpandQuery(rdqueries.AAtomQueryAtom()) # expand query to only match heavy atoms
-
 def bridgehead_atom_ids(product : Chem.Mol) -> Generator[int, None, None]:
     '''
     Generates the indices of all atoms in a reaction product which were tagged
@@ -32,6 +32,11 @@ def get_shortest_path_bonds(rdmol : Mol, start_atom_idx : int, end_atom_idx : in
         rdmol.GetBondBetweenAtoms(*atom_id_pair).GetIdx()
             for atom_id_pair in sliding_window(Chem.GetShortestPath(rdmol, start_atom_idx, end_atom_idx), n=2)
     ]
+    
+def bond_is_newly_formed(bond : Bond) -> bool:
+    '''Bond condition checking if a bond was newly formed in a reaction
+    (i.e. present in the product(s) but not the reactant(s))'''
+    return bond.HasProp(BOND_CHANGE_PROPNAME) and (bond.GetProp(BOND_CHANGE_PROPNAME) == BondChange.ADDED) 
     
 # ABSTRACT BASE FOR FRAGMENTATION STRATEGIES
 class IntermonomerBondIdentificationStrategy(ABC):
@@ -59,19 +64,19 @@ class IntermonomerBondIdentificationStrategy(ABC):
             bondIndices=self.locate_intermonomer_bonds(product) # TODO : check that the multiplicity of any bond to cut is no greater than the bond order
         ) # TODO : add config for "dummyLabels" arg to support port flavor setting
         if separate:
-            return Chem.GetMolFrags(fragments, asMols=True, sanitizeFrags=False) # avoid disruptive sanitization (can be done in post)
+            return Chem.GetMolFrags(fragments, asMols=True, sanitizeFrags=False) # avoid sanitizing molecules prematurely (can be done in post)
         return fragments # if separation is not requested, return as single unfragmented molecule object
 IBIS = IntermonomerBondIdentificationStrategy # shorthand alias for convenience
+
+class WeighedBondStrategy(IntermonomerBondIdentificationStrategy):
+    '''Subtype of IBIS which chooses bonds as solutions to minimum graph cut problem, with bonds weighted by supplied conditions'''
+    ...
 
 ## CONCRETE IMPLEMENTATIONS
 class ReseparateRGroups(IBIS):
     '''IBIS which cleaves any new bonds formed between atoms that were formerly the start of an R-group in the reaction template'''
     def _locate_intermonomer_bonds(self, product: Mol) -> Generator[int, None, None]:
-        new_bond_ids = [
-            bond.GetIdx()
-                for bond in product.GetBonds() # specifically exclude modified bonds; only cut new ones
-                    if bond.HasProp(BOND_CHANGE_PROPNAME) and (bond.GetProp(BOND_CHANGE_PROPNAME) == BondChange.ADDED) 
-        ]
+        new_bond_ids : set[int] = set(bonds_by_condition(product, condition=bond_is_newly_formed, as_indices=True, as_pairs=False, negate=False))
         for bridgehead_id_pair in combinations(bridgehead_atom_ids(product), 2):         # for every pair of R-group bridgehead atoms...
             for new_bond_id in new_bond_ids:                                             # find the path(s) with fewest bonds between the bridgeheads... 
                 if new_bond_id in get_shortest_path_bonds(product, *bridgehead_id_pair): # and select for cutting any newly-formed bonds found along that path
