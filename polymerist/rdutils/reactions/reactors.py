@@ -3,6 +3,9 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
+import logging
+LOGGER = logging.getLogger(__name__)
+
 from typing import Generator, Sequence
 from dataclasses import dataclass, field
 
@@ -10,7 +13,6 @@ from rdkit.Chem.rdchem import Mol
 from rdkit.Chem.rdmolops import SanitizeMol, SanitizeFlags, SANITIZE_ALL
 from rdkit.Chem.rdmolops import AromaticityModel, AROMATICITY_RDKIT, AROMATICITY_MDL
 
-from .reactexc import ReactantTemplateMismatch
 from .reactions import AnnotatedReaction
 from .fragment import IBIS, ReseparateRGroups
 
@@ -18,6 +20,8 @@ from ..rdprops.atomprops import clear_atom_props
 from ..rdprops.bondprops import clear_bond_props
 from ..chemlabel import clear_atom_map_nums
 from ..sanitization import sanitize
+
+from ...smileslib.cleanup import canonical_SMILES_from_mol
 
 
 @dataclass
@@ -36,10 +40,7 @@ class PolymerizationReactor:
         '''Keep reacting and fragmenting a pair of monomers until all reactive sites have been reacted
         Returns fragment pairs at each step of the chain propagation process'''
         reactants = monomers # initialize reactive pair with monomers
-        while True: # check if the reactants can be applied under the reaction template
-            if not self.rxn_schema.reactants_are_compatible(reactants):
-                break
-
+        while self.rxn_schema.reactants_are_compatible(reactants):
             adducts : list[Mol] = []
             fragments : list[Mol] = []
             for adduct in self.rxn_schema.react(
@@ -64,5 +65,21 @@ class PolymerizationReactor:
             yield tuple(adducts), tuple(fragments) # yield the adduct Mol and any subsequent resulting reactive fragments
             reactants = fragments # set fragments from current round of polymerization as reactants for next round
             
-    def propagate_iterative(self) -> None:
+    def propagate_pooled(
+            self,
+            monomers : Sequence[Mol],
+            n_rxn_steps_max : int=5,
+            clear_map_nums : bool=True,
+            sanitize_ops : SanitizeFlags=SANITIZE_ALL,
+            aromaticity_model : AromaticityModel=AROMATICITY_RDKIT,
+        ) -> None:
+        '''
+        Discovers and enumerates all possible repeat unit fragments formable from a given polymerization step reaction mechanism
+        
+        Propagation acts on a pool of fragments reactants (initially just the "monomers" passed in) and proceeds in rounds
+        where all reactible subsets are adducted and fragmented, and any previously-unseen fragments are added to the pool
+        Enumeration halts either when no new fragments have been, or the set maximum number of reaction steps is reached
+        
+        "Uniqueness" of a fragment is assessed by its RDKit-canonicalized SMILES representation
+        '''
         ...
