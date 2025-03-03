@@ -3,7 +3,8 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import ClassVar, Generator, Iterable, Optional, Sequence, Union
+from typing import Callable, ClassVar, Generator, Iterable, Optional, Sequence, TypeVar, Union
+L = TypeVar('L') # generic type for molecule labels
 
 import re
 from io import StringIO
@@ -29,11 +30,11 @@ from .reactexc import BadNumberReactants, ReactantTemplateMismatch
 from .reactinfo import AtomTraceInfo, BondTraceInfo, BondChange, REACTANT_INDEX_PROPNAME
 
 from ..bonding import combined_rdmol
+from ..selection import mapped_atoms, mapped_neighbors
 from ..sanitization import sanitizable_mol_outputs
-from ..chemselect import mapped_atoms, mapped_neighbors
+from ..substructures import num_substruct_queries_distinct
 
-from ...smileslib.cleanup import canonical_SMILES_from_mol
-from ...smileslib.substructures import num_substruct_queries_distinct
+from ...genutils.typetools.interfaces import IndexableIterable
 from ...genutils.decorators.functional import allow_string_paths, allow_pathlib_paths
 from ...genutils.sequences.discernment import DISCERNMENTSolver, SymbolInventory
 
@@ -280,8 +281,8 @@ class AnnotatedReaction(ChemicalReaction):
     def compile_functional_group_inventory(
             self,
             reactant_pool : Iterable[Mol],
-            label_reactants_with_smiles : bool=False,
-        ) -> SymbolInventory:
+            labeling_method : Optional[Callable[[Mol], L]]=None,
+        ) -> SymbolInventory[int, Union[int, L]]:
         '''
         Construct an inventory of numbers of functional groups (reactant templates) found in an ordered pool of reactant Mols,
         which can be evaluated as a DISCERNMENT-type problem to determine valid reactant ordering(s), if some exist
@@ -290,20 +291,21 @@ class AnnotatedReaction(ChemicalReaction):
             "symbols"     <-> indices of functional groups, as-defined by reactant templates
             "target word" <-> the sequence of indices [n-1] = [0, 1, ..., n-1] where "n" is the number of reactant templates
             "magazine"    <-> an ordered collection of reactant molecules, which may contain any number of functional groups apiece each
-            "word labels" <-> either the index of a reactant in the order it's passed or its canonical SMILES representation (depends on value of "label_reactants_with_smiles")
+            "word labels" <-> the output of the provided labeling method on the reactant Mol or, if no labeling method is provided, the index of the reactant in the sequence
         '''
         fn_group_sym_inv = defaultdict(Counter) # TODO: add more "native" mechanism to instantiate SymbolInventory directly from counts (rather than sequences of bins)
         for reactant_idx, reactant in enumerate(reactant_pool): # NOTE: placed first in case reactants are exhaustible (e.g. generator-like)
             for template_idx, reactant_template in enumerate(self.GetReactants()): 
                 fn_group_sym_inv[template_idx][
-                    canonical_SMILES_from_mol(reactant) if label_reactants_with_smiles else reactant_idx
+                    labeling_method(reactant) if (labeling_method is not None) else reactant_idx
                 ] = num_substruct_queries_distinct(reactant, reactant_template) # counts are the number of times a particular reactant template occurs in a monomer
         
         return SymbolInventory(fn_group_sym_inv)
         
     def enumerate_valid_reactant_orderings(
             self,
-            reactant_pool : Sequence[Mol],
+            reactant_pool : IndexableIterable[Mol],
+            labeling_method : Optional[Callable[[Mol], L]]=None,
             as_mols : bool=True,
             allow_resampling : bool=False,
             deterministic : bool=True,
@@ -314,7 +316,10 @@ class AnnotatedReaction(ChemicalReaction):
         Yields:
         * a single NoneType if no such ordering exists
         * tuples of Chem.Mol objects if as_mols=True
-        * tuples of indices of reactants in the passed sequence if as_mols=False
+        * tuples of molecule labels if as_mols=False. Labels can be:
+            ** Indices of molecules in-sequence if labeling_method is not provided 
+            ** Any molecule label is labeling_method is provided;
+               Note that the labels provided must be valid keys for indexing reactant_pool to support as_mols
         
         If allow_resampling=False, each reactant will only be allowed to contribute exactly 1 of its functional groups 1 to any solution 
         '''
@@ -324,13 +329,13 @@ class AnnotatedReaction(ChemicalReaction):
 
         reactant_orderings_found : bool = False
         reactant_ordering_planner = DISCERNMENTSolver(
-            self.compile_functional_group_inventory(reactant_pool, label_reactants_with_smiles=False)
+            self.compile_functional_group_inventory(reactant_pool, labeling_method=labeling_method)
         )
-        for reactant_ordering in reactant_ordering_planner.enumerate_choices(
+        for reactant_labels in reactant_ordering_planner.enumerate_choices(
             word=[templ_idx for templ_idx in range(self.GetNumReactantTemplates())], # use indices of reactants to allow direct lookup of reactants from solution
             unique_bins=not allow_resampling, # if one is OK with the same reactant being used for multiple functional groups, ignore its functional group multiplicities
         ):                                          
-            yield tuple(reactant_pool[i] for i in reactant_ordering) if as_mols else tuple(reactant_ordering)
+            yield tuple(reactant_labels) if not as_mols else tuple(reactant_pool[label] for label in reactant_labels) # by default, labels are reactant indices
             reactant_orderings_found = True # flag that at least one ordering is possible
         
         if not reactant_orderings_found:  # if no solution exists, explicitly yield a single NoneType sentinel value (simplifies check for no solutions existing)
@@ -358,6 +363,7 @@ class AnnotatedReaction(ChemicalReaction):
             as_mols=as_mols,
             allow_resampling=allow_resampling,
             deterministic=deterministic,
+            labeling_method=None, # DEVNOTE : for now, explicitly force reactant labeling to be index-based for this check to simplify downstream methods
         )) # DEVNOTE: enumeration guarantees a NoneType is returned when no solution exists (no edge-case handling needed!)
         
     def has_reactable_subset(self, reactant_pool : Sequence[Mol], allow_resampling : bool=False) -> bool:
