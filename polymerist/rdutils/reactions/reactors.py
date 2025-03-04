@@ -18,7 +18,7 @@ from .fragment import IBIS, ReseparateRGroups
 
 from ..rdprops.atomprops import clear_atom_props
 from ..rdprops.bondprops import clear_bond_props
-from ..chemlabel import clear_atom_map_nums
+from ..chemlabel import clear_atom_map_nums, clear_atom_isotopes
 from ..sanitization import sanitize
 
 from ...smileslib.cleanup import canonical_SMILES_from_mol, Smiles
@@ -116,7 +116,8 @@ class PolymerizationReactor:
                         sanitize(fragment, sanitize_ops=sanitize_ops, aromaticity_model=aromaticity_model, in_place=True) # apply same cleanup ops to fragments as to adduct
                         
                         if clear_map_labels: # NOTE : CRITICAL that this be done after fragmentation step, which RELIES on map numbers being present
-                            clear_atom_map_nums(fragment)
+                            clear_atom_map_nums(fragment, in_place=True)
+                            clear_atom_isotopes(fragment, in_place=True) # also crucial for ensuring structural uniqueness of canonical SMILES
                                 
                         if (canon_smi := canonical_SMILES_from_mol(fragment)) not in reactant_pool:
                             LOGGER.debug(f'Discovered new fragment with canonical SMILES "{canon_smi}"')
