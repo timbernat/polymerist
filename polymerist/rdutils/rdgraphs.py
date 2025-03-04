@@ -43,6 +43,14 @@ DEFAULT_BOND_PROPS = (
     'Stereo',
 )
 
+def chemical_graph(mol : Chem.Mol) -> nx.Graph:
+    '''Converts an RDKit molecule to its network form, with nodes numbered by atom indices
+    Returned Graph does NOT contain any chemical information or properties of any bonds or atoms, only topological (i.e. connectivty) information'''
+    return nx.Graph(
+        (bond.GetBeginAtomIdx(), bond.GetEndAtomIdx())
+            for bond in mol.GetBonds()
+    )
+
 def rdmol_to_networkx(rdmol : Chem.Mol, atom_attrs : Iterable[str]=DEFAULT_ATOM_PROPS, bond_attrs : Iterable[str]=DEFAULT_BOND_PROPS) -> nx.Graph:
     '''Convert an RDKit Mol into a NetworkX Graph with nodes numbered according to atom IDs and bonds between corresponding atoms 
     Copies over all Atom and Bond Props that have been set.
