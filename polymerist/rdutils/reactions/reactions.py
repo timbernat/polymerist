@@ -3,7 +3,17 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import Callable, ClassVar, Generator, Iterable, Optional, Sequence, TypeVar, Union
+from typing import (
+    Callable,
+    ClassVar,
+    Generator,
+    Iterable,
+    Mapping,
+    Optional,
+    Sequence,
+    TypeVar,
+    Union,
+)
 L = TypeVar('L') # generic type for molecule labels
 
 import re
@@ -34,7 +44,6 @@ from ..selection import mapped_atoms, mapped_neighbors
 from ..sanitization import sanitizable_mol_outputs
 from ..substructures import num_substruct_queries_distinct
 
-from ...genutils.typetools.interfaces import IndexableIterable
 from ...genutils.decorators.functional import allow_string_paths, allow_pathlib_paths
 from ...genutils.sequences.discernment import DISCERNMENTSolver, SymbolInventory
 
@@ -278,11 +287,7 @@ class AnnotatedReaction(ChemicalReaction):
         return dict(bond_info_by_product_idx) # convert back to "regular" dict for typing
     
     # REACTANT PATHFINDING
-    def compile_functional_group_inventory(
-            self,
-            reactant_pool : Iterable[Mol],
-            labeling_method : Optional[Callable[[Mol], L]]=None,
-        ) -> SymbolInventory[int, Union[int, L]]:
+    def compile_functional_group_inventory(self, labeled_reactants : dict[L, Mol]) -> SymbolInventory[int, L]:
         '''
         Construct an inventory of numbers of functional groups (reactant templates) found in an ordered pool of reactant Mols,
         which can be evaluated as a DISCERNMENT-type problem to determine valid reactant ordering(s), if some exist
@@ -294,22 +299,20 @@ class AnnotatedReaction(ChemicalReaction):
             "word labels" <-> the output of the provided labeling method on the reactant Mol or, if no labeling method is provided, the index of the reactant in the sequence
         '''
         fn_group_sym_inv = defaultdict(Counter) # TODO: add more "native" mechanism to instantiate SymbolInventory directly from counts (rather than sequences of bins)
-        for reactant_idx, reactant in enumerate(reactant_pool): # NOTE: placed first in case reactants are exhaustible (e.g. generator-like)
-            for template_idx, reactant_template in enumerate(self.GetReactants()): 
-                fn_group_sym_inv[template_idx][
-                    labeling_method(reactant) if (labeling_method is not None) else reactant_idx
-                ] = num_substruct_queries_distinct(reactant, reactant_template) # counts are the number of times a particular reactant template occurs in a monomer
+        for reactant_label, reactant in labeled_reactants.items(): # NOTE: placed first in case reactants are exhaustible (e.g. generator-like)
+            for template_idx, reactant_template in enumerate(self.GetReactants()): # NOTE: can't simply replace this loop with a dict comprehension since any given key pair my not yet exist in the defaultdict
+                fn_group_sym_inv[template_idx][reactant_label] = num_substruct_queries_distinct(reactant, reactant_template) # counts are the number of times a particular reactant template occurs in a monomer
         
         return SymbolInventory(fn_group_sym_inv)
         
     def enumerate_valid_reactant_orderings(
             self,
-            reactant_pool : IndexableIterable[Mol],
+            reactant_pool : Union[Iterable[Mol], Mapping[L, Mol]],
             labeling_method : Optional[Callable[[Mol], L]]=None,
             as_mols : bool=True,
             allow_resampling : bool=False,
             deterministic : bool=True,
-        ) -> Generator[Union[None, tuple[int], tuple[Mol]], None, None]:
+        ) -> Generator[Union[None, tuple[L], tuple[Mol]], None, None]:
         '''
         Enumerates all orderings of reactants compatible with the reactant templates defined in this reaction
 
@@ -323,13 +326,26 @@ class AnnotatedReaction(ChemicalReaction):
         
         If allow_resampling=False, each reactant will only be allowed to contribute exactly 1 of its functional groups 1 to any solution 
         '''
+        # enforce dict-like reactant specification (with default implementations of label if none are given)
+        if not isinstance(reactant_pool, Mapping):
+            reactant_pool : dict[L, Mol] = {
+                reactant_idx if (labeling_method is None) else labeling_method(reactant) : reactant # in absence of specialized labeling method, just use indices of molecules
+                    for reactant_idx, reactant in enumerate(reactant_pool)
+        }
+        
+        # shuffle order of reactants if some stochasticity is desired
         if not deterministic:
-            reactant_pool = list(reactant_pool) # make copy to avoid shuffling original
-            shuffle(reactant_pool)
+            reactant_labels = list(reactant_pool.keys())
+            shuffle(reactant_labels)
+            reactant_pool = {
+                reactant_label : reactant_pool[reactant_label] 
+                    for reactant_label in reactant_labels
+            }
 
+        # solve for all ordered reactant subsets compatible with the reaction 
         reactant_orderings_found : bool = False
         reactant_ordering_planner = DISCERNMENTSolver(
-            self.compile_functional_group_inventory(reactant_pool, labeling_method=labeling_method)
+            self.compile_functional_group_inventory(reactant_pool)
         )
         for reactant_labels in reactant_ordering_planner.enumerate_choices(
             word=[templ_idx for templ_idx in range(self.GetNumReactantTemplates())], # use indices of reactants to allow direct lookup of reactants from solution
@@ -338,7 +354,8 @@ class AnnotatedReaction(ChemicalReaction):
             yield tuple(reactant_labels) if not as_mols else tuple(reactant_pool[label] for label in reactant_labels) # by default, labels are reactant indices
             reactant_orderings_found = True # flag that at least one ordering is possible
         
-        if not reactant_orderings_found:  # if no solution exists, explicitly yield a single NoneType sentinel value (simplifies check for no solutions existing)
+        # if no solution exists, explicitly yield a single NoneType sentinel value (simplifies check for no solutions existing)
+        if not reactant_orderings_found:  
             yield None 
     
     def valid_reactant_ordering(
