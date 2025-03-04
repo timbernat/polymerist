@@ -1,4 +1,4 @@
-'''Unit tests for `substructures` package'''
+'''Unit tests for special SMARTS queries'''
 
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from itertools import chain
 
 from rdkit import Chem
-from polymerist.smileslib.substructures import (
+from polymerist.smileslib.special import (
     _special_queries,
     SPECIAL_QUERY_ATOMS,
     SPECIAL_QUERY_MOLS,
