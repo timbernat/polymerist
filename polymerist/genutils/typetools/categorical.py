@@ -3,7 +3,17 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import Any, Callable, Container, Iterable, Sequence, Type, TypeAlias, Union
+from typing import (
+    Any,
+    Callable,
+    Container,
+    Iterable,
+    Sequence,
+    Type,
+    TypeVar,
+    Union,
+    _UnionGenericAlias,
+)
 from numpy import (
     ndarray,
     number as np_number
@@ -12,10 +22,10 @@ from numpy.typing import ArrayLike
 
 import builtins
 from inspect import isclass
-from .parametric import U
 
 
 # TYPECHECKING FOR CUSTOM UNION TYPE ALIASES
+U = TypeVar('U', bound=_UnionGenericAlias) # generic class from representing Literal Unions (since arg-free union is not supported)
 def _union_member_factory(union : U, regname : str='Union') -> Callable[[Any], bool]:
     '''Factory for making Union-membership-checking functions'''
     def isinunion(var : Any) -> bool:
