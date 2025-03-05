@@ -37,8 +37,9 @@ from rdkit.Chem.rdChemReactions import (
     ReactionFromMolecule,
 )
 from .reactexc import BadNumberReactants, ReactantTemplateMismatch
-from .reactinfo import AtomTraceInfo, BondTraceInfo, BondChange, REACTANT_INDEX_PROPNAME
+from .reactinfo import AtomTraceInfo, BondTraceInfo, BondChange, REACTANT_INDEX_PROPNAME, BOND_CHANGE_PROPNAME
 
+from ..rdprops import copy_rdobj_props
 from ..bonding import combined_rdmol
 from ..selection import mapped_atoms, mapped_neighbors
 from ..sanitization import sanitizable_mol_outputs
@@ -415,6 +416,49 @@ class AnnotatedReaction(ChemicalReaction):
         else: 
             return True
     
+    @staticmethod
+    def apply_atom_info_to_product(
+            product : Mol,
+            product_atom_infos : Iterable['AtomTraceInfo'],
+            reactants : Sequence[Mol],
+            apply_map_labels : bool=True,
+        ) -> None:
+        '''Transfer props and (if requested) map number information from atoms in reactant Mols to their corresponding atoms in a product Mol
+        Acts in-place on the "product" Mol instance'''
+        for atom_info in product_atom_infos:
+            product_atom = product.GetAtomWithIdx(atom_info.product_atom_idx)
+            assert product_atom.HasProp('old_mapno') # precisely the mapped atoms in the reaction template will have this property set on the product 
+            assert product_atom.GetIntProp('old_mapno') == atom_info.map_number # sanity check to make sure atom map identity has been preserved
+
+            corresp_reactant_atom = reactants[atom_info.reactant_idx].GetAtomWithIdx(atom_info.reactant_atom_idx) # product_atom.GetIntProp('react_atom_idx'))
+            copy_rdobj_props(from_rdobj=corresp_reactant_atom, to_rdobj=product_atom) # clone props from corresponding atom in reactant
+            
+            if apply_map_labels:
+                product_atom.SetAtomMapNum(atom_info.map_number)
+                product_atom.ClearProp('old_mapno')
+                
+    @staticmethod
+    def apply_bond_info_to_product(
+            product : Mol,
+            product_bond_infos : Iterable['BondTraceInfo'],
+        ) -> None:
+        '''Mark any changed bonds with bond props and clean up bond type info in places where bonds get modified
+        Acts in-place on the "product" Mol instance'''
+        for bond_info in product_bond_infos:
+            product_bond = product.GetBondWithIdx(bond_info.product_bond_idx)
+            
+            if bond_info.bond_change_type == BondChange.ADDED: # explicictly labl new or changed bonds
+                product_bond.SetProp(BOND_CHANGE_PROPNAME, BondChange.ADDED)
+    
+            if bond_info.bond_change_type == BondChange.MODIFIED:
+                product_bond.SetProp(BOND_CHANGE_PROPNAME, BondChange.MODIFIED)
+                assert(product_bond.GetBeginAtom().HasProp('_ReactionDegreeChanged')) # double check reaction agrees the bond has changed
+                assert(product_bond.GetEndAtom().HasProp('_ReactionDegreeChanged')) 
+
+                if bond_info.final_bond_type not in (BondType.ZERO, BondType.UNSPECIFIED): # if an explicit bond type is defined in the template...
+                    product_bond.SetBondType(bond_info.final_bond_type) # ...set the product's bond type to what it *should* be from the reaction schema
+
+    
     @sanitizable_mol_outputs
     def react(
             self,
@@ -441,13 +485,13 @@ class AnnotatedReaction(ChemicalReaction):
         # iterate over raw RDKit products, sanitizing and injecting information before yielding
         raw_products = self.RunReactants(reactants, maxProducts=repetitions) # obtain unfiltered RDKit reaction output. TODO : generalize to work when more than 1 repetition is requested
         for product_idx, product in enumerate(chain.from_iterable(raw_products)): # clean up products into a usable form
-            AtomTraceInfo.apply_atom_info_to_product( # copy reactant atom props over to product atoms
+            self.apply_atom_info_to_product( # copy reactant atom props over to product atoms
                 product,
                 product_atom_infos=self.mapped_atom_info_by_product_idx[product_idx],
                 reactants=reactants,
                 apply_map_labels=keep_map_labels,
             )
-            BondTraceInfo.apply_bond_info_to_product( # indicate additions or modifications to product bonds
+            self.apply_bond_info_to_product( # indicate additions or modifications to product bonds
                 product,
                 product_bond_infos=self.mapped_bond_info_by_product_idx[product_idx],
             )
