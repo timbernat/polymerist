@@ -7,6 +7,7 @@ import logging
 LOGGER = logging.getLogger(__name__)
 
 from typing import Optional
+from dataclasses import dataclass
 
 import numpy as np
 from collections import defaultdict
@@ -18,11 +19,20 @@ from openmm.unit import elementary_charge
 from .rctypes import ChargesByResidue
 from .redistribution import ChargeRedistributionStrategy, UniformDistributionStrategy
 from .....genutils.decorators.functional import optional_in_place
-from .....maths.statistics import Accumulator
 from .....polymers.monomers.repr import MonomerGroup
 
 
 # FUNCTIONS FOR RESIDUE CHARGE CALCULATION
+@dataclass
+class Accumulator:
+    '''Compact container for accumulating averages'''
+    sum : float = 0.0
+    count : int = 0
+
+    @property
+    def average(self) -> float:
+        return self.sum / self.count
+
 def find_repr_residues(offmol : Molecule) -> dict[str, int]:
     '''Determine names and smallest residue numbers of all unique residues in charged molecule
     Used as representatives for generating labelled SMARTS strings '''
