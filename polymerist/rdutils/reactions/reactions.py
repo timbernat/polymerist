@@ -407,10 +407,10 @@ class AnnotatedReaction(ChemicalReaction):
         if not self.has_reactable_subset(reactant_pool=reactants, allow_resampling=allow_resampling):  # check that the reactants are compatible with the reaction
             raise ReactantTemplateMismatch(f'Reactants provided to {self.__class__.__name__} are incompatible with reaction schema defined')
         
-    def reactants_are_compatible(self, reactants : Sequence[Mol]) -> bool:
+    def reactants_are_compatible(self, reactants : Sequence[Mol], allow_resampling : bool=False) -> bool:
         '''Determine whether a collection of reactants can be reacted with this reaction or not'''
         try:
-            self.validate_reactants(reactants)
+            self.validate_reactants(reactants, allow_resampling=allow_resampling)
         except:
             return False
         else: 
@@ -458,7 +458,6 @@ class AnnotatedReaction(ChemicalReaction):
                 if bond_info.final_bond_type not in (BondType.ZERO, BondType.UNSPECIFIED): # if an explicit bond type is defined in the template...
                     product_bond.SetBondType(bond_info.final_bond_type) # ...set the product's bond type to what it *should* be from the reaction schema
 
-    
     @sanitizable_mol_outputs
     def react(
             self,
