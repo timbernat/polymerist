@@ -65,3 +65,10 @@ def dict_to_indented_str(dict_to_stringify : dict[Any, Any], level_delimiter : s
             text.append(f'{key!r} : {value!r}') # call repr methods
 
     return line_sep.join(text)
+
+def stringify_dict(anydict : dict[Any, Any], sep : str=', ', joiner : str='-->') -> str:
+    '''Create an inline string describing the mappping in a dict'''
+    return sep.join(
+        f'({key!s} {joiner} {value!s})'            
+            for key, value in anydict.items()
+    )
