@@ -8,8 +8,11 @@ from typing import Any, Callable, Generator, Hashable, Iterable, TypeVar, Union
 from operator import mul
 from functools import reduce
 from collections import deque
-from itertools import islice, combinations
-
+from itertools import (
+    islice,
+    combinations,
+    product as cartesian_product,
+)
 from .decorators.functional import optional_in_place
 
 
@@ -77,3 +80,14 @@ def sort_dict_by_values(targ_dict : dict, reverse : bool=False) -> dict[Any, Any
         key : targ_dict[key]
             for key in sorted(targ_dict, key=lambda k : targ_dict[k], reverse=reverse)
     }
+    
+def cartesian_grid(param_dict : dict[str, Iterable[Any]]) -> Generator[dict[str, Any], None, None]:
+    '''
+    Accepts a dict maping keys to all valid parameter values for that key
+    Generates all possible choices of parameters as dicts with exactly one parameter value per key
+    '''
+    for param_choices in cartesian_product(*param_dict.values()):
+        yield {
+            param_name : param_value
+                for param_name, param_value in zip(param_dict.keys(), param_choices)
+        }
