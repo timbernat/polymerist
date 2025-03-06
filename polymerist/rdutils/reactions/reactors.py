@@ -40,7 +40,7 @@ class PolymerizationReactor:
         '''Keep reacting and fragmenting a pair of monomers until all reactive sites have been reacted
         Returns fragment pairs at each step of the chain propagation process'''
         reactants = monomers # initialize reactive pair with monomers
-        while self.rxn_schema.reactants_are_compatible(reactants):
+        while (reactants := self.rxn_schema.valid_reactant_ordering(reactants)) is not None: # check for and enforce compatible reactant ordering
             adducts : list[Mol] = []
             fragments : list[Mol] = []
             for adduct in self.rxn_schema.react(
@@ -127,7 +127,7 @@ class PolymerizationReactor:
             # summarizing current rxn round and checking halting conditions
             LOGGER.info(f'Found {n_new_frags_found} new fragments formable after at least {rxn_depth} reaction step(s)')
             if n_new_frags_found == 0:
-                LOGGER.info(f'HALTING NORMALLY: No new reaction fragments discovered requiring more than {rxn_depth} reaction step(s)')
+                LOGGER.info(f'HALTING NORMALLY: No new reaction fragments discovered requiring {rxn_depth} reaction step(s) or more')
                 break
             rxn_depth += 1
             
