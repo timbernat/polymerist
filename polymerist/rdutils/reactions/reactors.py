@@ -114,12 +114,13 @@ class PolymerizationReactor:
                         clear_atom_props(fragment, in_place=True) # essential to avoid reaction mapping info from prior steps from contaminating future ones
                         clear_bond_props(fragment, in_place=True)
                         sanitize(fragment, sanitize_ops=sanitize_ops, aromaticity_model=aromaticity_model, in_place=True) # apply same cleanup ops to fragments as to adduct
-                        
                         if clear_map_labels: # NOTE : CRITICAL that this be done after fragmentation step, which RELIES on map numbers being present
                             clear_atom_map_nums(fragment, in_place=True)
-                            clear_atom_isotopes(fragment, in_place=True) # also crucial for ensuring structural uniqueness of canonical SMILES
                                 
-                        if (canon_smi := canonical_SMILES_from_mol(fragment)) not in reactant_pool:
+                        # NOTE : !ESSENTIAL! that isotope removal not be done in-place, as this to preserve dummy labels on fragments 
+                        # while still ensuring chemically-identical molecules with distinct linker labels are still considered one-and-the-same
+                        canon_smi = canonical_SMILES_from_mol(clear_atom_isotopes(fragment, in_place=False)) 
+                        if canon_smi not in reactant_pool:
                             LOGGER.debug(f'Discovered new fragment with canonical SMILES "{canon_smi}"')
                             reactant_pool[canon_smi] = fragment
                             n_new_frags_found += 1
