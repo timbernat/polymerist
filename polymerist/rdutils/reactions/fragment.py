@@ -4,9 +4,9 @@ __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
 import logging
-LOGGER = logging.getLogger
+LOGGER = logging.getLogger(__name__)
 
-from typing import Callable, ClassVar, Generator, Optional, ParamSpec
+from typing import Callable, ClassVar, Generator, Optional, ParamSpec, Union
 P = ParamSpec('P')
 
 from abc import ABC, abstractmethod
@@ -16,7 +16,7 @@ from rdkit import Chem
 from rdkit.Chem import rdqueries, Mol, Bond
 import networkx as nx
 
-from .reactinfo import BOND_CHANGE_PROPNAME, BondChange
+from .reactinfo import REACTANT_INDEX_PROPNAME, BOND_CHANGE_PROPNAME, BondChange
 from ..selection import (
     atom_adjoins_linker,
     BondCondition,
@@ -77,7 +77,7 @@ class IntermonomerBondIdentificationStrategy(ABC):
                 yield bond_id
                 bonds_already_cut.add(bond_id)   # mark bond as visited to avoid duplicate cuts
 
-    def produce_fragments(self, product : Mol, separate : bool=True):
+    def produce_fragments(self, product : Mol, separate : bool=True) -> Union[Mol, tuple[Mol]]:
         '''Apply break all bonds identified by this IBIS algorithm and return the resulting fragments'''
         fragments = Chem.FragmentOnBonds(
             mol=product,
@@ -98,16 +98,16 @@ class ReseparateRGroups(IntermonomerBondIdentificationStrategy):
                 if new_bond_id in get_shortest_path_bonds(product, *bridgehead_id_pair): # and select for cutting any newly-formed bonds found along that path
                     yield new_bond_id
                     
-class CutMinimumWeightBondsStrategy(IntermonomerBondIdentificationStrategy):
+class CutMinimumCostBondsStrategy(IntermonomerBondIdentificationStrategy):
     '''Subtype of IBIS which chooses bonds as solutions to minimum graph cut problem
     All bonds in a molecule are given some base cost to cut, then a discount is applied to some bonds by specified conditions
     
     Cuts are then made (no more than once) on the lowest cost bond(s) separating each pair of R-groups'''
-    _DEFAULT_BASE_BOND_COST : ClassVar[float] = 1.0
+    _DEFAULT_BASE_BOND_COST : ClassVar[float] = 8.0
     _DEFAULT_BOND_DISCOUNTS : ClassVar[dict[str, tuple[int, Callable[[Mol], tuple[int, int]]]]] = {
-        'BRIDGE BOND'       : (0.5  , lambda mol : nx.bridges(chemical_graph(mol))), # networkx kindly already returns these as node index pairs
-        'NEW BOND'          : (0.25 , lambda mol : bonds_by_condition(mol, bond_is_newly_formed, as_indices=True, as_pairs=True, negate=False)),
-        'RGROUP-FREE BOND'  : (0.125, lambda mol : bonds_by_condition(mol, bond_adjoins_linker , as_indices=True, as_pairs=True, negate=True)),
+        'BRIDGE BOND'       : (4.0, lambda mol : nx.bridges(chemical_graph(mol))), # networkx kindly already returns these as node index pairs
+        'NEW BOND'          : (2.0, lambda mol : bonds_by_condition(mol, bond_is_newly_formed, as_indices=True, as_pairs=True, negate=False)),
+        'RGROUP-FREE BOND'  : (1.0, lambda mol : bonds_by_condition(mol, bond_adjoins_linker , as_indices=True, as_pairs=True, negate=True)),
     }
     
     def __init__(
@@ -149,21 +149,34 @@ class CutMinimumWeightBondsStrategy(IntermonomerBondIdentificationStrategy):
         
         # assign discounts by predefined conditions
         for label, (discount, bond_enum_funct) in self.bond_discounts.items():
-            LOGGER.info(f'Applying {discount}-point discount to all bonds of designation "{label}"')
+            LOGGER.debug(f'Applying {discount}-point discount to all bonds of designation "{label}"')
             for (begin_atom_idx, end_atom_idx) in bond_enum_funct(product):
                 chemical_flow_graph[begin_atom_idx][end_atom_idx][self.bond_cost_keyword] -= discount
+        
+        # pos = nx.spring_layout(chemical_flow_graph)
+        # pos = nx.kamada_kawai_layout(chemical_flow_graph)
+        # nx.draw(chemical_flow_graph, pos)
+        # nx.draw_networkx_edge_labels(chemical_flow_graph, pos, nx.get_edge_attributes(chemical_flow_graph, self.bond_cost_keyword))
                 
         # identify minimal cut-sets between all pairs of R-group bridgeheads
-        for bh_atom_pair in combinations(bridgehead_atom_ids(product), 2):
+        for (bh_begin_atom_idx, bh_end_atom_idx) in combinations(bridgehead_atom_ids(product), 2):
+            if product.GetAtomWithIdx(bh_begin_atom_idx).GetProp(REACTANT_INDEX_PROPNAME) == product.GetAtomWithIdx(bh_end_atom_idx).GetProp(REACTANT_INDEX_PROPNAME):
+                continue # skip over pairs of bridgehead atoms which originated from the same reactant monomer
+            
             try:
-                flow_across_cut, (source_part, sink_part) = nx.minimum_cut(chemical_flow_graph, *bh_atom_pair, capacity=self.bond_cost_keyword)
+                flow_across_cut, (source_part, sink_part) = nx.minimum_cut(
+                    chemical_flow_graph,
+                    _s=bh_begin_atom_idx,
+                    _t=bh_end_atom_idx,
+                    capacity=self.bond_cost_keyword,
+                )
             except nx.NetworkXUnbounded: # TODO: make better use of information gleaned for total flow across cut
                 continue
             else:
-                cut_edges = nx.edge_boundary(chemical_flow_graph, source_part, sink_part)
-                if (num_bonds_cut := len(cut_edges)) > self.max_bonds_per_cut:
-                    continue
-                
-                for edge_nodes in cut_edges:
-                    yield product.GetBondBetweenAtoms(*edge_nodes).GetIdx()
-                
+                n_bonds_cut : int = 0
+                for edge_node_idxs in nx.edge_boundary(chemical_flow_graph, source_part, sink_part):
+                    if n_bonds_cut >= self.max_bonds_per_cut:
+                        continue
+                    
+                    yield product.GetBondBetweenAtoms(*edge_node_idxs).GetIdx()
+                    n_bonds_cut += 1
