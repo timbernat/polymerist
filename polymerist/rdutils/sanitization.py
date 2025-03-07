@@ -16,7 +16,7 @@ from ..genutils.decorators.meta import extend_to_methods
 
 
 @optional_in_place
-def sanitize(
+def sanitize_mol
         mol : Mol,
         sanitize_ops : Union[None, int, SanitizeFlags]=SANITIZE_NONE,
         aromaticity_model : Optional[AromaticityModel]=None,
@@ -70,7 +70,7 @@ def sanitizable_mol_outputs(mol_func : Callable[P, Union[Mol, Iterable[Mol]]]) -
         # perform sanitization
         for mol in outputs:
             if isinstance(mol, Mol): # for now, tolerates other types of objects in output stream by skipping over them
-                sanitize(mol, sanitize_ops=sanitize_ops, aromaticity_model=aromaticity_model, in_place=True)
+                sanitize_molmol, sanitize_ops=sanitize_ops, aromaticity_model=aromaticity_model, in_place=True)
                 continue 
 
         return outputs[0] if is_singular else outputs
