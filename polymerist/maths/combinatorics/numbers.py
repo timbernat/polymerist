@@ -5,7 +5,9 @@ __email__ = 'timotej.bernat@colorado.edu'
 
 from typing import Iterable
 from operator import mul
+
 from math import factorial # not worth re-implementing here, the C-implementation is plenty fast
+from fractions import Fraction
 from functools import lru_cache, reduce
 
 
@@ -119,6 +121,15 @@ def bernoulli(n : int) -> int: # NOTE: avoided implementing in terms of Stirling
         binomial_coeff(n + 1, k) * bernoulli(k)
             for k in range(n)
     ) / (n + 1)
+    
+def bernoulli_up_to(N : int) -> list[Fraction]:
+    '''Computes a list of the first N Bernoulli numbers using the Akiyama-Tanigawa algorithm'''
+    bernoulli_numbers_rev = [Fraction(1, n) for n in range(N, 0, -1)] # reversal simplifies in-place iteration order
+    for i in range(1, N):
+        for j in range(N-i):
+            bernoulli_numbers_rev[j] = (N - j - i)*(bernoulli_numbers_rev[j + 1] - bernoulli_numbers_rev[j])
+    
+    return bernoulli_numbers_rev[::-1]
 
 # Graph enumeration
 @lru_cache
