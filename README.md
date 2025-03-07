@@ -85,7 +85,7 @@ One can mix-and-match installing any combination of the toolkits below to taste 
 ```bash
 mamba activate polymerist-env
 mamba install -c openeye openeye-toolkits
-mamba install -c conda-forge espaloma_charge
+mamba install -c conda-forge espaloma_charge "torchdata<=0.9.0"
 mamba install -c conda-forge openff-nagl "torchdata<=0.9.0"
 ```
 
