@@ -73,13 +73,13 @@ class PolymerizationReactor:
             clear_map_labels : bool=True,
             sanitize_ops : SanitizeFlags=SANITIZE_ALL,
             aromaticity_model : AromaticityModel=AROMATICITY_RDKIT,
-        ) -> None:
+        ) -> dict[Smiles, Mol]:
         '''
         Discovers and enumerates all possible repeat unit fragments formable from a given polymerization step reaction mechanism
         
         Propagation acts on a pool of fragments reactants (initially just the "monomers" passed in) and proceeds in rounds
         where all reactible subsets are adducted and fragmented, and any previously-unseen fragments are added to the pool
-        Enumeration halts either when no new fragments have been, or the set maximum number of reaction step(s) is reached
+        Enumeration halts either when no new fragments have been found or the set maximum number of reaction step(s) is reached
         
         "Uniqueness" of a fragment is assessed by its RDKit-canonicalized SMILES representation
         '''
