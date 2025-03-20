@@ -147,7 +147,14 @@ def serialize_openmm_pdb(
     # individual atom config
     if atom_labeller: # implicitly, preserves extant atom names if a labeller is not given
         for atom in topology.atoms():
-            atom.name = atom_labeller.get_atom_label(atom.element.symbol)
+            if atom.element is not None:
+                atom_label = atom.element.symbol
+            elif atom.name == 'EP': # "Extra Particle", as defined by SMIRNOFF spec https://openforcefield.github.io/standards/standards/smirnoff/#virtualsites-virtual-sites-for-off-atom-charges
+                atom_label = atom.name # 'EP'
+            else:
+                continue
+            
+            atom.name = atom_labeller.get_atom_label(atom_label)
 
     # file write
     with pdb_path.open('w') as file:
