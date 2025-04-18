@@ -13,7 +13,7 @@ from rdkit import Chem
 from openff.toolkit.topology.molecule import Molecule
 from openff.toolkit.utils.exceptions import ToolkitUnavailableException
 
-from ....genutils.importutils.dependencies import requires_modules
+from ....genutils.importutils.dependencies import requires_modules, MissingPrerequisitePackage
 from ....genutils.decorators.functional import optional_in_place
 from ....genutils.decorators.classmod import register_subclasses, register_abstract_class_attrs
 
@@ -50,7 +50,16 @@ class MolCharger(ABC):
 # CONCRETE IMPLEMENTATIONS OF DIFFERENT CHARGING METHODS
 class ABE10Charger(MolCharger, CHARGING_METHOD= 'AM1-BCC-ELF10'):
     '''Charger class for AM1-BCC-ELF10 exact charging'''
-    @requires_modules('openeye.oechem', 'openeye.oeomega', missing_module_error=ToolkitUnavailableException) # for whatever weird reason the toplevel openeye package has no module spec, so just checking "openeye" isn't enough
+    @requires_modules(
+        'openeye.oechem', 'openeye.oeomega', # for whatever weird reason the toplevel openeye package has no module spec, so just checking "openeye" isn't enough
+        missing_module_error=MissingPrerequisitePackage(
+            importing_package_name=__spec__.name,
+            use_case='Semi-empirical AM1-BCC partial charge calculations with ELF-10 conformer selection',
+            install_link='https://docs.eyesopen.com/toolkits/python/quickstart-python/linuxosx.html#installing-openeye-python-toolkits-as-a-conda-package',
+            dependency_name='openeye-toolkits',
+            dependency_name_formal='the OpenEye Toolkit',
+        )
+    ) 
     @optional_in_place
     def _charge_molecule(self, uncharged_mol : Molecule) -> None:
         from openff.toolkit.utils.openeye_wrapper import OpenEyeToolkitWrapper
@@ -62,7 +71,16 @@ class ABE10Charger(MolCharger, CHARGING_METHOD= 'AM1-BCC-ELF10'):
 
 class EspalomaCharger(MolCharger, CHARGING_METHOD='Espaloma-AM1-BCC'):
     '''Charger class for EspalomaCharge charging'''
-    @requires_modules('espaloma_charge', missing_module_error=ToolkitUnavailableException)
+    @requires_modules(
+        'espaloma_charge',
+        missing_module_error=MissingPrerequisitePackage(
+            importing_package_name=__spec__.name,
+            use_case='Pre-trained graph neural net charges',
+            install_link='https://github.com/choderalab/espaloma-charge',
+            dependency_name='espaloma-charge',
+            dependency_name_formal='Espaloma Charge',
+        ),
+    )
     @optional_in_place
     def _charge_molecule(self, uncharged_mol : Molecule) -> None:
         from espaloma_charge.openff_wrapper import EspalomaChargeToolkitWrapper
@@ -74,7 +92,16 @@ class EspalomaCharger(MolCharger, CHARGING_METHOD='Espaloma-AM1-BCC'):
 
 class NAGLCharger(MolCharger, CHARGING_METHOD='NAGL'):
     '''Charger class for NAGL charging'''
-    @requires_modules('openff.nagl', 'openff.nagl_models', missing_module_error=ToolkitUnavailableException)
+    @requires_modules(
+        'openff.nagl', 'openff.nagl_models', # requires model deployment archiitecture AND pretrained models to work
+        missing_module_error=MissingPrerequisitePackage(
+            importing_package_name=__spec__.name,
+            use_case='Pre-trained graph neural net charges',
+            install_link='https://docs.openforcefield.org/projects/nagl/en/latest/installation.html',
+            dependency_name='openff-nagl',
+            dependency_name_formal='OpenFF NAGL',
+        ),
+    )
     @optional_in_place
     def _charge_molecule(self, uncharged_mol : Molecule) -> None:
         from openff.toolkit.utils.nagl_wrapper import NAGLToolkitWrapper
