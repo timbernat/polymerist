@@ -97,7 +97,8 @@ def compliant_mol_SMARTS(smarts : Union[Smiles, Smarts]) -> str:
     '''Convert generic SMARTS string into a spec-compliant one'''
     # initialize 
     assert(is_valid_SMARTS(smarts)) # insert smiles expansion and kekulization
-    rdmol = Chem.MolFromSmarts(smarts)
+    rdmol = Chem.MolFromSmarts(smarts, mergeHs=False)
+    rdmol.UpdatePropertyCache() # required to set valence for explicit Hs check without otherwise performing sanitization
     
     # check explicit hydrogens and atom map numbers
     if not (
