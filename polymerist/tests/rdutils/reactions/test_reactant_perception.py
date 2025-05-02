@@ -12,7 +12,7 @@ from . import RXNS
 
 # DEFINING REACTANTS
 @pytest.fixture(scope='module')
-def test_reactant_smiles() -> list[str]:
+def test_reactant_pool_smiles() -> list[str]:
     return [
         'CC(O)C(Cl)C(Cl)CC(=O)O',
         'c1ccc(Cl)cc1O',
@@ -32,9 +32,9 @@ def test_reactant_smiles() -> list[str]:
     ]
     
 @pytest.fixture(scope='module')
-def test_reactants_pool(test_reactant_smiles : list[str]) -> list[Chem.Mol]:
+def test_reactant_pool(test_reactant_pool_smiles : list[str]) -> list[Chem.Mol]:
     TEST_REACTANTS : list[Chem.Mol] = []
-    for smiles in test_reactant_smiles:
+    for smiles in test_reactant_pool_smiles:
         mol = Chem.MolFromSmiles(smiles, sanitize=True)
         mol = Chem.AddHs(mol, addCoords=True)
         Chem.Kekulize(mol, clearAromaticFlags=True)
@@ -58,9 +58,9 @@ FUNCTIONAL_GROUP_IDXS : dict[str, set[int]] = { # indices of which test mols con
     
 # TESTING REACTANT PERCEPTION
 @pytest.mark.parametrize('rxn', RXNS.values())
-def test_reactant_perception_affirmative(rxn : AnnotatedReaction, test_reactants_pool : list[Chem.Mol]) -> None:
+def test_reactant_perception_affirmative(rxn : AnnotatedReaction, test_reactant_pool : list[Chem.Mol]) -> None:
     '''Test that a reaction correctly detects when a pool of reactants contains at least one reactable subset (without enumerating those reactants)'''
-    assert rxn.has_reactable_subset(test_reactants_pool, allow_resampling=False) # test reactants above are defined to participate in at least one of the example rxn mechanisms
+    assert rxn.has_reactable_subset(test_reactant_pool, allow_resampling=False) # test reactants above are defined to participate in at least one of the example rxn mechanisms
 
 @pytest.mark.parametrize(
     'rxn,idxs_to_exclude',
@@ -76,13 +76,13 @@ def test_reactant_perception_affirmative(rxn : AnnotatedReaction, test_reactants
 )
 def test_reactant_perception_negative(
         rxn : AnnotatedReaction, 
-        test_reactants_pool : list[Chem.Mol], 
+        test_reactant_pool : list[Chem.Mol], 
         idxs_to_exclude : set[int], 
     ) -> None:
     '''Test that a reaction correctly detects when a pool of reactants DOES NOT contain at least one reactable subset (without enumerating those reactants)'''
     reactants_pool = [ # simplifies checking if removing a certain subset of reactants changes whether a mechanism should be possible
         reactant
-            for i, reactant in enumerate(test_reactants_pool)
+            for i, reactant in enumerate(test_reactant_pool)
                 if (i not in idxs_to_exclude)
     ]
     assert not rxn.has_reactable_subset(reactants_pool, allow_resampling=False) # by construction, each of these reactions should be chemically impossible
@@ -99,13 +99,13 @@ def test_reactant_perception_negative(
         (RXNS['polyurethane_nonisocyanate'], {(7, 8), (7, 9), (7, 13)}),
     ]
 )
-def test_reactant_order_enumeration_separated(rxn : AnnotatedReaction, test_reactants_pool : list[Chem.Mol], reactive_indices_expected : set[tuple[int, int]]) -> None:
+def test_reactant_order_enumeration_separated(rxn : AnnotatedReaction, test_reactant_pool : list[Chem.Mol], reactive_indices_expected : set[tuple[int, int]]) -> None:
     '''
     Test that reactions are able to enumerate all compatible reactants from a collection of arbitrary reactants,
     where each reactant is only allowed to be used for at most 1 functional group'''
     assert set(
         reactant_ordering 
-            for reactant_ordering in rxn.enumerate_valid_reactant_orderings(test_reactants_pool, allow_resampling=False, as_mols=False)
+            for reactant_ordering in rxn.enumerate_valid_reactant_orderings(test_reactant_pool, allow_resampling=False, as_mols=False)
     ) == reactive_indices_expected
         
 @pytest.mark.parametrize(
@@ -120,11 +120,11 @@ def test_reactant_order_enumeration_separated(rxn : AnnotatedReaction, test_reac
         (RXNS['polyurethane_nonisocyanate'], set()),
     ]
 )
-def test_reactant_order_enumeration_autoreactions(rxn : AnnotatedReaction, test_reactants_pool : list[Chem.Mol], autoreactant_indices_expected : set[int]) -> None:
+def test_reactant_order_enumeration_autoreactions(rxn : AnnotatedReaction, test_reactant_pool : list[Chem.Mol], autoreactant_indices_expected : set[int]) -> None:
     '''
     Test that intramolecular reactions are identified (test of resampling ability, with single-molecule input sets)'''
     assert {
         reactant_idx
-            for reactant_idx, reactant in enumerate(test_reactants_pool)
+            for reactant_idx, reactant in enumerate(test_reactant_pool)
                 if rxn.valid_reactant_ordering([reactant], as_mols=False, allow_resampling=True) is not None
     } == autoreactant_indices_expected
