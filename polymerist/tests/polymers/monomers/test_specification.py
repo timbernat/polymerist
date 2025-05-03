@@ -1,5 +1,5 @@
 '''
-Test that monomer SMARTS expansion complies with specification in
+Test that repeat unit SMARTS expansion complies with specification in
 our publication (https://pubs.acs.org/doi/10.1021/acs.jcim.3c01691)
 '''
 
@@ -16,7 +16,7 @@ from polymerist.polymers.monomers.specification import compliant_mol_SMARTS
     'smiles,spec_smarts_expected',
     [
     # examples from Figure 4 of our JCIM paper
-        ( ## PLA middle monomer
+        ( ## PLA middle repeat unit
             '*OC(=O)C([H])([H])*',
             '[*:1]-[#8D2+0:2]-[#6D3+0:3](=[#8D1+0:4])-[#6D4+0:5](-[#1D1+0:6])(-[#1D1+0:7])-[*:8]'
         ), 
@@ -29,19 +29,24 @@ from polymerist.polymers.monomers.specification import compliant_mol_SMARTS
             '[*:1]-[#7D3+0:2](-[*:3])-[#6D4+0:4](-[#1D1+0:5])(-[#1D1+0:6])-[#6D4+0:7](-[#1D1+0:8])(-[#1D1+0:9])-[#7D3+0:10](-[*:11])-[*:12]'
         ), 
     # other examples featuring particular edge cases
-        ( ## styrene (requires kekulization)
+        ( ## polyacrylamide middle repeat unit
+            '*C(C(=O)[NH2])C*',
+            '[*:1]-[#6D4+0:2](-[#6D3+0:3](=[#8D1+0:4])-[#7D3+0:5](-[#1D1+0:9])-[#1D1+0:10])(-[#6D4+0:6](-[*:7])(-[#1D1+0:11])-[#1D1+0:12])-[#1D1+0:8]'
+        ),
+        # TODO: PAAm w/ explicit Hs?
+        ( ## styrene monomer (requires kekulization)
             'c1([H])c([H])c([H])c([H])c([H])c1C([H])=C([H])([H])',
             '[#6D3+0:1]1(-[#1D1+0:2])=[#6D3+0:3](-[#1D1+0:4])-[#6D3+0:5](-[#1D1+0:6])=[#6D3+0:7](-[#1D1+0:8])-[#6D3+0:9](-[#1D1+0:10])=[#6D3+0:11]-1-[#6D3+0:12](-[#1D1+0:13])=[#6D3+0:14](-[#1D1+0:15])-[#1D1+0:16]'
         ),
-        ( ## styrene, without explicit hydrogens (atom labels will be different)
+        ( ## styrene monomer, without explicit hydrogens (atom labels will be different)
             'c1ccccc1C=C',
             '[#6D3+0:1]1(-[#1D1+0:9])=[#6D3+0:2](-[#1D1+0:10])-[#6D3+0:3](-[#1D1+0:11])=[#6D3+0:4](-[#1D1+0:12])-[#6D3+0:5](-[#1D1+0:13])=[#6D3+0:6]-1-[#6D3+0:7](=[#6D3+0:8](-[#1D1+0:15])-[#1D1+0:16])-[#1D1+0:14]'
         ),
-        ( ## polythiophene middle monomer
+        ( ## polythiophene middle repeat unit
             '*c1c([H])c([H])c(s1)*',
             '[*:1]-[#6D3+0:2]1=[#6D3+0:3](-[#1D1+0:4])-[#6D3+0:5](-[#1D1+0:6])=[#6D3+0:7](-[*:9])-[#16D2+0:8]-1'
         ),
-        ( ## polythiophene middle monomer, without explicit hydrogens (atom labels will be different)
+        ( ## polythiophene middle repeat unit, without explicit hydrogens (atom labels will be different)
             '*c1ccc(s1)*',
             '[*:1]-[#6D3+0:2]1=[#6D3+0:3](-[#1D1+0:8])-[#6D3+0:4](-[#1D1+0:9])=[#6D3+0:5](-[*:7])-[#16D2+0:6]-1'
         ),
@@ -53,7 +58,7 @@ from polymerist.polymers.monomers.specification import compliant_mol_SMARTS
             '[1*]=[N+]=C=O',
             '[1*:1]=[#7D2+1:2]=[#6D2+0:3]=[#8D1+0:4]'
         ),
-        ( ## PVC middle monomer with "weird" isotopes (including on linkers as labels)
+        ( ## PVC middle repeat unit with "weird" isotopes (including on linkers as labels)
             '[5*][13C]([H])([2H])C([37Cl])([H])[6*]',
             '[5*:1]-[13#6D4+0:2](-[#1D1+0:3])(-[2#1D1+0:4])-[#6D4+0:5](-[37#17D1+0:6])(-[#1D1+0:7])-[6*:8]'
         ),
@@ -72,6 +77,6 @@ from polymerist.polymers.monomers.specification import compliant_mol_SMARTS
     ]
 )
 def test_spec_compliance(smiles : str, spec_smarts_expected : str) -> None:
-    '''Test that "plain" SMILES strings are correctly upgraded to monomer template
+    '''Test that "plain" SMILES strings are correctly upgraded to repeat unit template
     specification-compliant SMARTS strings with correct atom ordering and kekulization'''
     assert compliant_mol_SMARTS(smiles) == spec_smarts_expected
