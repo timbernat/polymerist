@@ -7,7 +7,7 @@ import pytest
 
 from polymerist.rdutils.reactions.reactions import AnnotatedReaction
 from polymerist.rdutils.reactions.reactors import PolymerizationReactor
-from polymerist.rdutils.reactions.fragment import ReseparateRGroupsUnique, CutMinimumCostBondsStrategy
+from polymerist.rdutils.reactions.fragment import ReseparateRGroups, CutMinimumCostBondsStrategy
 from . import RXNS
 
 
