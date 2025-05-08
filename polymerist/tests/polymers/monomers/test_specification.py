@@ -64,7 +64,7 @@ from polymerist.polymers.monomers.specification import compliant_mol_SMARTS
         ),
         ( ## chlorinated variant of amino sulfobetaine (many charged atoms)
             '[Cl]C([N+]([H])([H])([H]))(C(=O)[O-])[S+]([O-])([O-])=O',
-            '[#17D1+0:1]-[#6D4+0:2](-[#7D4+1:3](-[#1D1+0:4])(-[#1D1+0:5])-[#1D1+0:6])(-[#6D3+0:7](=[#6D1+0:8])-[#6D1-1:9])-[#16D4+1:10](-[#6D1-1:11])(-[#6D1-1:12])=[#6D1+0:13]'
+            '[#17D1+0:1]-[#6D4+0:2](-[#7D4+1:3](-[#1D1+0:4])(-[#1D1+0:5])-[#1D1+0:6])(-[#6D3+0:7](=[#8D1+0:8])-[#8D1-1:9])-[#16D4+1:10](-[#8D1-1:11])(-[#8D1-1:12])=[#8D1+0:13]'
         ), 
         ( ## calcium carbonate (has higher-order valence)
             'C([O-])([O-])=O.[Ca++]',
