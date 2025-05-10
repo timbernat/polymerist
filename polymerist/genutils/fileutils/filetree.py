@@ -67,6 +67,19 @@ def temporary_cd(dir_path : Optional[Path]) -> Generator[Path, None, None]:
     finally:
         chdir(original_cwd)
 
+def is_empty(path : Path) -> bool:
+    '''
+    Check if a path points to an empty object, meaning either
+    "a file containing no data" if the path points to a file, or
+    "a directory containing no files or other directories" for a directory
+    '''
+    if path.is_file():
+        return path.stat().st_size == 0
+    elif path.is_dir():
+        return not any(path.iterdir())
+    else:
+        raise FileNotFoundError(f'Path "{path}" does not exist')
+
 def clear_dir(path : Path) -> None:
     '''Recursively clear contents of a directory at the given path (depth-first)'''
     assert(path.is_dir())
