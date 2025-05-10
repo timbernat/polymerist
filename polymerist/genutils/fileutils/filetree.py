@@ -45,6 +45,7 @@ dir_tree = allow_string_paths(
 )
 
 # MODIFICATIONS TO DIRECTORIES ON DISC
+@allow_string_paths
 def startfile(path : Path) -> None:
     '''Replacement for os.startfile() functionality, since none natively exists in Linux'''
     Popen(['xdg-open', path])
@@ -67,6 +68,7 @@ def temporary_cd(dir_path : Optional[Path]) -> Generator[Path, None, None]:
     finally:
         chdir(original_cwd)
 
+@allow_string_paths
 def is_empty(path : Path) -> bool:
     '''
     Check if a path points to an empty object, meaning either
@@ -80,6 +82,7 @@ def is_empty(path : Path) -> bool:
     else:
         raise FileNotFoundError(f'Path "{path}" does not exist')
 
+@allow_string_paths
 def clear_dir(path : Path) -> None:
     '''Recursively clear contents of a directory at the given path (depth-first)'''
     assert(path.is_dir())
