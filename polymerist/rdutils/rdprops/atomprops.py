@@ -30,7 +30,7 @@ def aggregate_atom_prop(rdmol : Mol, prop : str, prop_type : T=str) -> dict[int,
     }
     
 @optional_in_place
-def clear_atom_props(rdmol : Mol) -> None:
+def clear_atom_props(rdmol : Mol) -> None: # TODO: add support for clearing only specific named/private props?
     '''Wipe properties of all atoms in a molecule'''
     for atom in rdmol.GetAtoms():
         for prop_name in atom.GetPropNames():
