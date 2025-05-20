@@ -71,6 +71,7 @@ class PolymerizationReactor:
             rxn_depth_max : int=5,
             allow_resampling : bool=False,
             clear_map_labels : bool=True,
+            clear_dummy_labels : bool=False,
             sanitize_ops : SanitizeFlags=SANITIZE_ALL,
             aromaticity_model : AromaticityModel=AROMATICITY_RDKIT,
         ) -> dict[Smiles, Mol]:
@@ -111,18 +112,22 @@ class PolymerizationReactor:
                     _suppress_reactant_validation=True, # avoid double-validation since we required it as a precheck for this protocol
                 ):
                     for fragment in self.fragment_strategy.produce_fragments(adduct, separate=True):
-                        clear_atom_props(fragment, in_place=True) # essential to avoid reaction mapping info from prior steps from contaminating future ones
+                        # clear atom and bondproperties - essential to avoid reaction mapping info from prior steps from contaminating future ones
+                        clear_atom_props(fragment, in_place=True) 
                         clear_bond_props(fragment, in_place=True)
-                        sanitize_mol(fragment, sanitize_ops=sanitize_ops, aromaticity_model=aromaticity_model, in_place=True) # apply same cleanup ops to fragments as to adduct
+                        
+                        # apply same cleanup ops to fragments as to adduct
+                        sanitize_mol(fragment, sanitize_ops=sanitize_ops, aromaticity_model=aromaticity_model, in_place=True) 
                         if clear_map_labels: # NOTE : CRITICAL that this be done after fragmentation step, which RELIES on map numbers being present
                             clear_atom_map_nums(fragment, in_place=True)
                                 
                         # NOTE : !ESSENTIAL! that isotope removal not be done in-place, as this to preserve dummy labels on fragments 
                         # while still ensuring chemically-identical molecules with distinct linker labels are still considered one-and-the-same
-                        canon_smi = canonical_SMILES_from_mol(clear_atom_isotopes(fragment, in_place=False)) 
+                        fragment_dummy_free = clear_atom_isotopes(fragment, in_place=False) # canonical SMILES requires 
+                        canon_smi = canonical_SMILES_from_mol(fragment_dummy_free)
                         if canon_smi not in reactant_pool:
                             LOGGER.debug(f'Discovered new fragment with canonical SMILES "{canon_smi}"')
-                            reactant_pool[canon_smi] = fragment
+                            reactant_pool[canon_smi] = fragment_dummy_free if clear_dummy_labels else fragment # choose which labelled fragment Mol to return based on dummy label preference
                             n_new_frags_found += 1
             
             # summarizing current rxn round and checking halting conditions
