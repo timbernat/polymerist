@@ -30,41 +30,6 @@ class PolymerizationReactor:
     rxn_schema : AnnotatedReaction
     fragment_strategy : IBIS = field(default_factory=ReseparateRGroups)
     
-    def propagate(
-        self,
-        monomers : Sequence[Mol],
-        clear_map_labels : bool=True,
-        sanitize_ops : SanitizeFlags=SANITIZE_ALL,
-        aromaticity_model : AromaticityModel=AROMATICITY_RDKIT,
-     ) -> Generator[tuple[tuple[Mol], tuple[Mol]], None, None]:
-        '''Keep reacting and fragmenting a pair of monomers until all reactive sites have been reacted
-        Returns fragment pairs at each step of the chain propagation process'''
-        reactants = monomers # initialize reactive pair with monomers
-        while (reactants := self.rxn_schema.valid_reactant_ordering(reactants)) is not None: # check for and enforce compatible reactant ordering
-            adducts : list[Mol] = []
-            fragments : list[Mol] = []
-            for adduct in self.rxn_schema.react(
-                    reactants,
-                    repetitions=1,
-                    keep_map_labels=True, # can't clear map numbers yet, otherwise intermonomer bond finder would have nothing to work with
-                    sanitize_ops=sanitize_ops,
-                    aromaticity_model=aromaticity_model,
-                    _suppress_reactant_validation=True, # avoid double-validation since we required it as a precheck for this protocol
-                ) : 
-                # DEVNOTE: consider doing fragmentation on the combined molecule made up of all products?
-                for fragment in self.fragment_strategy.produce_fragments(adduct, separate=True):
-                    clear_atom_props(fragment, in_place=True) # essential to avoid reaction mapping info from prior steps from contaminating future ones
-                    clear_bond_props(fragment, in_place=True)
-                    sanitize_mol(fragment, sanitize_ops=sanitize_ops, aromaticity_model=aromaticity_model, in_place=True) # apply same cleanup ops to fragments as to adduct
-                    fragments.append(fragment)
-
-                if clear_map_labels: # NOTE : CRITICAL that this be done after fragmentation step, which RELIES on map numbers being present
-                    clear_atom_map_nums(adduct)
-                adducts.append(adduct)
-                    
-            yield tuple(adducts), tuple(fragments) # yield the adduct Mol and any subsequent resulting reactive fragments
-            reactants = fragments # set fragments from current round of polymerization as reactants for next round
-            
     def propagate_pooled(
             self,
             monomers : Sequence[Mol],
@@ -141,3 +106,43 @@ class PolymerizationReactor:
             LOGGER.warning(f'HALTING PREMATURELY: reached the configured reaction search depth limit of {rxn_depth_max} reaction step(s)')
         
         return reactant_pool
+    
+    def propagate(
+        self,
+        monomers : Sequence[Mol],
+        clear_map_labels : bool=True,
+        sanitize_ops : SanitizeFlags=SANITIZE_ALL,
+        aromaticity_model : AromaticityModel=AROMATICITY_RDKIT,
+     ) -> Generator[tuple[tuple[Mol], tuple[Mol]], None, None]:
+        '''Keep reacting and fragmenting a pair of monomers until all reactive sites have been reacted
+        Returns fragment pairs at each step of the chain propagation process'''
+        LOGGER.warning('PolymerizationReactor.propagate() is slated for deprecation, please migrate to PolymerizationReactor.propagate_pooled() instead')
+        LOGGER.warning('Note that propagate() remains totally functional, but it does not in all cases enumerate EVERY possible repeat unit fragment.')
+        LOGGER.warning('Therefore, it is recommended to use propagate_pooled() for more comprehensive fragment enumeration.')
+        
+        reactants = monomers # initialize reactive pair with monomers
+        while (reactants := self.rxn_schema.valid_reactant_ordering(reactants)) is not None: # check for and enforce compatible reactant ordering
+            adducts : list[Mol] = []
+            fragments : list[Mol] = []
+            for adduct in self.rxn_schema.react(
+                    reactants,
+                    repetitions=1,
+                    keep_map_labels=True, # can't clear map numbers yet, otherwise intermonomer bond finder would have nothing to work with
+                    sanitize_ops=sanitize_ops,
+                    aromaticity_model=aromaticity_model,
+                    _suppress_reactant_validation=True, # avoid double-validation since we required it as a precheck for this protocol
+                ) : 
+                # DEVNOTE: consider doing fragmentation on the combined molecule made up of all products?
+                for fragment in self.fragment_strategy.produce_fragments(adduct, separate=True):
+                    clear_atom_props(fragment, in_place=True) # essential to avoid reaction mapping info from prior steps from contaminating future ones
+                    clear_bond_props(fragment, in_place=True)
+                    sanitize_mol(fragment, sanitize_ops=sanitize_ops, aromaticity_model=aromaticity_model, in_place=True) # apply same cleanup ops to fragments as to adduct
+                    fragments.append(fragment)
+
+                if clear_map_labels: # NOTE : CRITICAL that this be done after fragmentation step, which RELIES on map numbers being present
+                    clear_atom_map_nums(adduct)
+                adducts.append(adduct)
+                    
+            yield tuple(adducts), tuple(fragments) # yield the adduct Mol and any subsequent resulting reactive fragments
+            reactants = fragments # set fragments from current round of polymerization as reactants for next round
+            
