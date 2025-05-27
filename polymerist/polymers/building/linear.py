@@ -75,8 +75,6 @@ def build_linear_polymer(
     LOGGER.info(f'Assembling linear {n_monomers}-mer chain (estimated {n_atoms_est} atoms)')
     
     polymer.build(n_seq_repeats, sequence=sequence_compliant, add_hydrogens=add_Hs) # "-2" is to account for term groups (in mbuild, "n" is the number of times to replicate just the middle monomers)
-    for atom in polymer.particles():
-        atom.charge = 0.0 # initialize all atoms as being uncharged (gets rid of pesky blocks of warnings)
     LOGGER.info(f'Successfully assembled linear {n_monomers}-mer chain (exactly {polymer.n_particles} atoms)')
     
     # 4) OPTIONALLY, PERFORM FINAL UFF ENERGY MINIMIZATION
