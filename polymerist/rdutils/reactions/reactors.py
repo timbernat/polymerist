@@ -6,7 +6,7 @@ __email__ = 'timotej.bernat@colorado.edu'
 import logging
 LOGGER = logging.getLogger(__name__)
 
-from typing import Generator, Sequence
+from typing import Generator, Iterable, Sequence
 from dataclasses import dataclass, field
 
 from rdkit.Chem.rdchem import Mol
@@ -14,7 +14,7 @@ from rdkit.Chem.rdmolops import SanitizeMol, SanitizeFlags, SANITIZE_ALL
 from rdkit.Chem.rdmolops import AromaticityModel, AROMATICITY_RDKIT, AROMATICITY_MDL
 
 from .reactions import AnnotatedReaction
-from .fragment import IBIS, ReseparateRGroups
+from .fragment import IBIS, ReseparateRGroups, CutMinimumCostBondsStrategy
 
 from ..rdprops.atomprops import clear_atom_props
 from ..rdprops.bondprops import clear_bond_props
@@ -28,17 +28,17 @@ from ...smileslib.cleanup import canonical_SMILES_from_mol, Smiles
 class PolymerizationReactor:
     '''Reactor which exhaustively generates monomers fragments according to a given a polymerization mechanism'''
     rxn_schema : AnnotatedReaction
-    fragment_strategy : IBIS = field(default_factory=ReseparateRGroups)
+    fragment_strategy : IBIS = field(default_factory=CutMinimumCostBondsStrategy)
     
     def propagate_pooled(
             self,
-            monomers : Sequence[Mol],
+            monomers : Iterable[Mol],
             rxn_depth_max : int=5,
             allow_resampling : bool=False,
             clear_map_labels : bool=True,
             clear_dummy_labels : bool=False,
             sanitize_ops : SanitizeFlags=SANITIZE_ALL,
-            aromaticity_model : AromaticityModel=AROMATICITY_RDKIT,
+            aromaticity_model : AromaticityModel=AROMATICITY_MDL,
         ) -> dict[Smiles, Mol]:
         '''
         Discovers and enumerates all possible repeat unit fragments formable from a given polymerization step reaction mechanism
@@ -112,8 +112,8 @@ class PolymerizationReactor:
         monomers : Sequence[Mol],
         clear_map_labels : bool=True,
         sanitize_ops : SanitizeFlags=SANITIZE_ALL,
-        aromaticity_model : AromaticityModel=AROMATICITY_RDKIT,
-     ) -> Generator[tuple[tuple[Mol], tuple[Mol]], None, None]:
+        aromaticity_model : AromaticityModel=AROMATICITY_MDL,
+     ) -> Generator[tuple[tuple[Mol, ...], tuple[Mol, ...]], None, None]:
         '''Keep reacting and fragmenting a pair of monomers until all reactive sites have been reacted
         Returns fragment pairs at each step of the chain propagation process'''
         LOGGER.warning('PolymerizationReactor.propagate() is slated for deprecation, please migrate to PolymerizationReactor.propagate_pooled() instead')
