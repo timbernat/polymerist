@@ -80,3 +80,17 @@ def test_spec_compliance(smiles : str, spec_smarts_expected : str) -> None:
     '''Test that "plain" SMILES strings are correctly upgraded to repeat unit template
     specification-compliant SMARTS strings with correct atom ordering and kekulization'''
     assert compliant_mol_SMARTS(smiles) == spec_smarts_expected
+    
+@pytest.mark.parametrize(
+    'smiles',
+    [
+        'c1ccccc1C(=O)O',
+        '[Cl]C([N+]([H])([H])([H]))(C(=O)[O-])[S+]([O-])([O-])=O',
+        '*C(C)C(=O)O*',
+    ]
+)
+def test_compliant_spec_SMARTS_idempotence(smiles : str) -> None:
+    '''Test that compliant_mol_SMARTS() is idempotent, i.e. passing in an already-compliant SMARTS string returns the same string'''
+    spec_smarts = compliant_mol_SMARTS(smiles)
+    spec_smiles_secondary = compliant_mol_SMARTS(spec_smarts)
+    assert spec_smiles_secondary == spec_smarts
