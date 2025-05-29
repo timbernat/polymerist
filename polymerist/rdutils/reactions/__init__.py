@@ -5,6 +5,6 @@ __email__ = 'timotej.bernat@colorado.edu'
 
 from .reactions import AnnotatedReaction
 from .reactinfo import AtomTraceInfo, BondTraceInfo, BondChange
-from .fragment import IBIS, IntermonomerBondIdentificationStrategy, ReseparateRGroups
+from .fragment import IBIS, IntermonomerBondIdentificationStrategy, ReseparateRGroups, CutMinimumCostBondsStrategy
 from .reactors import PolymerizationReactor
 from .assembly import ReactionAssembler
