@@ -28,8 +28,52 @@ def build_linear_polymer(
         add_Hs : bool=False,
         energy_minimize : bool=False,
     ) -> MBPolymer:
-    '''Accepts a dict of monomer residue names and SMARTS (as one might find in a monomer JSON)
-    and a degree of polymerization (i.e. chain length in number of monomers)) and returns an mbuild Polymer object'''
+    '''
+    Builds a linear polymer structure from a specified pool of monomers, sequence, target chain length, and other parameters
+    
+    Parameters
+    ----------
+    monomers : MonomerGroup
+        A group of fragments containing at least the distinct repeat units which occur in the target polymer
+        
+        IMPORTANT: if the "term_orient" field of the MonomerGroup is not set (with "head" and "tail" monomer designations),
+        the first two terminal (1-valent) monomers in the group will be auto-assigned and taken as the head and tail, respectively,
+        or, if there is only one terminal monomer present, it will be used as both the head and tail.
+    n_monomers : int
+        The number of monomer units in the target polymer chain
+        This includes the terminal monomers in the count, e.g. n_monomers=10 with a head and tail group specified will induce 8 middle monomers
+    sequence : str, default='A'
+        A string of characters representing the sequence of monomers as they should occur within the polymer chain
+        Each unique character in the string will be associated with a unique monomer in the provided MonomerGroup,
+        in the order that they appear, e.g. "BACA" will take the second, first, third, and first monomers defined in the group
+        
+        IMPORTANT: the sequence string only specifies the MIDDLE monomers in the chain, i.e. terminal monomers are not given by the sequence string,
+        but either by the "term_orient" field of the MonomerGroup or the auto-determined end groups if that is unset
+        
+        If the sequence is shorter than n_monomers, the sequence will be repeated until the target chain length is reached.
+    minimize_sequence : bool, default=True
+        Whether to attempt to reduce the sequence provided into a minimal, repeating subsequence
+        E.g. "ABABAB" will be reduced to 3*"AB" if this is set to True
+        
+        Note carefully that this has NOTHING TO DO WITH energy minimization; that is controlled by the energy_minimize flag
+    allow_partial_sequences : bool, default=False
+        Whether to allow fractional repetitions of the sequence kernel to fill the target chain length
+        
+        For example, given a monomer group with head/tail specified and parameters n_monomers=10 and sequence="BAC" (inducing 10 - 2 = 8 middle monomers):
+        allow_partial_sequences=True will repeat the sequence 2 + 2/3 times, yielding the equivalent middle monomer sequence "BACBACBA", while
+        allow_partial_sequences=False would raise Exception, since the sequence "BAC" cannot be repeated to fill 8 middle monomers exactly.
+    add_Hs : bool, default=False
+        Whether to instruct the mbuild Polymer recipe to cap uncapped terminal groups with hydrogens,
+        in cases where the user has failed to provide ANY terminal monomers in the MonomerGroup
+    energy_minimize : bool, default=False
+        Whether to perform a brief UFF energy minimization after build to relax the resulting polymer structure
+        Tends to give less-unphysical conformers for larger polymers, but is significantly slower, especially for longer chains
+        
+    Returns
+    -------
+    chain : mbuild.Compound
+        An mbuild Polymer (Compound) object representing the assembled linear polymer chain
+    '''
     # 1) DETERMINE NUMBER OF SEQUENCE REPEATS NEEDED TO MEET TARGET NUMBER OF MONOMER UNITS (IF POSSIBLE) - DEV: consider making a separate function
     end_groups = monomers.linear_end_groups() # cache end groups so they dont need to be recalculated when registering end groups
     end_group_names = [resname for (resname, _) in end_groups.values()]
