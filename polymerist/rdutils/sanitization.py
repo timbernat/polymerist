@@ -9,7 +9,7 @@ from functools import wraps
 
 from rdkit.Chem import Mol
 from rdkit.Chem.rdmolops import SanitizeMol, SanitizeFlags, SANITIZE_ALL, SANITIZE_NONE
-from rdkit.Chem.rdmolops import AromaticityModel, SetAromaticity, Kekulize
+from rdkit.Chem.rdmolops import AromaticityModel, SetAromaticity, Kekulize, AROMATICITY_RDKIT, AROMATICITY_MDL
 
 from ..genutils.decorators.functional import optional_in_place
 from ..genutils.decorators.meta import extend_to_methods
