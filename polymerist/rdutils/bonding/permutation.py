@@ -38,7 +38,13 @@ def _is_valid_bond_derangement(bond_derangement : dict[int, tuple[int, int]]) ->
     return True # only return if all above checks pass
 
 @optional_in_place
-def swap_bonds(rwmol : RWMol, bond_derangement : dict[int, tuple[int, int]], show_steps : bool=False) -> Optional[RWMol]:
+def swap_bonds(
+        rwmol : RWMol,
+        bond_derangement : dict[int, tuple[int, int]],
+        show_steps : bool=False,
+        bond_breakage_marker : str='--x->',
+        bond_formation_marker : str='---->',
+    ) -> Optional[RWMol]:
     '''
     Takes a modifiable Mol and a bond derangement dict and performs the requested bond swaps
     Derangement dict should have th following form:
@@ -68,7 +74,7 @@ def swap_bonds(rwmol : RWMol, bond_derangement : dict[int, tuple[int, int]], sho
         )
 
         if show_steps:
-            LOGGER.info(f'{begin_map_num} --x-> {curr_end_map_num}')
+            LOGGER.info(f'{begin_map_num} {bond_breakage_marker} {curr_end_map_num}')
             display(rwmol)
 
     # form new bonds - must be done AFTER breakage to ensure all necessary ports exist
@@ -81,7 +87,7 @@ def swap_bonds(rwmol : RWMol, bond_derangement : dict[int, tuple[int, int]], sho
         )
 
         if show_steps:
-            LOGGER.info(f'{begin_map_num} ----> {targ_end_map_num}')
+            LOGGER.info(f'{begin_map_num} {bond_formation_marker} {targ_end_map_num}')
             display(rwmol)
 
     # deregister bondable pair

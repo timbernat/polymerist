@@ -35,13 +35,24 @@ class ReactionAssembler:
         reactants = assign_contiguous_atom_map_nums(*self.reactive_groups, in_place=False) # needed up-front to display reactants for derangement determination
         return Chem.CombineMols(*reactants) 
 
-    def products(self, show_steps : bool=False, sanitize_ops : SanitizeFlags=SANITIZE_ALL) -> Mol:
+    def products(self,
+            show_steps : bool=False,
+            sanitize_ops : SanitizeFlags=SANITIZE_ALL,
+            bond_breakage_marker : str='--x->',
+            bond_formation_marker : str='---->',
+        ) -> Mol:
         '''Generate the product template defined by the provided reactants and bond derangement'''
         if not self.bond_derangement:
             raise ValueError('Must provide non-empty bond derangement')
 
         # 2) defining and swapping bonds to form product
-        products = swap_bonds(Chem.RWMol(self.reactants), self.bond_derangement, show_steps=show_steps) # create editable Mol
+        products = swap_bonds(
+            Chem.RWMol(self.reactants),
+            bond_derangement=self.bond_derangement,
+            show_steps=show_steps,
+            bond_breakage_marker=bond_breakage_marker,
+            bond_formation_marker=bond_formation_marker
+        ) # create editable Mol
         Chem.SanitizeMol(products, sanitizeOps=sanitize_ops)
 
         return products
