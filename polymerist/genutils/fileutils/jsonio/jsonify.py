@@ -13,7 +13,7 @@ from inspect import signature, isclass
 import json
 from pathlib import Path
 
-from ...decorators.functional import allow_string_paths
+from ..pathutils import allow_string_paths
 from .serialize import TypeSerializer, MultiTypeSerializer
 
 

@@ -27,7 +27,7 @@ with warnings.catch_warnings(record=True): # suppress numerous and irritating mb
     
 from rdkit import Chem
 
-from ...genutils.decorators.functional import allow_string_paths, allow_pathlib_paths
+from ...genutils.fileutils.pathutils import allow_string_paths, allow_pathlib_paths
 from ...molfiles.pdb import SerialAtomLabeller
 from ...rdutils.bonding.portlib import get_linker_ids
 from ...rdutils.bonding.substitution import hydrogenate_rdmol_ports

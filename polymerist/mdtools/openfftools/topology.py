@@ -25,8 +25,8 @@ from openff.toolkit.topology import (
 
 from . import GTR
 from ...genutils.iteration import asiterable
-from ...genutils.fileutils.pathutils import dotless
-from ...genutils.decorators.functional import allow_string_paths, optional_in_place
+from ...genutils.fileutils.pathutils import dotless, allow_string_paths
+from ...genutils.decorators.functional import optional_in_place
 
 from ...rdutils.rdprops import RDPROP_SETTERS, copy_rdobj_props
 from ...rdutils.rdcoords.tiling import tile_lattice_with_rdmol

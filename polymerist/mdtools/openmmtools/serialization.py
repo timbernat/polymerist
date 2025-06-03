@@ -19,8 +19,7 @@ from openmm.app import Simulation, PDBFile
 from openmm.app import Topology as OpenMMTopology
 
 from .parameters import SimulationParameters
-from ...genutils.decorators.functional import allow_string_paths
-from ...genutils.fileutils.pathutils import assemble_path
+from ...genutils.fileutils.pathutils import assemble_path, allow_string_paths
 from ...genutils.fileutils.jsonio.jsonify import make_jsonifiable
 from ...genutils.fileutils.jsonio.serialize import PathSerializer
 from ...molfiles.pdb import SerialAtomLabeller

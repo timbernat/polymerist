@@ -12,9 +12,9 @@ from os import getcwd, chdir
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from .pathutils import allow_string_paths
 from ..trees.treebase import NodeCorrespondence, compile_tree_factory
 from ..trees.treeviz import treestr
-from ..decorators.functional import allow_string_paths
 
 
 # FILE TREES

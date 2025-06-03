@@ -45,7 +45,7 @@ from ..selection import mapped_atoms, mapped_neighbors
 from ..sanitization import sanitizable_mol_outputs
 from ..substructures import num_substruct_queries_distinct
 
-from ...genutils.decorators.functional import allow_string_paths, allow_pathlib_paths
+from ...genutils.fileutils.pathutils import allow_string_paths, allow_pathlib_paths
 from ...genutils.sequences.discernment import DISCERNMENTSolver, SymbolInventory
 
 
