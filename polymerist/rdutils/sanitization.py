@@ -13,7 +13,7 @@ from rdkit.Chem.rdmolops import AromaticityModel, SetAromaticity, Kekulize, AROM
 
 from ..genutils.decorators.functional import optional_in_place
 from ..genutils.decorators.meta import extend_to_methods
-from ..smileslib.cleanup import expanded_SMILES, Smiles, Smarts, is_valid_SMILES, is_valid_SMARTS
+from ..smileslib.cleanup import Smiles, expanded_SMILES
 
 
 @optional_in_place
@@ -78,15 +78,14 @@ def sanitizable_mol_outputs(mol_func : Callable[P, Union[Mol, Iterable[Mol]]]) -
     return wrapped_func
 
 def explicit_mol_from_SMILES(
-    smiles : str,
+    smiles : Smiles,
     assign_map_nums : bool=False,
     sanitize_ops : Union[None, int, SanitizeFlags]=SANITIZE_ALL,
     aromaticity_model : Optional[AromaticityModel]=AROMATICITY_MDL,
 ) -> Mol:
     '''Convenience method for creating a chemically-explicit AND chemically-validated RDKit Mol from a SMILES string'''
-    assert is_valid_SMILES(smiles), f'Invalid SMILES string provided: {smiles}'
     mol = MolFromSmiles(
-        expanded_SMILES(
+        expanded_SMILES( # NOTE: expanded_SMILES already validated passed SMILES; no need to redo it in local scope
             smiles,
             assign_map_nums=assign_map_nums,
             kekulize=False, # leave this up to the sanitization/aromatization step

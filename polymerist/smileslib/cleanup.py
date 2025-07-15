@@ -21,6 +21,25 @@ def is_valid_SMILES(smiles : Smiles) -> bool:
     '''Check if SMARTS string is valid (according to RDKit)'''
     return (Chem.MolFromSmiles(smiles) is not None)
 
+# CUSTOM EXCEPTIONS
+class InvalidChemicalLineNotation(ValueError):
+    '''Exception raised when a malformed chemical notation string is passed somewhere'''
+    ...
+    
+## DEVNOTE: there are certainly more line notations out there; I'm just covering those actually used in the codebase here
+class InvalidSMILES(InvalidChemicalLineNotation):
+    '''Exception raised when a malformed SMILES string is passed somewhere'''
+    ...
+
+class InvalidSMARTS(InvalidChemicalLineNotation):
+    '''Exception raised when a malformed SMARTS string is passed somewhere'''
+    ...
+
+class InvalidInChI(InvalidChemicalLineNotation):
+    '''Exception raised when a malformed InChI string is passed somewhere'''
+    ...
+    
+
 # CANONICALIZATION AND STRUCTURE EXPANSION
 def canonical_SMILES_from_mol(mol : Chem.Mol) -> str:
     '''
@@ -39,9 +58,9 @@ def expanded_SMILES(
     Expands and clarifies the chemical information contained within a passed SMILES string
     namely explicit hydrogens and bond orders, and (optionally) kekulized aromatic bonds and atom map numbers
     '''
-    assert(is_valid_SMILES(smiles))
+    if not is_valid_SMILES(smiles):
+        raise InvalidSMILES(f'Passed string "{smiles}" cannot be interpreted as a valid SMILES pattern')
     
-    # rdmol = Chem.MolFromSmiles(smiles, sanitize=True)
     rdmol = Chem.MolFromSmiles(smiles, sanitize=False)
     rdmol.UpdatePropertyCache() # inject valence and ring info without mangling from sanitization
     rdmol = Chem.AddHs(rdmol, addCoords=True)

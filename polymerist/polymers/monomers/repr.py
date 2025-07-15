@@ -16,7 +16,7 @@ from rdkit import Chem
 
 from .specification import compliant_mol_SMARTS
 from ...genutils.fileutils.jsonio.jsonify import make_jsonifiable
-from ...smileslib import Smarts, is_valid_SMARTS
+from ...smileslib import Smarts, InvalidSMARTS, is_valid_SMARTS
 from ...rdutils.bonding.portlib import get_num_ports
 
 
@@ -43,7 +43,7 @@ class MonomerGroup:
             raise TypeError(f'Values of monomers must be either SMARTS strings or lists of SMARTS strings, not "{type(smarts).__name__}"')
         # DEV: include check for empty string? (technically still a valid SMARTS string, but a pretty pathological one at that)
         if not is_valid_SMARTS(smarts):
-            raise ValueError(f'Provided invalid monomer SMARTS string for {resname}: "{smarts}"') 
+            raise InvalidSMARTS(f'Provided invalid monomer SMARTS string for {resname}: "{smarts}"') 
         smarts = compliant_mol_SMARTS(smarts) # enforce compliance with monomer template SMARTS specification - DEVNOTE: double-verifies valid_SMARTS (not bad, just redundant)
         
         if resname in self.monomers:

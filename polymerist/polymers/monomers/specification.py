@@ -14,10 +14,10 @@ from rdkit.Chem import QueryAtom
 
 from ...smileslib.cleanup import (
     Smiles, 
-    is_valid_SMILES,
     Smarts,
+    InvalidSMARTS,
     is_valid_SMARTS,
-    expanded_SMILES, # beyond being a necessary import, this also make importing expanded_SMILES from here backwards-compatible
+    expanded_SMILES, # beyond being a necessary import, this also makes importing expanded_SMILES from this module backwards-compatible
 )
 from ...smileslib.primitives import RDKIT_QUERYBONDS_BY_BONDTYPE
 from ...rdutils.cheminspect import all_Hs_are_explicit, has_aromatic_bonds
@@ -119,8 +119,10 @@ def compliant_atom_query_from_re_match(match : re.Match) -> str:
 # CONVERSION METHODS
 def compliant_mol_SMARTS(smarts : Union[Smiles, Smarts]) -> str:
     '''Convert generic SMARTS string into a spec-compliant one'''
-    # initialize 
-    assert(is_valid_SMARTS(smarts)) # insert smiles expansion and kekulization
+    # initialize Mol object from passed SMARTS
+    if not is_valid_SMARTS(smarts):
+        raise InvalidSMARTS(f'Passed string "{smarts}" cannot be interpreted as a valid SMARTS pattern')
+    
     rdmol = Chem.MolFromSmarts(smarts, mergeHs=False)
     rdmol.UpdatePropertyCache() # required to set valence for explicit Hs check without otherwise performing sanitization
     
