@@ -152,11 +152,6 @@ class CutMinimumCostBondsStrategy(IntermonomerBondIdentificationStrategy):
             LOGGER.debug(f'Applying {discount}-point discount to all bonds of designation "{label}"')
             for (begin_atom_idx, end_atom_idx) in bond_enum_funct(product):
                 chemical_flow_graph[begin_atom_idx][end_atom_idx][self.bond_cost_keyword] -= discount
-        
-        # pos = nx.spring_layout(chemical_flow_graph)
-        # pos = nx.kamada_kawai_layout(chemical_flow_graph)
-        # nx.draw(chemical_flow_graph, pos)
-        # nx.draw_networkx_edge_labels(chemical_flow_graph, pos, nx.get_edge_attributes(chemical_flow_graph, self.bond_cost_keyword))
                 
         # identify minimal cut-sets between all pairs of R-group bridgeheads
         for (bh_begin_atom_idx, bh_end_atom_idx) in combinations(bridgehead_atom_ids(product), 2):
