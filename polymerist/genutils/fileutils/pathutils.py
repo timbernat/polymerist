@@ -74,7 +74,7 @@ def is_empty_dir(dirpath : Path) -> bool:
     '''Check if a directory contains no files'''
     if not dirpath.is_dir():
          raise NotADirectoryError(f'dirpath must point to directory, not to file "{dirpath}"')
-    return any(dirpath.iterdir()) # can't use "len" for generators : TODO : make this more efficient (i.e. iteration-based) for large directories
+    return not any(dirpath.iterdir()) # can't use "len" for generators : TODO : make this more efficient (i.e. iteration-based) for large directories
 
 @allow_string_paths
 def is_empty_file(filepath : Path) -> bool:
