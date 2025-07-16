@@ -9,7 +9,6 @@ from .cleanup import (
     is_valid_SMILES,
     Smarts,
     is_valid_SMARTS,
-    expanded_SMILES,
     # custom Exceptions
     InvalidChemicalLineNotation,
     InvalidSMILES,
