@@ -16,8 +16,8 @@ from openmm.unit import Quantity, AVOGADRO_CONSTANT_NA
 from openff.toolkit import Molecule, Topology
 from openff.units import Quantity as OFFQuantity
 
-from ....unitutils.dimensions import is_volume
-from ..unitsys import allow_openff_units, openff_to_openmm
+from ...unitutils.dimensions import is_volume
+from .unitsys import allow_openff_units, openff_to_openmm
 
 
 # MASS
