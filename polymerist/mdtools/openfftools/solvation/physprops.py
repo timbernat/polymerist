@@ -6,6 +6,8 @@ __email__ = 'timotej.bernat@colorado.edu'
 from typing import Union
 
 from math import ceil
+import numpy as np
+
 from rdkit.Chem import Descriptors, Mol
 
 from openmm.unit import gram, centimeter, mole
@@ -39,6 +41,20 @@ def offtop_mass(offtop : Topology, as_openmm : bool=False) -> Union[Quantity, OF
     if as_openmm:
         return openff_to_openmm(mass) # perform conversion at end, to avoid multiple intermediate conversions and avoid initializing sum() with Quantity
     return mass
+
+# VOLUME AND EXTENT
+def effective_radius(offmol : Molecule, conf_id : int=0) -> Quantity:
+    '''
+    Determine an effective spherical radius for a Molecule
+    
+    Defined to be the radius of the smallest sphere which contains all atoms in the molecule
+    if that sphere is placed concentric to the centroid of the chosen conformer 
+    '''
+    positions = offmol.conformers[conf_id] # will raise IndexError if invalid conformer is chosen
+    positions_centered = positions - positions.mean(axis=0) # note this is mass-unweighted (i.e. not the center of mass)
+    dists_to_centroid = np.linalg.norm(positions_centered, axis=1)
+
+    return dists_to_centroid.max() # NOTE: has the same units attached as the conformer does
 
 # DENSITY
 @allow_openff_units
