@@ -4,25 +4,21 @@ __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
 import numpy as np
-
-from rdkit import Chem
-from rdkit.Chem import rdGeometry, rdMolTransforms, Mol
+from rdkit.Chem import Mol, CombineMols
+from rdkit.Chem.rdMolTransforms import ComputeCanonicalTransform, TransformConformer
 
 from ...genutils.typetools.numpytypes import Shape, N
 from ...maths.linearalg import affine
-from ...maths.lattices.coordinates import Coordinates
 
 
-def rdmol_effective_radius(rdmol : Chem.Mol, conf_id : int=0) -> float:
+def rdmol_effective_radius(rdmol : Mol, conf_id : int=0) -> float:
     '''Determine an effective radius of influence of a molecule such that all atoms are within this radius'''
     conformer = rdmol.GetConformer(conf_id)
-    positions = Coordinates(conformer.GetPositions())
-    dists_to_centroid = positions.dists_to_centroid()
-
-    # polymerist-agnostic implementation
-    # centroid  = rdMolTransforms.ComputeCentroid(conformer, ignoreHs=True) # = positions.mean(axis=0) # TOSELF : mean positiona dn centroid give slightly different result, but don't affect validity of tiling
-    # dists_to_centroid = np.linalg.norm(positions - centroid, axis=1)
-
+    positions = conformer.GetPositions()
+    
+    positions_centered = positions - positions.mean(axis=0) # note this is mass-unweighted (i.e. not the center of mass)
+    dists_to_centroid = np.linalg.norm(positions_centered, axis=1)
+    
     return dists_to_centroid.max()
 
 def tile_lattice_with_rdmol(rdmol : Mol, lattice_points : np.ndarray[Shape[N, 3], float], rotate_randomly : bool=True, conf_id : int=0) -> Mol:
@@ -34,7 +30,7 @@ def tile_lattice_with_rdmol(rdmol : Mol, lattice_points : np.ndarray[Shape[N, 3]
         raise ValueError('Molecule must have at least one conformer to be tiled')
     
     conformer = rdmol.GetConformer(conf_id)
-    centering = rdMolTransforms.ComputeCanonicalTransform(conformer, ignoreHs=True) # translation which centers the given conformer
+    centering = ComputeCanonicalTransform(conformer, ignoreHs=True) # translation which centers the given conformer
 
     tiled_topology = None
     for point in lattice_points:
@@ -42,12 +38,12 @@ def tile_lattice_with_rdmol(rdmol : Mol, lattice_points : np.ndarray[Shape[N, 3]
         rotation    = affine.randRot(about_x=rotate_randomly, about_y=rotate_randomly, about_z=rotate_randomly) # rotation about either all axes or the identity matrix
         transform = translation @ rotation @ centering # NOTE : (right-to-left) order matters here!! Must first move to origin, then rotate, and then translate to latice point 
 
-        clone = Chem.Mol(rdmol) # make copy to avoid modifying ariginal
-        rdMolTransforms.TransformConformer(clone.GetConformer(0), transform) # apply transform to 
+        clone = Mol(rdmol) # make copy to avoid modifying ariginal
+        TransformConformer(clone.GetConformer(0), transform) # apply transform to 
         
         if tiled_topology is None:
             tiled_topology = clone
         else:
-            tiled_topology = Chem.CombineMols(tiled_topology, clone)
+            tiled_topology = CombineMols(tiled_topology, clone)
 
     return tiled_topology
