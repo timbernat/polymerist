@@ -68,10 +68,13 @@ _DEFAULT_RESNAME_MAP : dict[str, str] = { # module-wide config for default PDB r
 
 def mbmol_to_rdmol( # TODO: deduplify PDB atom name and residue numbering code against serialize_openmm_pdb()
         mbmol : Compound,
-        atom_labeller : Optional[SerialAtomLabeller]=SerialAtomLabeller(),
+        atom_labeller : Optional[SerialAtomLabeller]=None,
         resname_map : Optional[dict[str, str]]=None
     ) -> Chem.Mol:
     '''Convert an mBuild Compound into an RDKit Mol, with correct atom coordinates and PDB residue info'''
+    if atom_labeller is None:
+        atom_labeller = SerialAtomLabeller()
+    
     if resname_map is None:
         resname_map = _DEFAULT_RESNAME_MAP
     
@@ -85,7 +88,7 @@ def mbmol_to_rdmol( # TODO: deduplify PDB atom name and residue numbering code a
         # NOTE: the order of monomers and atoms within those monomers were added in the same order as iterated over here...
         #... so the atom indices **SHOULD** be in the correct order (hate that this even might be uncertain)
         for mbatom in mb_monomer.particles(): 
-            conformer.SetAtomPosition(atom_id, 10*mbatom.pos.astype(float)) # conveert from nm to angstrom
+            conformer.SetAtomPosition(atom_id, 10*mbatom.pos.astype(float)) # convert from nm to angstrom
 
             # set PDB residue info if monomer hierarchy is present
             if mbatom != mb_monomer: # for Compounds with a flat hierarchy, the children and particles of children will coincide
@@ -110,12 +113,16 @@ def mbmol_to_rdmol( # TODO: deduplify PDB atom name and residue numbering code a
 def mbmol_to_rdkit_pdb(
         pdb_path : str,
         mbmol : Compound, 
-        atom_labeller : Optional[SerialAtomLabeller]=SerialAtomLabeller(),
+        atom_labeller : Optional[SerialAtomLabeller]=None,
         resname_map : Optional[dict[str, str]]=None,
     ) -> None:
     '''Save an MBuild Compound into an RDKit-formatted PDB file'''
     Chem.MolToPDBFile(
-        mbmol_to_rdmol(mbmol, atom_labeller=atom_labeller, resname_map=resname_map),
+        mbmol_to_rdmol(
+            mbmol,
+            atom_labeller=atom_labeller,
+            resname_map=resname_map,
+        ),
         pdb_path,
     )
     
@@ -123,7 +130,7 @@ def mbmol_to_rdkit_pdb(
 def mbmol_to_openmm_pdb(
         pdb_path : Path,
         mbmol : Compound, 
-        atom_labeller : Optional[SerialAtomLabeller]=SerialAtomLabeller(),
+        atom_labeller : Optional[SerialAtomLabeller]=None,
         resname_map : Optional[dict[str, str]]=None,
     ) -> None:
     '''Save an MBuild Compound into an OpenMM-formatted PDB file'''

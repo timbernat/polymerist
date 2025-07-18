@@ -124,11 +124,14 @@ def serialize_openmm_pdb(
         topology : OpenMMTopology,
         positions : Union[NDArray, list[Vec3]],
         keep_chain_and_res_ids : bool=True,
-        atom_labeller : Optional[SerialAtomLabeller]=SerialAtomLabeller(),
+        atom_labeller : Optional[SerialAtomLabeller]=None,
         resname_map : Optional[dict[str, str]]=None,
     ) -> None:
     '''Configure and write an Protein DataBank File from an OpenMM Topology and array of positions
     Provides options to configure atom ID numbering, residue numbering, and residue naming'''
+    if atom_labeller is None:
+        atom_labeller = SerialAtomLabeller()
+    
     if resname_map is None:
         resname_map = {} # avoids mutable default
 
