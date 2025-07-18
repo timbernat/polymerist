@@ -33,3 +33,12 @@ from ._toolkits import (
     CHARGE_METHODS_BY_TOOLKIT,
     TOOLKITS_BY_CHARGE_METHOD,
 )
+
+def available_force_fields_summary(newline : str='\n', indent_delimiter : str='\t') -> str:
+    '''Human-readable list of all the currently-installed OpenFF ForceFields'''
+    spacer_str = f'{newline}{indent_delimiter}'
+    ff_dir_strings : list[str] = [
+        spacer_str.join([f'{ff_dir}:'] + [ff_path.stem for ff_path in ff_paths])
+            for ff_dir, ff_paths in FF_PATH_REGISTRY.items()
+    ]
+    return newline.join(ff_dir_strings)
