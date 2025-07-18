@@ -34,11 +34,19 @@ from ._toolkits import (
     TOOLKITS_BY_CHARGE_METHOD,
 )
 
-def available_force_fields_summary(newline : str='\n', indent_delimiter : str='\t') -> str:
+# convenience methods
+from typing import Union
+from ...genutils.trees.treeviz import treestr, Node, AbstractStyle, ContStyle 
+# DEVNOTE: modules_installed() depends on anytree, so there's no need to worry about checking for it this far in this script
+
+def available_force_fields_summary(newline : str='\n', style : Union[str, AbstractStyle]=ContStyle()) -> str:
     '''Human-readable list of all the currently-installed OpenFF ForceFields'''
-    spacer_str = f'{newline}{indent_delimiter}'
-    ff_dir_strings : list[str] = [
-        spacer_str.join([f'{ff_dir}:'] + [ff_path.stem for ff_path in ff_paths])
-            for ff_dir, ff_paths in FF_PATH_REGISTRY.items()
-    ]
-    return newline.join(ff_dir_strings)
+    ff_dir_tree_strs : list[Node] = []
+    for ff_dir_name, ff_paths in FF_PATH_REGISTRY.items():
+        ff_dir_node = Node(ff_dir_name)
+        for ff_path in ff_paths:
+            _ = Node(ff_path.stem, parent=ff_dir_node)
+        ff_dir_tree_strs.append(treestr(ff_dir_node, style=style))
+        
+    return newline.join(ff_dir_tree_strs)
+        
