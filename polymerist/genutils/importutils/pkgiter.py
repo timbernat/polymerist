@@ -12,15 +12,16 @@ from typing import Generator, Iterable, Optional, Union
 from importlib import import_module
 from pkgutil import iter_modules as _iter_modules
 
+from .pkginspect import module_stem, is_package
+from .dependencies import MissingPrerequisitePackage
+
+# DEVNOTE: the anytree imports here are placed AFTER the internal imports to piggyback off of
+# the more helpful error message the internal imports would raise if anytree is not installed
+from ..trees.treebase import NodeCorrespondence, compile_tree_factory
+from ..trees.treeviz import treestr
 from anytree.node import Node
 from anytree.render import AbstractStyle, ContStyle
 from anytree.iterators import PreOrderIter
-
-from .pkginspect import module_stem, is_package
-from .dependencies import MissingPrerequisitePackage
-from ..trees.treebase import NodeCorrespondence, compile_tree_factory
-from ..trees.treeviz import treestr
-
 
 
 # HIERARCHICAL MODULE TREE GENERATION
