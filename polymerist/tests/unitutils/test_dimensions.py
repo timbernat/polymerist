@@ -15,13 +15,16 @@ from pint import (
     Unit as PintUnit,
     Quantity as PintQuantity, # this is also the base class for all OpenFF-style units
     UnitRegistry,
+    DimensionalityError,
 )
 ureg = UnitRegistry()
+Quantity = Union[PintQuantity, OpenMMQuantity]
 
 from polymerist.unitutils.dimensions import (
     hasunits,
     strip_units,
     is_volume,
+    quantities_approx_equal
 )
 
 
@@ -140,3 +143,64 @@ SAMPLE_COORDS : tuple[float] = (1.23, 4.56, 7.89) # these numbers are arbitrary,
 def test_strip_units(coordlike : Union[tuple, PintQuantity, OpenMMQuantity]) -> None:
     '''Test that removing units works for Pint, OpenMM, and unit-free objects'''
     assert tuple(strip_units(coordlike)) == SAMPLE_COORDS # need to re-tuplify to counteract numpy auto-conversion by pint
+
+@pytest.mark.parametrize(
+    'q1, q2, rel_tol, expected_are_equal', [
+        # test nominal OpenMM inputs
+        (1.0*centimeter, (1.0 + 1E-6)*centimeter, 1E-4, True),
+        (1.0*centimeter, (1.0 + 1E-6)*centimeter, 1E-8, False),
+        ## check within float precision
+        (0.1*(centimeter/second) + 0.2*(centimeter/second), 0.3*(centimeter/second), 1E-8, True), 
+        (0.1*(centimeter/second) + 0.2*(centimeter/second), 0.3*(centimeter/second), 1E-18, False),
+        # test nominal Pint inputs
+        (1.0*ureg.centimeter, (1.0 + 1E-6)*ureg.centimeter, 1E-4, True),
+        (1.0*ureg.centimeter, (1.0 + 1E-6)*ureg.centimeter, 1E-8, False),
+        ## check within float precision
+        (0.1*ureg.centimeter_per_second + 0.2*ureg.centimeter_per_second, 0.3*ureg.centimeter_per_second, 1E-8, True), 
+        (0.1*ureg.centimeter_per_second + 0.2*ureg.centimeter_per_second, 0.3*ureg.centimeter_per_second, 1E-18, False),
+        # Pathological examples
+        pytest.param(
+            1.0*centimeter, (1.0 + 1E-6)*ureg.centimeter, 1E-4, True, 
+            marks=pytest.mark.xfail(
+                raises=TypeError, 
+                reason='OpenMM and Pint units should not be directly comparable',
+                strict=True,
+            )
+        ),
+        pytest.param( # result is not symmetric in order of args, so check swapped args for good measure
+            (1.0 + 1E-6)*ureg.centimeter, 1.0*centimeter, 1E-4, True, 
+            marks=pytest.mark.xfail(
+                raises=TypeError, 
+                reason='OpenMM and Pint units should not be directly comparable',
+                strict=True,
+            )
+        ),
+        pytest.param(
+            3.14, 3.1415, 1E-4, True,
+            marks=pytest.mark.xfail(
+                raises=TypeError,
+                reason='Non-quantity objects should not be comparable',
+                strict=True,
+            )
+        ),
+        pytest.param(
+            1.0*centimeter, 1.0*second, 1E-4, True,
+            marks=pytest.mark.xfail(
+                raises=TypeError, # Exception raised will be specific to OpenMM...
+                reason='Incompatible units should not be comparable',
+                strict=True,
+            )
+        ),
+        pytest.param(
+            1.0*ureg.centimeter, 1.0*ureg.second, 1E-4, True,
+            marks=pytest.mark.xfail(
+                raises=DimensionalityError, # ...vs Pint
+                reason='Incompatible units should not be comparable',
+                strict=True,
+            )
+        ),
+    ]
+)
+def test_quantities_approx_equal(q1 : Quantity, q2 : Quantity, rel_tol : float, expected_are_equal : bool) -> None:
+    '''Test that two quantities are approximately equal within a given tolerance'''
+    assert quantities_approx_equal(q1, q2, rel_tol) == expected_are_equal
