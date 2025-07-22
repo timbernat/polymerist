@@ -10,6 +10,7 @@ from typing import Any, ClassVar, Container, Iterable, Optional, Sequence
 from abc import ABC, abstractmethod
 
 import requests
+from requests.structures import CaseInsensitiveDict
 
 from ..genutils.decorators.classmod import register_abstract_class_attrs, register_subclasses
 from ..genutils.importutils.dependencies import requires_modules, MissingPrerequisitePackage
@@ -34,7 +35,7 @@ class ChemicalDataQueryFailed(Exception):
 class ChemDBServiceQueryStrategy(ABC):
     '''Implementation of queries from a particular chemical database'''
     @abstractmethod
-    def _get_property(self, prop_name : str, representation : str, **kwargs) -> Optional[Any]:
+    def _get_property(self, property_name : str, identifier : str, **kwargs) -> Optional[Any]:
         ...
         
     @classmethod
@@ -60,29 +61,30 @@ class ChemDBServiceQueryStrategy(ABC):
         '''List which chemical identification types can be searched through by the service'''
         ...
         
-    def validate_property(self, prop_name : str) -> None:
+    def validate_property(self, property_name : str) -> None:
         '''Pre-check to ensure that a property is queryable from a service before attempting HTTP query'''
-        if prop_name not in self.queryable_properties():
+        if property_name not in self.queryable_properties():
             prop_options_str = '\n'.join(sorted(self.queryable_properties()))
-            prop_error_msg = f'Cannot query property "{prop_name}" from {self.service_name}'
+            prop_error_msg = f'Cannot query property "{property_name}" from {self.service_name}'
             LOGGER.error(prop_error_msg) # log briefer error message in cases where the ensuing ValueError is bypassed
             
             raise InvalidPropertyError(f'{prop_error_msg};\nChoose from one of the following property names:\n{prop_options_str}')
         
     def get_property(
             self, 
-            prop_name : str, 
-            representation : str, 
+            property_name : str, 
+            identifier : str, 
             namespace : Optional[str],
             keep_first_only : bool=True,
             allow_null_return : bool=False,
             **kwargs
         ) -> Optional[Any]:
         '''Fetch a property associated with a molecule from a chemical database query service'''
-        LOGGER.info(f'Sent query request for property "{prop_name}" to {self.service_name}')
-        self.validate_property(prop_name=prop_name)
+        property_name = property_name.casefold() # avoid needing to account for case-sensitivity in property name check
+        LOGGER.info(f'Sent query request for property "{property_name}" to {self.service_name}')
+        self.validate_property(property_name=property_name)
         
-        prop_val = self._get_property(prop_name=prop_name, representation=representation, namespace=namespace, **kwargs)
+        prop_val = self._get_property(property_name=property_name, identifier=identifier, namespace=namespace, **kwargs)
         if not prop_val:
             prop_val = None # cast empty lists, strings, etc to NoneType
         
@@ -90,11 +92,11 @@ class ChemDBServiceQueryStrategy(ABC):
             prop_val = prop_val[0]
         
         if (prop_val is None) and (not allow_null_return): # NOTE: duplicated NoneType check is needed to catch empty containers which are cast to None above
-            null_error_msg = f'{self.service_name} returned NoneType "{prop_name}", which is declared invalid by call signature'
+            null_error_msg = f'{self.service_name} returned NoneType "{property_name}", which is declared invalid by call signature'
             LOGGER.error(null_error_msg)
             
             raise NullPropertyResponse(null_error_msg)
-        LOGGER.info(f'Successfully received property "{prop_name}" from {self.service_name}')
+        LOGGER.info(f'Successfully received property "{property_name}" from {self.service_name}')
                 
         return prop_val
     
@@ -125,19 +127,27 @@ class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
         import cirpy 
         
         _CIR_PROPS = {  # see official docs for more info: https://cactus.nci.nih.gov/chemical/structure_documentation
+            # Chemical Representations
             'smiles',
+            'names',
+            'iupac_name',
+            'formula',
+            'sdf',
+            ## NIH NCI Identifiers
             'ficts',
             'ficus',
             'uuuuu',
             'hashisy',
-            'names',
-            'iupac_name',
+            ## InChI-related properties with aliases
+            'inchi',
+            'inchikey',
+            'stdinchi', 
+            'stdinchikey',
+            ## Other formats
             'cas',
             'chemspider_id',
-            'image',
-            'twirl',
+            # Chemical information
             'mw',
-            'formula',
             'h_bond_donor_count',
             'h_bond_acceptor_count',
             'h_bond_center_count',
@@ -146,12 +156,7 @@ class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
             'effective_rotor_count',
             'ring_count',
             'ringsys_count',
-            'inchi',
-            'inchikey',
-            # shortened aliases of InChI-related properties
-            'stdinchi', 
-            'stdinchikey',
-            # these were not documented on CACTUS or by cirpy, but scraped from webchem: https://github.com/ropensci/webchem/blob/master/R/cir.R#L168-L174
+            ## these were not documented on CACTUS or by cirpy, but scraped from webchem: https://github.com/ropensci/webchem/blob/master/R/cir.R#L168-L174
             'deprotonable_group_count',
             'heavy_atom_count',
             'heteroatom_count',
@@ -159,8 +164,11 @@ class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
             'monoisotopic_mass',
             'protonable_group_count',
             'xlogp2',
+            # Documented but non-working queries
+            # 'image', # for some reason, image query returns internal server error in testing
+            # 'twirl', # NOTE: this is documented on the CIR site, but raises XML error in practice
         }
-        return _CIR_PROPS | cirpy.FILE_FORMATS
+        return _CIR_PROPS | cirpy.FILE_FORMATS # see here for file formats: https://cirpy.readthedocs.io/en/latest/guide/gettingstarted.html#file-formats
     
     @classmethod
     def is_online(cls):
@@ -182,10 +190,15 @@ class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
         }
     
     @requires_modules('cirpy', missing_module_error=cirpy_error)
-    def _get_property(self, prop_name : str, representation : str, namespace : Optional[str]=None, **kwargs):
+    def _get_property(self, property_name : str, identifier : str, namespace : Optional[str]=None, **kwargs):
         import cirpy
         
-        return cirpy.resolve(representation, prop_name, resolvers=[namespace], **kwargs)
+        return cirpy.resolve(
+            input=identifier,
+            representation=property_name,
+            resolvers=[namespace],
+            **kwargs,
+        )
 
 ## PubChem
 pubchempy_error = MissingPrerequisitePackage(
@@ -217,7 +230,12 @@ class PubChemQueryStrategy(ChemDBServiceQueryStrategy):
     def queryable_properties(cls) -> set[str]:
         from pubchempy import PROPERTY_MAP
         
-        return set(PROPERTY_MAP.keys()) | set(PROPERTY_MAP.values()) | {'Fingerprint2D'} # also taken from webchem: https://github.com/ropensci/webchem/blob/master/R/pubchem.R#L377C21-L392C55
+        return set.union(
+            set(PROPERTY_MAP.keys()),
+            set(PROPERTY_MAP.values()),
+            set(proper_name.casefold() for proper_name in PROPERTY_MAP.values()), # include case-insensitive versions of names for completeness
+            {'fingerprint2d'}, # also taken from webchem: https://github.com/ropensci/webchem/blob/master/R/pubchem.R#L377C21-L392C55
+        )
     
     @classmethod
     def queryable_namespaces(cls) -> set[str]:
@@ -233,27 +251,32 @@ class PubChemQueryStrategy(ChemDBServiceQueryStrategy):
         }
     
     @requires_modules('pubchempy', missing_module_error=pubchempy_error)
-    def _get_property(self, prop_name : str, representation : str, namespace : Optional[str]='smiles', **kwargs) -> Optional[Any]:
-        from pubchempy import PROPERTY_MAP, get_properties, PubChemPyError
+    def _get_property(self, property_name : str, identifier : str, namespace : Optional[str]='smiles', **kwargs) -> Optional[Any]:
+        import pubchempy as pcp
         
-        official_prop_name = PROPERTY_MAP.get(prop_name, prop_name) # this is done internally, but needed here to extract the property value from the final return dict
         try:
-            pubchem_result = get_properties(official_prop_name, identifier=representation, namespace=namespace, **kwargs)
-        except PubChemPyError:
+            pubchem_result = pcp.get_properties(
+                properties=property_name, 
+                identifier=identifier,
+                namespace=namespace, 
+                **kwargs,
+            )
+        except pcp.PubChemPyError:
             raise requests.HTTPError # discards some information in return for making Strategy interface oblivious to pubchempy (i.e. in case it is not installed)
         else:
             if pubchem_result:
-                pubchem_result = [
-                    query_result[official_prop_name] # extract property value from extraneous CID (and any other) info
-                        for query_result in pubchem_result
-                            if official_prop_name in query_result # skip if return doesn't contain the info we specifically requested (happens occasionally for some reason)
+                property_name_no_under = property_name.replace('_', '') # remove underscores to compatibilize naming hits (property names returned from PubChem will never contain underscores)
+                pubchem_result = [ # extract the requested property field from the full return fields pubchempy returns
+                    case_insensitive_query_result[property_name_no_under] # extract property value from extraneous CID (and any other) info
+                        for case_insensitive_query_result in map(CaseInsensitiveDict, pubchem_result) # allows case-insensitive matching to query names
+                            if property_name_no_under in case_insensitive_query_result # skip if return doesn't contain the info we specifically requested (happens occasionally for some reason)
                 ] 
             return pubchem_result
         
 # UTILITY FUNCTIONS EMPLOYING GENERIC STRATEG(Y/IES)
 def get_chemical_property(
-        prop_name : str, 
-        representation : str, 
+        property_name : str, 
+        identifier : str, 
         namespace : str='smiles',
         keep_first_only : bool=True,
         allow_null_return : bool=False,
@@ -285,8 +308,8 @@ def get_chemical_property(
         LOGGER.info(f'Attempting chemical property query to service {i}/{n_services_to_try} ("{service.service_name}"):')
         try:
             prop_val = service.get_property(
-                prop_name,
-                representation,
+                property_name,
+                identifier,
                 namespace,
                 keep_first_only=keep_first_only,
                 allow_null_return=allow_null_return,

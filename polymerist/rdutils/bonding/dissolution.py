@@ -10,8 +10,7 @@ from typing import Optional
 from rdkit import Chem
 from rdkit.Chem.rdchem import BondType, RWMol
 
-from ..rderrors import BondOrderModificationError
-from ..labeling.bondwise import are_bonded_atoms
+from . import BondOrderModificationError
 from ...genutils.decorators.functional import optional_in_place
 
 
@@ -19,7 +18,7 @@ from ...genutils.decorators.functional import optional_in_place
 def _decrease_bond_order(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int) -> RWMol: 
     '''Lower the order of a bond between two atoms, raising Expection if no bond exists
     DOES NOT ENSURE VALENCE OF BONDED ATOMS IS PRESERVED'''
-    if not are_bonded_atoms(rwmol, atom_id_1, atom_id_2):
+    if rwmol.GetBondBetweenAtoms(atom_id_1, atom_id_2) is None:
         raise BondOrderModificationError
     
     # determine expected bond type after order decrease (handle single-bond case, specifically) 
@@ -43,10 +42,9 @@ def decrease_bond_order(rwmol : RWMol, atom_id_1 : int, atom_id_2 : int, new_fla
     assert(len(new_flavor_pair) == 2)
     
     _decrease_bond_order(rwmol, atom_id_1, atom_id_2, in_place=True) # NOTE : must explicitly be called in-place to ensure correct top-level behavior, since this function is also decorated
-    # free_isotope_labels = int_complement(get_isotopes(rwmol, unique=True), bounded=False) # generate unused isotope labels
     # add new ports for broken bond
     for atom_id, flavor in zip(atom_ids, new_flavor_pair):
-        new_linker = Chem.AtomFromSmarts('[#0]') # TODO : see if this can be made into a SMILES mol instead?
+        new_linker = Chem.AtomFromSmarts('[#0]') 
         new_linker.SetIsotope(flavor)
         new_port_id = rwmol.AddAtom(new_linker)# insert new port into molecule, taking note of index (TOSELF : ensure that this inserts indices at END of existing ones, could cause unexpected modification if not)
         

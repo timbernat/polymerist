@@ -13,7 +13,11 @@ from .formation import increase_bond_order
 from .portlib import get_linker_ids, get_single_port
 from .identification import get_num_bondable_port_pairs, get_first_bondable_port_pair
 
-from ..labeling import molwise
+from ..chemlabel import (
+    map_numbers_by_atom_idxs,
+    atom_idxs_by_map_numbers,
+    assign_ordered_atom_map_nums
+)
 from ...genutils.decorators.functional import optional_in_place
 
 
@@ -29,9 +33,9 @@ def splice_atoms(rwmol : RWMol, atom_id_1 : Optional[int]=None, atom_id_2 : Opti
     assert(port_1.bond.GetBondType() == port_2.bond.GetBondType()) # slightly redundant given pre-bonding checks, but is a helpful failsafe
     for i in range(int(port_1.bond.GetBondTypeAsDouble())): # bond the target atoms up to the degree of the desired port pair; types
         if i == 0: # record map numbers, as these are invariant between bonding events (unlike atom IDs)
-            atom_map_nums = [j for j in molwise.map_nums_by_atom_ids(rwmol, atom_id_1, atom_id_2)] # unpack as list to avoid values being "used up" upon iteration
+            atom_map_nums = [j for j in map_numbers_by_atom_idxs(rwmol, atom_id_1, atom_id_2)] # unpack as list to avoid values being "used up" upon iteration
         else:
-            atom_id_1, atom_id_2 = molwise.atom_ids_by_map_nums(rwmol, *atom_map_nums) # reassign bonded atom IDs from invariant map nums cached on first bond formation
+            atom_id_1, atom_id_2 = atom_idxs_by_map_numbers(rwmol, *atom_map_nums) # reassign bonded atom IDs from invariant map nums cached on first bond formation
 
         increase_bond_order(rwmol, atom_id_1, atom_id_2, flavor_pair=flavor_pair, in_place=True) 
 
@@ -50,7 +54,7 @@ def saturate_ports(rdmol : Mol, cap : Mol=Chem.MolFromSmiles('[*]-[H]'), flavor_
         if num_bonds_formable > 1: # need -1 to exclude final addition
             rwmol = combined_rdmol(rwmol, cap, editable=True) # add another cap group on all but the final iteration. NOTE : must be added one-at-a-time to preclude caps from bonding to each other
         num_bonds_formable = get_num_bondable_port_pairs(rwmol, flavor_pair=flavor_pair) # update count of available bonds (this may change as new bonds are added)
-    molwise.assign_ordered_atom_map_nums(rwmol, in_place=True) # ensure map numbers are ordered and minial
+    assign_ordered_atom_map_nums(rwmol, in_place=True) # ensure map numbers are ordered and minial
     
     return Chem.Mol(rwmol) # revert to "regular" Mol from RWMol
 

@@ -12,67 +12,71 @@ from typing import Union
 from rdkit import Chem
 from rdkit.Chem import QueryAtom
 
-from ...smileslib.primitives import is_valid_SMILES, is_valid_SMARTS, RDKIT_QUERYBONDS_BY_BONDTYPE
-from ...rdutils.labeling import molwise
-
-
-# CHEMICAL INFO SPECIFICATION
-SANITIZE_AS_KEKULE = (Chem.SANITIZE_ALL & ~Chem.SANITIZE_SETAROMATICITY) # sanitize everything EXCEPT reassignment of aromaticity
-
-def expanded_SMILES(
-        smiles : str,
-        assign_map_nums : bool=True,
-        start_from : int=1,
-        kekulize : bool=True,
-    ) -> str:
-    '''
-    Expands and clarifies the chemical information contained within a passed SMILES string
-    namely explicit hydrogens and bond orders, and (optionally) kekulized aromatic bonds and atom map numbers
-    '''
-    assert(is_valid_SMILES(smiles))
-    
-    rdmol = Chem.MolFromSmiles(smiles, sanitize=True)
-    rdmol = Chem.AddHs(rdmol, addCoords=True)
-    if assign_map_nums:
-        rdmol = molwise.assign_ordered_atom_map_nums(rdmol, start_from=start_from)
-    
-    if kekulize:
-        Chem.Kekulize(rdmol, clearAromaticFlags=True)
-    Chem.SanitizeMol(rdmol)
-
-    return Chem.MolToSmiles(rdmol, kekuleSmiles=kekulize, allBondsExplicit=True, allHsExplicit=True)
+from ...smileslib.cleanup import (
+    Smiles, 
+    Smarts,
+    InvalidSMARTS,
+    is_valid_SMARTS,
+    expanded_SMILES, # beyond being a necessary import, this also makes importing expanded_SMILES from this module backwards-compatible
+)
+from ...smileslib.primitives import RDKIT_QUERYBONDS_BY_BONDTYPE
+from ...rdutils.cheminspect import all_Hs_are_explicit, has_aromatic_bonds
+from ...rdutils.chemlabel import has_fully_mapped_atoms, has_uniquely_mapped_atoms
 
 
 # REGEX TEMPLATES FOR COMPLIANT SMARTS
-COMPLIANT_ATOM_SMARTS = re.compile( # spec-compliant query
-    r'\[' \
-    r'(?P<isotope>\d?)' \
-    r'#(?P<atomic_num>\d+?)' \
-    r'(D(?P<degree>\d{1}))?' \
-    r'([+-](?P<formal_charge>\d+))?'
-    r':(?P<atom_map_num>\d+?)' \
-    r'\]'
+COMPLIANT_ATOM_SMARTS = re.compile( # pattern for specification-compliant query
+    r'''    
+    \[                              ## start atom entry: open bracket
+    (?P<isotope>\d?)                ## isotope label: (possibly no) digits
+    \#(?P<atomic_num>\d+?)          ## atomic number: literal octothorpe followed by at least 1 digit (non-greedy)
+    (D(?P<degree>\d{1}))?           ## degree label: literal D (for number of explicit connections in SMARTS) and exactly one digit
+    ([+-](?P<formal_charge>\d+))    ## formal charge: explicit sign (+ or -) followed by at least one digit
+    :(?P<atom_map_num>\d+?)         ## atom map number: colon followed by at least one digit (empty not allowed, since explicitly-mapped atoms are reuiqred by the spec)
+    \]                              ## end atom entry: close bracket
+    ''',
+    flags=re.VERBOSE,
 )
 
-ABERRANT_ATOM_SMARTS = re.compile( # spec-compliant query which has been mangled by RDKit
-    r'\[' \
-    r'#(?P<atomic_num>\d+?)' \
-    r'(&(?P<isotope>\d+?)\*)?' \
-    r'(&D(?P<degree>\d{1}))?' \
-    r'(&[+-](?P<formal_charge>\d+))?'
-    r':(?P<atom_map_num>\d+?)' \
-    r'\]'
+ABERRANT_RDKIT_ATOM_SMARTS = re.compile( # pattern for a specification-compliant query which has been mangled by RDKit
+    r'''
+    \[                              ## start atom entry: open bracket
+    \#(?P<atomic_num>\d+?)          ## atomic number: literal octothorpe followed by at least 1 digit (non-greedy)
+    (&(?P<isotope>\d+?)\*)?         ## isotope label (totally optional): ampersand delimiter, one or more digits, and a literal asterisk (which RDKit for some reason inserts)
+    (&D(?P<degree>\d{1}))?          ## degree label  (totally optional): ampersand delimiter, literal D (for number of explicit connections in SMARTS) and exactly one digit
+    (&                              ## formal charge (totally optional): ampersand delimiter, followed by...
+        (?P<charge_sign>[+-])           ### a charge sign (non-optional + or -)
+        (?P<charge_magnitude>\d?)       ### a charge magnitude, as some number of digits (possibly none is valid, e.g. "+" is understood to mean "+1")
+    )?  
+    :(?P<atom_map_num>\d+?)         ## atom map number: colon followed by at least one digit
+    \]                              ## end atom entry: close bracket
+    ''',
+    flags=re.VERBOSE,
 )
+
+def disambiguate_formal_charge(sign : str, magnitude : str) -> int:
+    '''Convert possibly explicit sign and magnitude of SMILES-compliant atom formal charge
+    entry to an explicit signed integer value (e.g. "+" -> +1, "--" -> -2)'''
+    if not magnitude:
+        if not sign:
+            sign, magnitude = '+0' # special case for when the field is totally blank (atoms considered neutral by default)
+        else:
+            magnitude = '1'
+
+    return int(f'{sign}{magnitude}') # DEVNOTE: worth checking if magnitude is digit here? will be rejected by int conversion anyway if not
 
 def chem_info_from_match(match : re.Match) -> dict[str, Union[int, str, None]]:
     '''Generate chemical information dict (with proper types) from an atom query regex match'''
     atom_info = match.groupdict()
+    atom_info['formal_charge'] = disambiguate_formal_charge(
+        sign=atom_info.pop('charge_sign'),           # raise Exception f ancilliary data is not present, or else look up and remove it to avoid danling keys when passed as args
+        magnitude=atom_info.pop('charge_magnitude'), # raise Exception f ancilliary data is not present, or else look up and remove it to avoid danling keys when passed as args
+    )
     for key, value in atom_info.items():
         if isinstance(value, str) and value.isdigit():
             atom_info[key] = int(value) # convert parsed strings to ints where possible
 
     return atom_info
-
 
 # SMARTS ATOM QUERY GENERATION
 def compliant_atom_query_from_info(
@@ -112,17 +116,27 @@ def compliant_atom_query_from_re_match(match : re.Match) -> str:
     '''Construct a monomer-spec compliant atom SMARTS string from a RegEx string match of a compliant or aberrant atom'''
     return compliant_atom_query_from_info(**chem_info_from_match(match), as_atom=False)
 
-
 # CONVERSION METHODS
-## DEV: add function to check whether a given SMARTS is COMPLETELY spec-compliant
-def compliant_mol_SMARTS(smarts : str) -> str:
+def compliant_mol_SMARTS(smarts : Union[Smiles, Smarts]) -> str:
     '''Convert generic SMARTS string into a spec-compliant one'''
-    # initial checks
-    assert(is_valid_SMARTS(smarts))
-    rdmol = Chem.MolFromSmarts(smarts)
-    assert(molwise.has_fully_mapped_atoms(rdmol))
-    assert(molwise.has_uniquely_mapped_atoms(rdmol))
-    # TODO : add aromaticity checks
+    # initialize Mol object from passed SMARTS
+    if not is_valid_SMARTS(smarts):
+        raise InvalidSMARTS(f'Passed string "{smarts}" cannot be interpreted as a valid SMARTS pattern')
+    
+    rdmol = Chem.MolFromSmarts(smarts, mergeHs=False)
+    rdmol.UpdatePropertyCache() # required to set valence for explicit Hs check without otherwise performing sanitization
+    
+    # check explicit hydrogens and atom map numbers
+    if not (
+            has_fully_mapped_atoms(rdmol)
+            and has_uniquely_mapped_atoms(rdmol)
+            and all_Hs_are_explicit(rdmol)
+        ):
+        rdmol = Chem.MolFromSmarts(expanded_SMILES(smarts, kekulize=True)) # expand and kekulize query
+        
+    # check kekulization for good measure
+    if has_aromatic_bonds(rdmol):
+        Chem.SanitizeMol(rdmol, sanitizeOps=(Chem.SANITIZE_ALL & ~Chem.SANITIZE_SETAROMATICITY)) # sanitize everything EXCEPT reassignment of aromaticity
     
     # assign query info to atoms and bonds
     for atom in rdmol.GetAtoms():
@@ -136,7 +150,7 @@ def compliant_mol_SMARTS(smarts : str) -> str:
     # sanitize away RDKit artifacts
     unsanitized_smarts = Chem.MolToSmarts(rdmol) # RDKit does some mangling of queries which needs to be corrected here
     sanitized_smarts, num_repl = re.subn(
-        pattern=ABERRANT_ATOM_SMARTS,
+        pattern=ABERRANT_RDKIT_ATOM_SMARTS,
         repl=compliant_atom_query_from_re_match,
         string=unsanitized_smarts,
         count=rdmol.GetNumAtoms() # can't possibly replace more queries than there are atoms

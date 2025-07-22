@@ -10,13 +10,11 @@ Params = ParamSpec('Params')
 
 from inspect import signature, Parameter
 from functools import wraps, partial
-
 from copy import deepcopy
-from pathlib import Path
 
 from .meta import extend_to_methods
-from . import signatures
-from ..fileutils.pathutils import aspath, asstrpath
+from .signatures import insert_parameter_at_index, get_index_after_positionals
+from ..fileutils.pathutils import allow_string_paths, allow_pathlib_paths # imported for namespace backwards-compatibility
 
 
 @extend_to_methods
@@ -37,7 +35,7 @@ def optional_in_place(funct : Callable[[Concatenate[object, Params]], None]) -> 
             return copy_obj # return the new object
     
     # ADD IN-PLACE PARAMETER TO FUNCTION SIGNATURE
-    new_sig = signatures.insert_parameter_at_index(
+    new_sig = insert_parameter_at_index(
         old_sig,
         new_param=Parameter(
             name='in_place',
@@ -45,7 +43,7 @@ def optional_in_place(funct : Callable[[Concatenate[object, Params]], None]) -> 
             annotation=bool,
             kind=Parameter.KEYWORD_ONLY
         ),
-        index=signatures.get_index_after_positionals(old_sig)
+        index=get_index_after_positionals(old_sig)
     )
 
     # ANNOTATE MODIFED OBJECT RETURN TYPE AS Optional[<type>]
@@ -79,42 +77,3 @@ def flexible_listlike_input(funct : Callable[[Iterator], T]=None, CastType : typ
         return partial(flexible_listlike_input, CastType=CastType, valid_member_types=valid_member_types)
     return wrapper
 
-@extend_to_methods
-def allow_string_paths(funct : Callable[[Concatenate[Path, Params]], T]) -> Callable[[Concatenate[Union[Path, str], Params]], T]:
-    '''Modifies a function which expects a Path as its first argument to also accept string-paths'''
-    # TODO : add assertion that the wrapped function has at least one arg AND that the first arg is of the desired (limited) type
-    old_sig = signature(funct) # lookup old type signature
-
-    @wraps(funct) # for preserving docstring and type annotations / signatures
-    def str_path_wrapper(flex_path : Union[str, Path], *args : Params.args, **kwargs : Params.kwargs) -> T:
-        '''First converts stringy paths into normal Paths, then executes the original function'''
-        return funct(aspath(flex_path), *args, **kwargs)
-
-    # MODIFY SIGNATURE OF PATH-LIKE FIRST ARGUMENT TO MATCH NEW TYPE FLEXIBILITY
-    str_path_wrapper.__signature__ = signatures.modify_param_annotation_by_index(
-        old_sig,
-        index=0, # modify signature of first argument to reflect new type flexibility
-        new_type=Union[Path, str]
-    )
-
-    return str_path_wrapper
-
-@extend_to_methods
-def allow_pathlib_paths(funct : Callable[[Concatenate[str, Params]], T]) -> Callable[[Concatenate[Union[Path, str], Params]], T]:
-    '''Modifies a function which expects a string path as its first argument to also accept canonical pathlib Paths'''
-    # TODO : add assertion that the wrapped function has at least one arg AND that the first arg is of the desired (limited) type
-    old_sig = signature(funct) # lookup old type signature
-
-    @wraps(funct) # for preserving docstring and type annotations / signatures
-    def str_path_wrapper(flex_path : Union[str, Path], *args : Params.args, **kwargs : Params.kwargs) -> T:
-        '''First converts normal Paths into stringy paths, then executes the original function'''
-        return funct(asstrpath(flex_path), *args, **kwargs)
-
-    # MODIFY SIGNATURE OF PATH-LIKE FIRST ARGUMENT TO MATCH NEW TYPE FLEXIBILITY
-    str_path_wrapper.__signature__ = signatures.modify_param_annotation_by_index(
-        old_sig,
-        index=0, # modify signature of first argument to reflect new type flexibility
-        new_type=Union[Path, str]
-    )
-
-    return str_path_wrapper

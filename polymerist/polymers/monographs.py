@@ -83,11 +83,16 @@ class MonomerGraph(nx.Graph):
         if 'pos' not in kwargs:
             kwargs['pos'] = nx.spring_layout(self) # TODO: try other layouts to see which looks best
 
-        monomer_labels = nx.get_node_attributes(self, self.MONOMER_NAME_ATTR) if label_monomers else None
-        nx.draw(self, with_labels=True, labels=monomer_labels, **kwargs)
-        
-        bond_labels    = nx.get_edge_attributes(self, self.BONDTYPE_ATTR) if label_bonds else None
-        nx.draw_networkx_edge_labels(self, edge_labels=bond_labels, **kwargs) # TODO: add flavor labels to drawing
+        nx.draw(self,
+            with_labels=label_monomers,
+            labels=nx.get_node_attributes(self, self.MONOMER_NAME_ATTR),
+            **kwargs,
+        )
+        if label_bonds: # TODO: add flavor labels to drawing
+            nx.draw_networkx_edge_labels(self, 
+                edge_labels=nx.get_edge_attributes(self, self.BONDTYPE_ATTR),
+                **kwargs,
+            ) 
     visualize = draw
 
 

@@ -3,10 +3,24 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import Any, Callable, Iterable, Optional, TypeAlias, Union
-from dataclasses import dataclass, field
+from typing import (
+    Any,
+    Callable,
+    Concatenate,
+    Iterable,
+    Optional,
+    ParamSpec,
+    TypeAlias,
+    TypeVar,
+    Union,
+)
+Parameters = ParamSpec('Parameters')
+ReturnType = TypeVar('ReturnType')
+PairDict : TypeAlias = dict[str, Iterable[tuple[int, int]]] # a dictionary with key-labelled arrays of atom index pairs
 
 import inspect
+from dataclasses import dataclass, field
+
 from itertools import combinations
 from functools import wraps
 
@@ -18,7 +32,6 @@ from openmm.unit import Unit
 from openmm.unit import nanometer, nanosecond, dimensionless
 
 from ..unitutils.dimensions import hasunits
-from ..genutils.typetools.parametric import T, Args, KWArgs
 from ..genutils.decorators.signatures import modify_param_annotation_by_index
 
 
@@ -49,14 +62,12 @@ DEFAULT_PROPS = [ # the base properties of interest for the 2023 monomer spec st
 
 
 # TRAJECTORY TOPOLOGY SELECTION
-PairDict : TypeAlias = dict[str, Iterable[tuple[int, int]]] # a dictionary with key-labelled arrays of atom index pairs
-
-def allow_traj_as_top(funct : Callable[[mdtraj.Topology, Args, KWArgs], T]) -> Callable[[mdtraj.Topology, Args, KWArgs], T]:
+def allow_traj_as_top(funct : Callable[Concatenate[mdtraj.Topology, Parameters], ReturnType]) -> Callable[Concatenate[mdtraj.Topology, Parameters], ReturnType]:
     '''Decorator which allows functions which expect an mdtraj.Topology to also accept an mdtraj.Trajectory'''
     old_sig = inspect.signature(funct) # lookup old type signature
     
     @wraps(funct) # copy over original function signature
-    def mdtop_wrapper(mdtop : Union[mdtraj.Topology, mdtraj.Trajectory], *args : Args, **kwargs : KWArgs) -> T:
+    def mdtop_wrapper(mdtop : Union[mdtraj.Topology, mdtraj.Trajectory], *args : Parameters.args, **kwargs : Parameters.kwargs) -> ReturnType:
         if isinstance(mdtop, mdtraj.Trajectory):
             mdtop = mdtop.topology # extract Topology if Trajectory is passed
         return funct(mdtop, *args, **kwargs)

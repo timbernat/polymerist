@@ -149,8 +149,6 @@ class MultiStreamFileHandler(logging.FileHandler):
             log_level = logging.INFO
 
         self.propogate_msg(level=log_level, msg=completion_msg) # log message at the determined appropriate level, passing up to parents if necessary
-        # if self.parent is not None:                                               
-        #     self.parent.children.pop(self.id) # orphan the current handler once its process is complete
         self.unregister_loggers() # prevents multiple redundant writes within the same Python session
 
         return True # TOSELF : return Falsy value only if errors are unhandled

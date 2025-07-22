@@ -1,112 +1,123 @@
-'''For gathering information and running calculations from LAMMPS input files'''
+'''For extracting information from LAMMPS input and data files'''
 
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import Optional, Union
-
-import re
-from pathlib import Path
+from typing import Optional
 
 import lammps
 from openmm.unit import Unit, Quantity
-from openmm.unit import degree, kilocalorie_per_mole
+from openmm.unit import degree, angstrom, kilojoule_per_mole
 
 from .unitstyles import LAMMPSUnitStyle
-from ...genutils.decorators.functional import allow_string_paths, allow_pathlib_paths
+from ...genutils.decorators.functional import allow_pathlib_paths
 
 
-_DISTANCE_WILDCARD : str = '$DISTANCE'
-LMP_UNIT_REGEX = re.compile(r'^units\s(?P<unit_style>\w*)$')
-LMP_THERMO_STYLE_REGEX = re.compile(r'^thermo_style\s(?P<thermo_style>\b\w*?\b)\s(?P<energy_evals>.*)$')
-
-LAMMPS_ENERGY_KW : dict[str, str] = { # keywordS for evaluating energies and their corresponding meanings
-    'ebond'  : 'Bond',
-    'eangle' : 'Angle',
-    'edihed' : 'Proper Torsion',
-    'eimp'   : 'Improper Torsion',
-    'ecoul'  : 'Coulomb Short',
-    'elong'  : 'Coulomb Long',
-    'evdwl'  : 'vdW',
-    'etail'  : 'Dispersion',
-    'epair'  : 'Nonbonded',
-    'pe'     : 'Potential',
-    'ke'     : 'Kinetic',
-    'etotal' : 'Total'
+# CONSTANTS
+SUPPRESS_LAMMPS_STDOUT : list[str] = ["-screen", "none", "-log", "none"]
+LAMMPS_ENERGY_KW_ALIASES : dict[str, str] = {
+    # bonded
+    'E_bond'    : 'Bond',
+    'E_angle'   : 'Angle',
+    'E_dihed'   : 'Proper Torsion',
+    'E_impro'   : 'Improper Torsion',
+    'E_mol'     : 'Bonded', # = bond + angle + torsion + impropers
+    # nonbonded
+    'E_coul'    : 'Coulomb Short',
+    'E_long'    : 'Coulomb Long',
+    'E_vdwl'    : 'vdW',
+    'E_tail'    : 'Dispersion',
+    'E_pair'    : 'Nonbonded',
+    # overall
+    'PotEng'    : 'Potential',
+    'KinEng'    : 'Kinetic',
+    'TotEng'    : 'Total',  # = KE + PE
+    'Enthalpy'  : 'Enthalpy', # = total + PV work
+    'Ecouple'   : 'Thermostat', # losses from thermostat/barostat action
+    'Econserve' : 'Unconserved',  # deviation from ideality, = total + thermostat
 }
 
-LAMMPS_CELL_KW = ( # keywords for probing unit cell sizes and angles
-    'cella', # TODO : add aliases
-    'cellb',
-    'cellc',
-    'cellalpha',
-    'cellbeta',
-    'cellgamma',
-)
-
-LAMMPS_CELL_UNITS : dict[str, Union[str, Unit]] = { # units associated with unit cell keywords
-    'cella' : _DISTANCE_WILDCARD, 
-    'cellb' : _DISTANCE_WILDCARD,
-    'cellc' : _DISTANCE_WILDCARD,
-    'cellalpha' : degree,
-    'cellbeta'  : degree,
-    'cellgamma' : degree,
-}
-
-@allow_string_paths
-def parse_lammps_input(lmp_in_path : Path) -> dict[str, Union[str, LAMMPSUnitStyle]]: # NOTE : this can and will be expanded in the future
-    '''Read unit style, thermo style, and energies to evaluate from a LAMMPS input file'''
-    info_dict = {}
-    with lmp_in_path.open('r') as lmp_in_file:
-        for line in lmp_in_file.read().split('\n'):
-            if (thermo_match := re.search(LMP_THERMO_STYLE_REGEX, line)):
-                info_dict.update(thermo_match.groupdict())
-                info_dict['energy_evals'] = info_dict['energy_evals'].split(' ') # separate on spaces (TODO : maybe find more elegant way to do this in the future?)
-            
-            if (units_match := re.search(LMP_UNIT_REGEX, line)):
-                unit_style_name = units_match.groupdict()['unit_style']
-                try:
-                    info_dict['unit_style'] = LAMMPSUnitStyle.subclass_registry[unit_style_name]
-                except KeyError:
-                    raise ValueError(f'Invalid unit style "{unit_style_name}" specified in LAMMPS input file')
-                
-    return info_dict
-
+# READER FUNCTIONS
 @allow_pathlib_paths
-def get_lammps_energies(lmp_in_path : str, preferred_unit : Unit=kilocalorie_per_mole, cmdargs : Optional[list]=None) -> dict[str, Quantity]:
-    '''Perform an energy evaluation using a LAMMPS input file
-    Alternative to interchange.drivers.get_lammps_energies which is dynamically aware of energy units and assumes nothing about which energies are specified by thermo_style'''
-    cmdargs = [] if cmdargs is None else [arg for arg in cmdargs] # need to copy list to keep read-only (lammps.lammps() modifies the argument list passed in-place)
+def get_lammps_unit_style(
+        lmp_input_path : str,
+        cmdargs : Optional[list[str]]=None,
+    ) -> LAMMPSUnitStyle:
+    '''Fetch Pythonic representation of unit styes specified for a LAMMPS input file'''
+    cmdargs = [] if cmdargs is None else [arg for arg in cmdargs] # make copy to shield input list from being mangled by lammps.lammps() (adds extra stuff to this list)
+    with lammps.lammps(cmdargs=cmdargs) as lmp:
+        lmp.file(lmp_input_path)
+        unit_style_name : str = lmp.extract_global('units')
+        
+    try:
+        return LAMMPSUnitStyle.subclass_registry[unit_style_name]
+    except KeyError:
+        raise ValueError(f'Invalid unit style "{unit_style_name}" specified in LAMMPS input file')
     
-    assert(preferred_unit.is_compatible(kilocalorie_per_mole)) # whatever unit is desired, it must be one of energy
-    lammps_info = parse_lammps_input(lmp_in_path)
-    energy_unit     = lammps_info['unit_style'].energy
-    energy_contribs = lammps_info['energy_evals']
-
-    with lammps.lammps(cmdargs=cmdargs) as lmp: # need to create new lammps() object instance for each run
-        # lmp.commands_string( ENERGY_EVAL_STR.replace('$INP_FILE', str(lammps_file)) )
-        lmp.file(lmp_in_path) # read input file and calculate energies; NOTE that this NEEDS to be a string (not Path!)
+@allow_pathlib_paths
+def get_lammps_lattice_parameters(
+        lmp_input_path : str,
+        cmdargs : Optional[list]=None,
+        preferred_length_unit : Unit=None,
+        preferred_angle_unit : Unit=None,
+    ) -> dict[str, Quantity]: # TODO: reimplement this with maths.lattices.bravais.LatticeParameters
+    '''Extract the 6 lattice parameters (i.e. 3 lattice vector lengths and 3 inter-vector angles)
+    specified for the simulation box defined by a LAMMPS input file'''
+    # sanitize unit preferences
+    ## lengths
+    calculated_length_unit : Unit = get_lammps_unit_style(lmp_input_path, cmdargs=cmdargs).distance
+    if preferred_length_unit is None:
+        preferred_length_unit = calculated_length_unit
+    assert(preferred_length_unit.is_compatible(angstrom))
+    
+    ## angles
+    calculated_angle_unit : Unit = degree # DEVNOTE: AFAIK, LAMMPS outputs lattice vector angles in degrees (thought couldn't find documentation explicitly stating this)
+    if preferred_angle_unit is None:
+        preferred_angle_unit = calculated_angle_unit
+    assert(preferred_angle_unit.is_compatible(degree))
+    
+    lattice_param_units : dict[str, tuple[Unit, Unit]] = { # indicates unit LAMMPS will return, and the unit preferred
+        'cella' : (calculated_length_unit, preferred_length_unit),
+        'cellb' : (calculated_length_unit, preferred_length_unit),
+        'cellc' : (calculated_length_unit, preferred_length_unit),
+        'cellalpha' : (calculated_angle_unit, preferred_angle_unit),
+        'cellbeta'  : (calculated_angle_unit, preferred_angle_unit),
+        'cellgamma' : (calculated_angle_unit, preferred_angle_unit),
+    }
+    
+    # read lattice parameters from input
+    cmdargs = [] if cmdargs is None else [arg for arg in cmdargs] # make copy to shield input list from being mangled by lammps.lammps() (adds extra stuff to this list)
+    with lammps.lammps(cmdargs=cmdargs) as lmp:
+        lmp.file(lmp_input_path)
         return {
-            f'{LAMMPS_ENERGY_KW[contrib]}' : (lmp.get_thermo(contrib) * energy_unit).in_units_of(preferred_unit)
-                for contrib in energy_contribs
+            thermo_kw : (lmp.get_thermo(thermo_kw)*calculated_unit).in_units_of(preferred_unit)
+                for thermo_kw, (calculated_unit, preferred_unit) in lattice_param_units.items()
         }
-
+        
 @allow_pathlib_paths
-def get_lammps_unit_cell(lmp_in_path : str, cmdargs : Optional[list]=None) -> dict[str, Quantity]: # TODO: reimplement this with maths.lattices.bravais.LatticeParameters
-    '''Extract the 6 unit cell parameters specified by a LAMMPS input file'''
-    cmdargs = [] if cmdargs is None else [arg for arg in cmdargs] # need to copy list to keep read-only (lammps.lammps() modifies the argument list passed in-place)
+def get_lammps_energies(
+        lmp_input_path : str,
+        cmdargs : Optional[list]=None,
+        preferred_energy_unit : Optional[Unit]=None,
+        energy_kw_remap : Optional[dict[str, str]]=None,
+    ) -> dict[str, Quantity]:
+    '''Perform single-point energy evaluation from a LAMMPS input file, respecting the LAMMPS unit style specified in the input'''
+    if energy_kw_remap is None:
+        energy_kw_remap = LAMMPS_ENERGY_KW_ALIASES
     
-    lammps_info = parse_lammps_input(lmp_in_path)
-    length_unit = lammps_info['unit_style'].distance
-
-    with lammps.lammps(cmdargs=cmdargs) as lmp: # need to create new lammps() object instance for each run
-        lmp.file(lmp_in_path) # read input file and calculate energies; NOTE that this NEEDS to be a string (not Path!)
-        cell_params = {}
-        for cell_param_kw in LAMMPS_CELL_KW:
-            cell_param_unit = LAMMPS_CELL_UNITS[cell_param_kw]
-            if cell_param_unit == _DISTANCE_WILDCARD:
-                cell_param_unit = length_unit
-
-            cell_params[cell_param_kw] = lmp.get_thermo(cell_param_kw) * cell_param_unit
+    # sanitize unit preferences
+    calculated_energy_unit : Unit = get_lammps_unit_style(lmp_input_path, cmdargs=cmdargs).energy
+    if preferred_energy_unit is None:
+        preferred_energy_unit = calculated_energy_unit
+    assert(preferred_energy_unit.is_compatible(kilojoule_per_mole))
     
-    return cell_params
+    # read lattice parameters from input
+    cmdargs = [] if cmdargs is None else [arg for arg in cmdargs] # make copy to shield input list from being mangled by lammps.lammps() (adds extra stuff to this list)
+    with lammps.lammps(cmdargs=cmdargs) as lmp:
+        lmp.file(lmp_input_path)
+        # lmp.command('run 0') # ensure single-step evaluation is executed
+        
+        return {
+            energy_kw_remap.get(energy_kw, energy_kw) : (energy_magnitude*calculated_energy_unit).in_units_of(preferred_energy_unit)
+                for energy_kw, energy_magnitude in lmp.last_thermo().items()
+        }

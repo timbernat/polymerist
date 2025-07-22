@@ -14,10 +14,9 @@ from collections import defaultdict
 
 from rdkit import Chem
 
-from ...genutils.iteration import iter_len
+from .specification import compliant_mol_SMARTS
 from ...genutils.fileutils.jsonio.jsonify import make_jsonifiable
-
-from ...smileslib.primitives import Smarts, is_valid_SMARTS
+from ...smileslib import Smarts, InvalidSMARTS, is_valid_SMARTS
 from ...rdutils.bonding.portlib import get_num_ports
 
 
@@ -44,8 +43,8 @@ class MonomerGroup:
             raise TypeError(f'Values of monomers must be either SMARTS strings or lists of SMARTS strings, not "{type(smarts).__name__}"')
         # DEV: include check for empty string? (technically still a valid SMARTS string, but a pretty pathological one at that)
         if not is_valid_SMARTS(smarts):
-            raise ValueError(f'Provided invalid monomer SMARTS string for {resname}: "{smarts}"') 
-        # DEV: decide whether or not SMILES expansion and spec-compliance should be enforced here or shunted off to the user 
+            raise InvalidSMARTS(f'Provided invalid monomer SMARTS string for {resname}: "{smarts}"') 
+        smarts = compliant_mol_SMARTS(smarts) # enforce compliance with monomer template SMARTS specification - DEVNOTE: double-verifies valid_SMARTS (not bad, just redundant)
         
         if resname in self.monomers:
             existing_resgroup = self.monomers[resname]
@@ -63,7 +62,7 @@ class MonomerGroup:
     
     def add_monomer(self, resname : str, smarts : Union[Smarts, Iterable[Smarts]]) -> None:
         '''Register new monomers, either directly from SMARTS or from a container of SMARTS'''
-        if isinstance(smarts, Iterable) and not isinstance(smarts, str): # don;t want to insert one character at a time if a string is in fact provided
+        if isinstance(smarts, Iterable) and not isinstance(smarts, str): # don't want to insert one character at a time if a string is in fact provided
             self._add_monomers(resname, smarts)
         else:
             self._add_monomer(resname, smarts) # assume any other inputs are singular values or strings 
@@ -136,8 +135,9 @@ class MonomerGroup:
     
     @property
     def n_monomers(self) -> int:
-        '''Returns number of present monomers; multiple monomers under the same residue name are considered distinct'''
-        return iter_len(self.iter_rdmols(term_only=None))
+        '''Returns number of distinct monomer templates present
+        Distinct monomers under the same residue name are counted separately'''
+        return sum(1 for  _ in self.iter_rdmols(term_only=None))
     
     # END GROUP DETERMINATION 
     def linear_end_groups(self) -> dict[str, tuple[str, Chem.Mol]]:

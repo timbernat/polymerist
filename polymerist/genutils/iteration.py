@@ -3,14 +3,16 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import Any, Callable, Generator, Iterable, TypeVar, Union
+from typing import Any, Callable, Generator, Hashable, Iterable, TypeVar, Union
 
 from operator import mul
 from functools import reduce
 from collections import deque
-from itertools import islice, combinations, product as cartesian_product
-
-from .typetools.parametric import Args, KWArgs
+from itertools import (
+    islice,
+    combinations,
+    product as cartesian_product,
+)
 from .decorators.functional import optional_in_place
 
 
@@ -18,7 +20,6 @@ from .decorators.functional import optional_in_place
 T = TypeVar('T') # generic type of object(s) in iterator
 T1 = TypeVar('T1') # generic type of object(s) in first iterator
 T2 = TypeVar('T2') # generic type of object(s) in second iterator
-
 
 def iter_len(itera : Iterable):
     '''Get size of an iterable object where ordinary len() call is invalid (namely a generator)
@@ -42,44 +43,29 @@ def sliding_window(items : Iterable[T], n : int=1) -> Generator[tuple[T], None, 
         window.append(x)
         yield tuple(window)
 
-def subsets(items : Iterable[T], exclude_empty : bool=False, exclude_full : bool=False) -> Generator[tuple[T], None, None]:
+def powerset(items : Iterable[T], exclude_empty : bool=False, exclude_full : bool=False) -> Generator[tuple[T], None, None]:
     '''Generate all possible subsets of a set. Can optionally exclude the empty set or the complete set (or both)'''
     base_set = set(items)
     for i in range(int(exclude_empty), len(base_set) + int(not exclude_full)):
         yield from combinations(base_set, i)
 
-def swappable_loop_order(iter1 : Iterable[T1], iter2 : Iterable[T2], swap : bool=False) -> Union[Iterable[tuple[T1, T2]], Iterable[tuple[T2, T1]]]:
-    '''Enables dynamic swapping of the order of execution of a 2-nested for loop'''
-    order = [iter1, iter2] if not swap else [iter2, iter1]
-    for pair in cartesian_product(*order):
-        yield pair[::(-1)**swap] # reverse order of pair (preserves argument identity)
-
-def progress_iter(itera : Iterable[T], key : Callable[[T], str]=lambda x : x) -> Iterable[tuple[str, T]]:
-    '''Iterate through'''
-    N = len(itera) # TODO : extend this to work for generators / consumables
-    for i, item in enumerate(itera):
-        yield (f'{key(item)} ({i + 1} / {N})', item) # +1 converts to more human-readable 1-index for step count
-
-
-# READ-WRITE ITERATION (MODIFIES THE OBJECTS BEING ITERATED OVER)
-K = TypeVar('K') # generic type for dict key
-V = TypeVar('V') # generic type for dict value
-O = TypeVar('O') # generic type for an object passed to a function
-
-def asiterable(arg_val : Union[O, Iterable[O]]) -> Iterable[O]:
+def asiterable(arg_val : Union[T, Iterable[T]]) -> Iterable[T]:
 	'''Permits functions expecting iterable arguments to accept singular values'''
 	if not isinstance(arg_val, Iterable):
 		arg_val = (arg_val,) # turn into single-item tuple (better for memory)
 	return arg_val
 
+# DICTIONARY ITERATION
+V = TypeVar('V') # generic type for dict value
+
 @optional_in_place
-def modify_dict(path_dict : dict[K, V], modifier_fn : Callable[[K, V, Args, KWArgs], Any]) -> None:
+def modify_dict(some_dict : dict[Hashable, V], modifier_fn : Callable[[Hashable, V], Any]) -> None:
     '''Recursively modifies all values in a dict in-place according to some function'''
-    for key, val in path_dict.items():
-        if isinstance(val, dict): # recursive call if sub-values are also dicts with Paths
-            modify_dict(val, modifier_fn)
+    for key, value in some_dict.items():
+        if isinstance(value, dict): # recursive call if sub-values are also dicts with Paths
+            modify_dict(value, modifier_fn)
         else:
-            path_dict[key] = modifier_fn(key, val) 
+            some_dict[key] = modifier_fn(key, value) 
 
 def sort_dict_by_keys(targ_dict : dict, reverse : bool=False) -> dict[Any, Any]:
     '''Sort a dictionary according to the values of each key'''
@@ -94,3 +80,14 @@ def sort_dict_by_values(targ_dict : dict, reverse : bool=False) -> dict[Any, Any
         key : targ_dict[key]
             for key in sorted(targ_dict, key=lambda k : targ_dict[k], reverse=reverse)
     }
+    
+def cartesian_grid(param_dict : dict[str, Iterable[Any]]) -> Generator[dict[str, Any], None, None]:
+    '''
+    Accepts a dict maping keys to all valid parameter values for that key
+    Generates all possible choices of parameters as dicts with exactly one parameter value per key
+    '''
+    for param_choices in cartesian_product(*param_dict.values()):
+        yield {
+            param_name : param_value
+                for param_name, param_value in zip(param_dict.keys(), param_choices)
+        }

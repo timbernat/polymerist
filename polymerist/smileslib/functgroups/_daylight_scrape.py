@@ -51,6 +51,6 @@ def scrape_SMARTS(url : str=DAYLIGHT_URL) -> pd.DataFrame:
             entries.add(entry)
 
     return pd.DataFrame.from_records(
-            entry.__dict__
-                for entry in entries
+        entry.__dict__
+            for entry in entries
     )

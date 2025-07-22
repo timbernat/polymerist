@@ -19,8 +19,7 @@ from openmm.app import Simulation, PDBFile
 from openmm.app import Topology as OpenMMTopology
 
 from .parameters import SimulationParameters
-from ...genutils.decorators.functional import allow_string_paths
-from ...genutils.fileutils.pathutils import assemble_path
+from ...genutils.fileutils.pathutils import assemble_path, allow_string_paths
 from ...genutils.fileutils.jsonio.jsonify import make_jsonifiable
 from ...genutils.fileutils.jsonio.serialize import PathSerializer
 from ...molfiles.pdb import SerialAtomLabeller
@@ -125,11 +124,14 @@ def serialize_openmm_pdb(
         topology : OpenMMTopology,
         positions : Union[NDArray, list[Vec3]],
         keep_chain_and_res_ids : bool=True,
-        atom_labeller : Optional[SerialAtomLabeller]=SerialAtomLabeller(),
+        atom_labeller : Optional[SerialAtomLabeller]=None,
         resname_map : Optional[dict[str, str]]=None,
     ) -> None:
     '''Configure and write an Protein DataBank File from an OpenMM Topology and array of positions
     Provides options to configure atom ID numbering, residue numbering, and residue naming'''
+    if atom_labeller is None:
+        atom_labeller = SerialAtomLabeller()
+    
     if resname_map is None:
         resname_map = {} # avoids mutable default
 
@@ -147,7 +149,14 @@ def serialize_openmm_pdb(
     # individual atom config
     if atom_labeller: # implicitly, preserves extant atom names if a labeller is not given
         for atom in topology.atoms():
-            atom.name = atom_labeller.get_atom_label(atom.element.symbol)
+            if atom.element is not None:
+                atom_label = atom.element.symbol
+            elif atom.name == 'EP': # "Extra Particle", as defined by SMIRNOFF spec https://openforcefield.github.io/standards/standards/smirnoff/#virtualsites-virtual-sites-for-off-atom-charges
+                atom_label = atom.name # 'EP'
+            else:
+                continue
+            
+            atom.name = atom_labeller.get_atom_label(atom_label)
 
     # file write
     with pdb_path.open('w') as file:

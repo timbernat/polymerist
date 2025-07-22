@@ -13,7 +13,7 @@ from inspect import signature, isclass
 import json
 from pathlib import Path
 
-from ...decorators.functional import allow_string_paths
+from ..pathutils import allow_string_paths
 from .serialize import TypeSerializer, MultiTypeSerializer
 
 
@@ -29,7 +29,7 @@ def dataclass_serializer_factory(cls : Type[C]) -> TypeSerializer:
     class DataclassSerializer(TypeSerializer, python_type=cls):
         f'''JSON encoder and decoder for the {cls.__name__} dataclass'''
         @staticmethod
-        def encode(python_obj : Path) -> dict[str, Any]:
+        def encode(python_obj : C) -> dict[str, Any]:
             '''Extract dictionary of attributes (may need other external converters to be fully serialized)'''
             return python_obj.__dict__
 
