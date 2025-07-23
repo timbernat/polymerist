@@ -105,12 +105,12 @@ class PathSerializer(TypeSerializer, python_type=Path):
     '''For JSON-serializing OpenMM Quantities'''
     @staticmethod
     def encode(python_obj : Path) -> str:
-        '''Separate openmm.unit.Quantity's value and units to serialize as a single dict'''
+        '''Stringify path object'''
         return str(python_obj)
 
     @staticmethod
     def decode(json_obj : str) -> Path:
-        '''Unpack a value-unit string dict back into a usable openmm.unit.Quantity'''
+        '''Resolve string into system Path'''
         return Path(json_obj)
         
 class QuantitySerializer(TypeSerializer, python_type=openmm.unit.Quantity):
@@ -141,3 +141,18 @@ class QuantitySerializer(TypeSerializer, python_type=openmm.unit.Quantity):
             value = np.array(value) # de-serialize numpy arrays; TOSELF : is there ever a case where this should remain a list (technically a valid Quanitity value)
 
         return openmm.unit.Quantity(value, unit)
+    
+class NDArraySerializer(TypeSerializer, python_type=np.ndarray):
+    '''For handling JSON serialization of numpy arrays'''
+    @staticmethod
+    def encode(python_obj : np.ndarray[Any]) -> list[Any]:
+        '''List-ify array and store string descriptor of numpy dtype'''
+        return {
+            'array' : python_obj.tolist(),
+            'dtype' : str(python_obj.dtype),
+        }
+    
+    @staticmethod
+    def decode(value : list[Any]) -> np.ndarray[Any]:
+        '''Reassemble numpy array from list and dtype'''
+        return np.array(value['array'], dtype=value['dtype'])
