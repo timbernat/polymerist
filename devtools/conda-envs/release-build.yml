@@ -6,46 +6,47 @@ dependencies:
     # Basic Python dependencies
     - python=3.11.0
     - pip
-    - jupyterlab
 
     # Unit testing
     - pytest
     - pytest-cov
     - codecov
-    
-    # Docs
+
+   # Docs
     - sphinx
     - sphinx_rtd_theme
 
     # Numerical libraries
-    - numpy<2.0.0 # big update in July 2024 which many packages don't support
+    - numpy
     - pandas
     - networkx
     - anytree
   
-    # MD engines
-    - openmm
-    - lammps
-    - mdtraj
-    - pint # for units in case OpenFF is not installed
-
-    # Molecule building
-    - mbuild
-    - openbabel
-    - rdkit
-    - openeye-toolkits # TODO: consider making this optional?
-
     # Visualization
     - pillow
     - matplotlib
+    - jupyterlab
     - ipywidgets==8.0.4 # more recent versions don't work with Jupyter notebooks, for some reason
     - py3Dmol
     - nglview==3.0.6
 
+    # Molecule building
+    - rdkit
+    - mbuild
+    - openbabel
+    - packmol<=20.15.1 # DEVNOTE: have no idea why, but versions tested later than this release (at least 20.16.1 and 21.0.4) introduce PDB CONECT errors where there were previously none
+    - openeye-toolkits # TODO: consider making this optional?
+
+    # MD engines
+    - openmm
+    # - lammps # NOTE: this grinds the conda/libmamba env solver to a halt, so we install it via pip instead
+    - mdtraj
+    - pint # for units in case OpenFF is not installed
+
     # OpenFF stack
-    - openff-toolkit~=0.16
-    - openff-interchange>=0.3.28
-    - openff-nagl>=0.4
+    - openff-toolkit>=0.16
+    - openff-interchange>=0.4
+    - openff-nagl>=0.5
     - openff-nagl-models>=0.3
 
     # Espaloma
@@ -54,3 +55,7 @@ dependencies:
     # Chemical database queries
     - cirpy
     - pubchempy
+
+    # pip installs
+    - pip:
+        - lammps>=2024 # NOTE: see above - conda version of lammps exists, but makes env solve prohibitively slow
