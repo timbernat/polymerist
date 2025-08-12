@@ -11,7 +11,7 @@ from rdkit.Chem.rdmolops import AromaticityModel, SANITIZE_ALL, AROMATICITY_MDL
 from . import RXNS
 
 from polymerist.smileslib.cleanup import expanded_SMILES
-from polymerist.rdutils.sanitization import sanitize_mol
+from polymerist.rdutils.sanitization import sanitize_mol, explicit_mol_from_SMILES
 
 from polymerist.rdutils.reactions.reactions import AnnotatedReaction
 from polymerist.rdutils.reactions.reactors import PolymerizationReactor
@@ -21,33 +21,20 @@ from polymerist.rdutils.reactions.fragment import (
     CutMinimumCostBondsStrategy,
 )
 
-
-# HELPER METHODS
-DEFAULT_AROMATICITY_MODEL : AromaticityModel = AROMATICITY_MDL # NOTE: polyimide examples WILL break if this is not MDL (e.g. "AROMATICITY_RDKIT")!
-
-def explicit_mol(smiles : str) -> Chem.Mol:
-    '''Load RDKit Mol from SMILEs, ensuring Hs are explicit and sanitization is performed'''
-    mol = Chem.MolFromSmiles(
-        expanded_SMILES(smiles, assign_map_nums=False),
-        sanitize=False,
-    )
-    sanitize_mol(
-        mol,
-        sanitize_ops=SANITIZE_ALL,
-        aromaticity_model=DEFAULT_AROMATICITY_MODEL,
-        in_place=True,
-    )
-    
-    return mol
-
-# DEFINING REACTANTS  
+# CONFIG CONSTANTS
 @pytest.fixture(scope='module')
 def fragment_strategy() -> IBIS:
     '''Fragmentation strategy to use for the tests'''
     return CutMinimumCostBondsStrategy()
+
+@pytest.fixture(scope='module')
+def aromaticity_model() -> IBIS:
+    '''Aromaticity model to use when sanitizing Mols'''
+    # NOTE: polyimide tests WILL fail if aromaticity is not MDL (e.g. is "AROMATICITY_RDKIT")
+    return AROMATICITY_MDL 
     
     
-# TESTS PROPER
+# DEFINING REACTANTS  
 @pytest.mark.parametrize(
     'reactant_smiles,rxn,allow_resampling,rxn_depth_max, fragment_smarts_expected',
     (
@@ -223,6 +210,8 @@ def fragment_strategy() -> IBIS:
         }),
     )
 )
+
+# TESTS PROPER
 def test_propagation_pooled(
     reactant_smiles : set[str],
     rxn : AnnotatedReaction,
@@ -230,10 +219,17 @@ def test_propagation_pooled(
     rxn_depth_max : int,
     fragment_smarts_expected : set[str],
     fragment_strategy : IBIS,
+    aromaticity_model : AromaticityModel,
 ) -> None:
     '''Test that propagation of monomers produces the expected fragments'''
     reactants : list[Chem.Mol] = [
-        explicit_mol(smiles)
+        explicit_mol_from_SMILES(
+            smiles,
+            assign_map_nums=False,
+            sanitize_ops=SANITIZE_ALL,
+            # NOTE: polyimide examples WILL fail if aromaticity is not MDL (e.g. "AROMATICITY_RDKIT")!
+            aromaticity_model=aromaticity_model,
+        )
             for smiles in reactant_smiles
     ]
     fragment_smarts_canon : set[str] = set(
@@ -246,7 +242,7 @@ def test_propagation_pooled(
         reactants,
         rxn_depth_max=rxn_depth_max,
         allow_resampling=allow_resampling,
-        aromaticity_model=DEFAULT_AROMATICITY_MODEL,
+        aromaticity_model=aromaticity_model,
     )
     
     assert (set(fragments.keys()) == fragment_smarts_canon)
