@@ -4,7 +4,10 @@ __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
 from typing import Generator, Iterable, Optional, Union
+from ast import literal_eval
+
 from rdkit.Chem.rdchem import Mol, Bond
+from rdkit.Chem.rdmolfiles import MolToSmiles
 
 from ..genutils.decorators.functional import optional_in_place
 
@@ -104,6 +107,46 @@ def relabel_map_nums(rdmol : Mol, relabeling : dict[int, int]) -> None:
         },
         in_place=True, # assign_atom_map_nums_by_ids() already makes optional copies, so there's no need to make a second-order copy
     ) 
+    
+@optional_in_place # DEVNOTE: still desirable, since SMILES write technically add computed props to passed Mol
+def mol_to_smiles_and_atom_permutation(mol: Mol, *args, **kwargs) -> tuple[str, list[int]]:
+    '''
+    Convert RDKit Mol to SMILES string (with any SMILES writer parameters passed to as args/kwargs)
+    AND return permutation list which maps atoms in the written SMILES to their order in the passed Mol
+
+    Useful when preserving Mol atom order in SMILES is necessary (not true in general)
+    
+    Parameters
+    ----------
+    mol : Chem.Mol
+        The RDKit Mol object
+    *args, **kwargs
+        Additional arguments passed to the SMILES writer
+        
+    Returns
+    -------
+    smiles : str
+        The resulting SMILES string
+    atom_perm_inv : list[int]
+        List representation of the permutation that restores atom order
+        
+        E.g. the following call, using "smiles" returned above, will in general scramble atom order:
+        >>> from rdkit.Chem.rdmolfiles import MolToSmiles
+        >>> mol = MolFromSmiles(smiles) # atom order doesn;t match that of exporting Mol
+        
+        However, atom order can easily be restored by calling:
+        >>> from rdkit.Chem.rdmolops import RenumberAtoms
+        >>> mol = RenumberAtoms(mol, atom_perm_inv)
+
+    tuple[str, list[int]]
+        A tuple containing the SMILES string and the atom permutation list.
+    '''
+    smiles = MolToSmiles(mol, *args, **kwargs)
+    # see RDKit "Magic" prop docs for more detail on this: https://www.rdkit.org/docs/RDKit_Book.html#romol-mol-in-python
+    atom_perm : list[int] = literal_eval(mol.GetProp('_smilesAtomOutputOrder'))
+    atom_perm_inv = sorted(range(mol.GetNumAtoms()), key=lambda i : atom_perm[i])
+    
+    return smiles, atom_perm_inv
 
 # NOTE : this deliberately does NOT have an optional_in_place decorator (is implemented internally due to Iterable input)
 def assign_contiguous_atom_map_nums(*rdmols : Iterable[Mol], start_from : int=1, in_place : bool=False) -> Optional[list[Mol]]: 
