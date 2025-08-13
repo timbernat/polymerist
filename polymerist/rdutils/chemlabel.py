@@ -108,7 +108,6 @@ def relabel_map_nums(rdmol : Mol, relabeling : dict[int, int]) -> None:
         in_place=True, # assign_atom_map_nums_by_ids() already makes optional copies, so there's no need to make a second-order copy
     ) 
     
-@optional_in_place # DEVNOTE: still desirable, since SMILES write technically add computed props to passed Mol
 def mol_to_smiles_and_atom_permutation(mol: Mol, *args, **kwargs) -> tuple[str, list[int]]:
     '''
     Convert RDKit Mol to SMILES string (with any SMILES writer parameters passed to as args/kwargs)
