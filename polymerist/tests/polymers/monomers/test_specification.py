@@ -74,6 +74,10 @@ from polymerist.polymers.monomers.specification import compliant_mol_SMARTS
             'C([O-])([O-])=O.[Ca+2]',
             '[#6D3+0:1](-[#8D1-1:2])(-[#8D1-1:3])=[#8D1+0:4].[#20D0+2:5]'
         ),
+        ( ## test that complex SMARTS queries (i.e. not in the SMILES subset of SMARTS) are also read correctly
+            '[!$([#6]=O)]-O-[H]',
+            '[*:1]-[#8D2+0:2]-[#1D1+0:3]'
+        )
     ]
 )
 def test_spec_compliance(smiles : str, spec_smarts_expected : str) -> None:
