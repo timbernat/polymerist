@@ -79,7 +79,7 @@ def expanded_SMILES(
     
     rdmol = Chem.MolFromSmiles(smiles, sanitize=False)
     rdmol.UpdatePropertyCache() # inject valence and ring info without mangling from sanitization
-    rdmol = Chem.AddHs(rdmol, addCoords=True)
+    rdmol = Chem.AddHs(rdmol, addCoords=False)
     
     if assign_map_nums:
         for map_num, atom in enumerate(rdmol.GetAtoms(), start=start_from): # NOTE: deliberately did not use anything from rdutils.chemlabel here to avoid coupling
