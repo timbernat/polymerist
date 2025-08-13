@@ -3,20 +3,36 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import TypeAlias
+from typing import Callable, TypeAlias, TypeVar
+T = TypeVar('T')
 
-from rdkit import Chem
+from functools import wraps
+
+from rdkit import Chem, RDLogger
 from rdkit.Chem.rdmolops import SanitizeFlags, SanitizeMol, SANITIZE_ALL, SANITIZE_SETAROMATICITY
 
+
+def suppress_rdkit_errors(func : Callable[..., T]) -> Callable[..., T]:
+    '''Decorator to suppress RDKit error messages during function execution'''
+    @wraps(func)
+    def decorator(*args, **kwargs):
+        RDLogger.DisableLog('rdApp.error')
+        ret = func(*args, **kwargs)
+        RDLogger.EnableLog('rdApp.error')
+        
+        return ret
+    return decorator
 
 # TYPING AND VALIDATION
 Smiles : TypeAlias = str # purely for improving self-documentation of functions, no benefit to static type-checkers
 Smarts : TypeAlias = str # purely for improving self-documentation of functions, no benefit to static type-checkers
 
+@suppress_rdkit_errors
 def is_valid_SMARTS(smarts : Smarts) -> bool:
     '''Check if SMARTS string is valid (according to RDKit)'''
     return (Chem.MolFromSmarts(smarts) is not None)
 
+@suppress_rdkit_errors
 def is_valid_SMILES(smiles : Smiles) -> bool:
     '''Check if SMARTS string is valid (according to RDKit)'''
     return (Chem.MolFromSmiles(smiles) is not None)
