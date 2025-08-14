@@ -17,6 +17,7 @@ from .thermo import EnsembleFactory
 from .parameters import ThermoParameters, SimulationParameters
 from .serialization.paths import SimulationPaths
 from .serialization.state import StateLike, load_state_flexible
+from .forces import _POLYMERIST_FORCE_GROUP, force_added_by_polymerist
 
 
 def simulation_from_thermo(
@@ -27,13 +28,25 @@ def simulation_from_thermo(
         state : Optional[StateLike]=None,
     ) -> Simulation:
     '''Prepare an OpenMM simulation from a serialized thermodynamics parameter set'''
+    # clear forces previously added by another EnsembleFactory to avoid thermodynamic bleedover
+    preexisting_force_indices : list[int] = sorted(
+        (i for i, force in enumerate(system.getForces()) if force_added_by_polymerist(force)),
+        reverse=True, # must remove greatest-to-least, as any lower-first would modify subsequent indices and cause offset
+    )
+    for index in preexisting_force_indices:
+        LOGGER.warning(f'Removing Force "{system.getForce(index).getName()}" ({index=}) encountered from prior System setup')
+        system.removeForce(index)
+
+    # register new custom Forces (if any) from provided thermodynamic parameters
     ens_fac = EnsembleFactory.from_thermo_params(thermo_params)
     if (extra_forces := ens_fac.forces()): # check if any extra forces are present
         for force in extra_forces:
             # TODO: label injected forces with dedicated forceGroup for tracking downstream
-            system.addForce(force) # add forces to System BEFORE creating Simulation to avoid having to reinitialize the Conext to preserve changes 
-            LOGGER.info(f'Added {force.getName()} Force to System')
+            LOGGER.info(f'Registering new Force "{force.getName()}" to System to enforce chosen ensemble ({thermo_params.ensemble})')
+            force.setForceGroup(_POLYMERIST_FORCE_GROUP)
+            system.addForce(force) # add forces to System BEFORE creating Simulation to avoid having to reinitialize the Conext to preserve changes
 
+    # initialize Simulation
     simulation = Simulation(
         topology=topology,
         system=system,
