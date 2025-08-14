@@ -31,7 +31,7 @@ from ...genutils.fileutils.pathutils import allow_string_paths, allow_pathlib_pa
 from ...molfiles.pdb import SerialAtomLabeller
 from ...rdutils.bonding.portlib import get_linker_ids
 from ...rdutils.bonding.substitution import hydrogenate_rdmol_ports
-from ...mdtools.openmmtools.serialization import serialize_openmm_pdb
+from ...mdtools.openmmtools.serialization.topology import serialize_openmm_pdb
 
 
 # Conversion from other formats to Compound

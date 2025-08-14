@@ -16,7 +16,9 @@ from openmm.unit import Quantity
 
 from .parameters import SimulationParameters
 from .preparation import initialize_simulation_and_files, StateLike
-from .serialization import serialize_system, serialize_topology_from_simulation, SimulationPaths
+from .serialization.system import serialize_system
+from .serialization.topology import serialize_topology_from_simulation
+from .serialization.paths import SimulationPaths
 
 
 def run_simulation_schedule(

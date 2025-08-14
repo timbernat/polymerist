@@ -13,11 +13,10 @@ from openmm import State, System, XmlSerializer
 from openmm.app import Simulation, Topology
 from openmm.unit import Quantity
 
-# from .records import SimulationParameters
-from .serialization import SimulationPaths
 from .thermo import EnsembleFactory
 from .parameters import ThermoParameters, SimulationParameters
 from .forcegroups import impose_unique_force_groups
+from .serialization.paths import SimulationPaths
 
 
 StateLike = Union[str, Path, State]
