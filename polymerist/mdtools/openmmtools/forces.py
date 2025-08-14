@@ -116,7 +116,7 @@ def impose_unique_force_groups(ommsys : System, except_for : Container[int]=None
         uniquify_force_groups(ommsys, except_for=except_for)
 
 def forces_by_force_group(system : System, denest : bool=False) -> dict[int, Union[Force, list[Force]]]:
-    '''Compile the Forces in an'''
+    '''Compile the Forces in an OpenMM system according to their assigned force group labels'''
     force_dict = defaultdict(list)
     for force in system.getForces():
         force_dict[force.getForceGroup()].append(force)

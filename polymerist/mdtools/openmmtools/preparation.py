@@ -25,6 +25,7 @@ def simulation_from_thermo(
         system : System,
         thermo_params : ThermoParameters,
         time_step : Quantity,
+        positions : Optional[Quantity]=None,
         state : Optional[StateLike]=None,
     ) -> Simulation:
     '''Prepare an OpenMM simulation from a serialized thermodynamics parameter set'''
@@ -52,11 +53,22 @@ def simulation_from_thermo(
         system=system,
         integrator=ens_fac.integrator(time_step),
     )
+    
+    ## set Positions
+    if positions is not None:
+        # TODO : add position type/shape checking
+        LOGGER.info('Setting positions in Context')
+        simulation.context.setPositions(positions) # set positions if provided
+        
+    ## set State
     state = load_state_flexible(state)
-    if state is not None:
+    if (state is not None):
         LOGGER.info('Setting simulation state')
         simulation.context.setState(state)
-        simulation.context.reinitialize(preserveState=True) # TOSELF : unclear whether this is necessary, redundant, or in fact harmful
+
+    # ensure changes took, preserving State as necessary
+    simulation.context.reinitialize(preserveState=True) # TOSELF : unclear whether this is necessary, redundant, or in fact harmful
+    # print(simulation.context.getPositions())
 
     return simulation
 
@@ -81,14 +93,10 @@ def initialize_simulation_and_files(
         system,
         sim_params.thermo_params,
         time_step=sim_params.integ_params.time_step,
+        positions=positions,
         state=state,
     )
     for reporter in sim_params.reporter_params.prepare_reporters(report_interval=sim_params.integ_params.report_interval):
         simulation.reporters.append(reporter) # add reporters to simulation instance
-
-    if positions is not None:
-        # TODO : add position type/shape checking
-        LOGGER.info('Setting positions in Context')
-        simulation.context.setPositions(positions) # set positions if provided
 
     return simulation, sim_paths
