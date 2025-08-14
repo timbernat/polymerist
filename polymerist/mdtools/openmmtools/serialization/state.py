@@ -3,12 +3,18 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
+import logging
+LOGGER = logging.getLogger(__name__)
+
+from typing import Optional, Union
+
 from pathlib import Path
 from openmm import Context, State, XmlSerializer
 
-from ....genutils.fileutils.pathutils import assemble_path, allow_string_paths
+from ....genutils.fileutils.pathutils import allow_string_paths
 
 
+StateLike = Union[str, Path, State]
 DEFAULT_STATE_PROPS : dict[str, bool] = {
     'getPositions'  : True,
     'getVelocities' : True,
@@ -18,6 +24,32 @@ DEFAULT_STATE_PROPS : dict[str, bool] = {
     'getParameterDerivatives' : False,
     'getIntegratorParameters' : False
 }
+
+def load_state_flexible(state : Optional[StateLike]=None) -> Optional[State]:
+    '''Allows one to flexibly load an OpenMM state, either from a State object or file-like object'''
+    if isinstance(state, State) or (state is None):
+        state = state
+    else:
+        if isinstance(state, Path):
+            state_path = state
+        elif isinstance(state, str):
+            state_path = Path(state)
+        # TODO : add support for load from opened file
+        else:
+            raise TypeError('State can only be loaded from pathlike object') 
+        
+        try:
+            with state_path.open('r') as state_file:
+                LOGGER.info(f'Attempting to load State from file "{state_path}"')
+                state = XmlSerializer.deserialize(state_file.read())
+        except ValueError:
+            state = None
+    
+    if state is None:
+        LOGGER.warning('No valid State/State file provided, initializing State as None')
+    else:
+        LOGGER.info(f'Using successfully-initialized State {type(state)}')
+    return state
 
 @allow_string_paths
 def serialize_state_from_context(

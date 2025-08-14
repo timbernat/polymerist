@@ -6,45 +6,18 @@ __email__ = 'timotej.bernat@colorado.edu'
 import logging
 LOGGER = logging.getLogger(__name__)
 
-from typing import Optional, Union
+from typing import Optional
 from pathlib import Path
 
-from openmm import State, System, XmlSerializer
+from openmm import System
 from openmm.app import Simulation, Topology
 from openmm.unit import Quantity
 
 from .thermo import EnsembleFactory
 from .parameters import ThermoParameters, SimulationParameters
-from .forcegroups import impose_unique_force_groups
 from .serialization.paths import SimulationPaths
+from .serialization.state import StateLike, load_state_flexible
 
-
-StateLike = Union[str, Path, State]
-def load_state_flexible(state : Optional[StateLike]=None) -> Optional[State]:
-    '''Allows one to flexibly load an OpenMM state, either from a State object or file-like object'''
-    if isinstance(state, State) or (state is None):
-        state = state
-    else:
-        if isinstance(state, Path):
-            state_path = state
-        elif isinstance(state, str):
-            state_path = Path(state)
-        # TODO : add support for load from opened file
-        else:
-            raise TypeError('State can only be loaded from pathlike object') 
-        
-        try:
-            with state_path.open('r') as state_file:
-                LOGGER.info(f'Attempting to load State from file "{state_path}"')
-                state = XmlSerializer.deserialize(state_file.read())
-        except ValueError:
-            state = None
-    
-    if state is None:
-        LOGGER.warning('No valid State/State file provided, initializing State as None')
-    else:
-        LOGGER.info(f'Using successfully-initialized State {type(state)}')
-    return state
 
 def simulation_from_thermo(
         topology : Topology,
@@ -57,9 +30,9 @@ def simulation_from_thermo(
     ens_fac = EnsembleFactory.from_thermo_params(thermo_params)
     if (extra_forces := ens_fac.forces()): # check if any extra forces are present
         for force in extra_forces:
+            # TODO: label injected forces with dedicated forceGroup for tracking downstream
             system.addForce(force) # add forces to System BEFORE creating Simulation to avoid having to reinitialize the Conext to preserve changes 
             LOGGER.info(f'Added {force.getName()} Force to System')
-    impose_unique_force_groups(system)
 
     simulation = Simulation(
         topology=topology,

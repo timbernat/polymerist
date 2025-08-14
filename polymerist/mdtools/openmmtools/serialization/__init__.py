@@ -5,7 +5,9 @@ __email__ = 'timotej.bernat@colorado.edu'
 
 from .paths import SimulationPaths
 from .state import (
+    StateLike,
     DEFAULT_STATE_PROPS,
+    load_state_flexible,
     serialize_state_from_context,
     apply_state_to_context,
 )
