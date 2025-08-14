@@ -3,7 +3,7 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import Union
+from typing import Container, Union
 from collections import defaultdict
 from openmm import Force, NonbondedForce, System
 
@@ -20,16 +20,24 @@ def force_groups_are_unique(system : System) -> bool:
     else:
         return True
 
-def uniquify_force_groups(system : System) -> None:
+def uniquify_force_groups(system : System, except_for : Container[int]=None) -> None:
     '''Assigns each Force in an OpenMM System with a unique force group index'''
-    for i, force in enumerate(system.getForces()):
-        force.setForceGroup(i)
+    if except_for is None:
+        except_for = set()
+
+    force_grp_idx : int = 0
+    for force in system.getForces():
+        if force.getForceGroup() in except_for:
+            continue
+
+        force.setForceGroup(force_grp_idx)
+        force_grp_idx += 1
     # TODO : add labelling (depends partially on Interchange's NonbondedForce separation)
 
-def impose_unique_force_groups(ommsys : System) -> None:
+def impose_unique_force_groups(ommsys : System, except_for : Container[int]=None) -> None:
     '''Impose unique labels on Forces in an OpenMM System'''
     if not force_groups_are_unique(ommsys):
-        uniquify_force_groups(ommsys)
+        uniquify_force_groups(ommsys, except_for=except_for)
 
 def forces_by_force_group(system : System, denest : bool=False) -> dict[int, Union[Force, list[Force]]]:
     '''Compile the Forces in an'''
