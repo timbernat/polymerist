@@ -8,7 +8,7 @@ from typing import Optional
 from openmm import Context
 from openmm.unit import Unit, Quantity
 
-from .forcegroups import impose_unique_force_groups, forces_by_force_group
+from .forces import impose_unique_force_groups, forces_by_force_group
 
 
 # POSITIONS
