@@ -20,7 +20,8 @@ from .parameters import ThermoParameters, SimulationParameters
 from .forcegroups import impose_unique_force_groups
 
 
-def load_state_flexible(state : Optional[Union[str, Path, State]]=None) -> Optional[State]:
+StateLike = Union[str, Path, State]
+def load_state_flexible(state : Optional[StateLike]=None) -> Optional[State]:
     '''Allows one to flexibly load an OpenMM state, either from a State object or file-like object'''
     if isinstance(state, State) or (state is None):
         state = state
@@ -35,12 +36,15 @@ def load_state_flexible(state : Optional[Union[str, Path, State]]=None) -> Optio
         
         try:
             with state_path.open('r') as state_file:
+                LOGGER.info(f'Attempting to load State from file "{state_path}"')
                 state = XmlSerializer.deserialize(state_file.read())
         except ValueError:
             state = None
     
     if state is None:
         LOGGER.warning('No valid State/State file provided, initializing State as None')
+    else:
+        LOGGER.info(f'Using successfully-initialized State {type(state)}')
     return state
 
 def simulation_from_thermo(
@@ -48,7 +52,7 @@ def simulation_from_thermo(
         system : System,
         thermo_params : ThermoParameters,
         time_step : Quantity,
-        state : Optional[Union[str, Path, State]]=None,
+        state : Optional[StateLike]=None,
     ) -> Simulation:
     '''Prepare an OpenMM simulation from a serialized thermodynamics parameter set'''
     ens_fac = EnsembleFactory.from_thermo_params(thermo_params)
@@ -78,9 +82,13 @@ def initialize_simulation_and_files(
         topology : Topology,
         system : System,
         positions : Optional[Quantity]=None,
+        state : Optional[StateLike]=None,
     ) -> tuple[Simulation, SimulationPaths]:
     '''Create simulation, bind Reporters, and update simulation Paths with newly-generated files'''
     sim_paths = SimulationPaths.from_dir_and_parameters(out_dir, prefix, sim_params, touch=True)
+    if state is None:
+        LOGGER.info(f'No explicit initial State supplied, defaulting to State cached in "{sim_paths.state_path}"')
+        state = sim_paths.state_path
 
     # create simulation and add reporters
     simulation = simulation_from_thermo(
@@ -88,7 +96,7 @@ def initialize_simulation_and_files(
         system,
         sim_params.thermo_params,
         time_step=sim_params.integ_params.time_step,
-        state=sim_paths.state_path,
+        state=state,
     )
     for reporter in sim_params.reporter_params.prepare_reporters(report_interval=sim_params.integ_params.report_interval):
         simulation.reporters.append(reporter) # add reporters to simulation instance

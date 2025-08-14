@@ -15,8 +15,8 @@ from openmm.app import Simulation, Topology
 from openmm.unit import Quantity
 
 from .parameters import SimulationParameters
+from .preparation import initialize_simulation_and_files, StateLike
 from .serialization import serialize_system, serialize_topology_from_simulation, SimulationPaths
-from .preparation import initialize_simulation_and_files
 
 
 def run_simulation_schedule(
@@ -25,6 +25,7 @@ def run_simulation_schedule(
         init_top : Topology,
         init_sys : System,
         init_pos : ndarray,
+        init_state : Optional[StateLike]=None,
         return_history : bool=False,
     ) -> Optional[dict[str, tuple[Simulation, SimulationPaths]]]:
     '''Run several OpenMM simulations in series, based on an initial set of OpenMM objects and a "schedule" consisting of a sequence of named parameter sets'''
@@ -40,11 +41,12 @@ def run_simulation_schedule(
             ommtop = init_top
             ommsys = init_sys
             ommpos = init_pos
+            ommstate = init_state
         else:
             ommtop = simulation.topology
             ommsys = simulation.system
             ommpos = simulation.context.getState(getPositions=True).getPositions(asNumpy=True)
-            # ommpos = get_context_positions(simulation.context)
+            ommstate = None # DEVNOTE: specifically DON'T want to bleed positions, velocities, etc. between simulations with potentially-different thermodynamic parameters
 
         LOGGER.info(f'Initializing simulation {i + 1}/{num_steps} ("{step_name}")')
         simulation, sim_paths = initialize_simulation_and_files(
@@ -54,6 +56,7 @@ def run_simulation_schedule(
             topology=ommtop,
             system=ommsys,
             positions=ommpos,
+            state=ommstate,
         )
         history[step_name] = {
             'simulation' : simulation,
