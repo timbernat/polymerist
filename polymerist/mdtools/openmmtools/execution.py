@@ -17,10 +17,16 @@ from openmm.unit import Quantity
 from .parameters import SimulationParameters
 from .serialization import serialize_system, serialize_topology_from_simulation, SimulationPaths
 from .preparation import initialize_simulation_and_files
-from .evaluation import get_context_positions
 
 
-def run_simulation_schedule(working_dir : Path, schedule : dict[str, SimulationParameters], init_top : Topology, init_sys : System, init_pos : ndarray, return_history : bool=False) -> Optional[dict[str, tuple[Simulation, SimulationPaths]]]:
+def run_simulation_schedule(
+        working_dir : Path,
+        schedule : dict[str, SimulationParameters],
+        init_top : Topology,
+        init_sys : System,
+        init_pos : ndarray,
+        return_history : bool=False,
+    ) -> Optional[dict[str, tuple[Simulation, SimulationPaths]]]:
     '''Run several OpenMM simulations in series, based on an initial set of OpenMM objects and a "schedule" consisting of a sequence of named parameter sets'''
     if not isinstance(init_pos, Quantity):
         raise TypeError('Positions must have associated OpenMM units') # TODO : provide more robust check for this
@@ -31,9 +37,14 @@ def run_simulation_schedule(working_dir : Path, schedule : dict[str, SimulationP
     num_steps = len(schedule)
     for i, (step_name, sim_params) in enumerate(schedule.items()): # TOSELF : may want to shift to an explicitly-ordered map (e.g. collections OrderedDict); Python 3.6+ preserves order, but wouldn't hurt to be extra safe
         if i == 0:
-            ommtop, ommsys, ommpos = init_top, init_sys, init_pos # use initial Topology and System for first sim
+            ommtop = init_top
+            ommsys = init_sys
+            ommpos = init_pos
         else:
-            ommtop, ommsys, ommpos = simulation.topology, simulation.system, get_context_positions(simulation.context) # use Topology and System from previous sim for next sim
+            ommtop = simulation.topology
+            ommsys = simulation.system
+            ommpos = simulation.context.getState(getPositions=True).getPositions(asNumpy=True)
+            # ommpos = get_context_positions(simulation.context)
 
         LOGGER.info(f'Initializing simulation {i + 1}/{num_steps} ("{step_name}")')
         simulation, sim_paths = initialize_simulation_and_files(
@@ -42,7 +53,7 @@ def run_simulation_schedule(working_dir : Path, schedule : dict[str, SimulationP
             sim_params=sim_params,
             topology=ommtop,
             system=ommsys,
-            positions=ommpos
+            positions=ommpos,
         )
         history[step_name] = {
             'simulation' : simulation,

@@ -44,7 +44,12 @@ class SimulationPaths:
     spatial_data_path : Optional[Path] = None
 
     @allow_string_paths
-    def init_top_and_sys_paths(self, out_dir : Path, prefix : str, record : bool=True) -> tuple[Path, Path]:
+    def init_top_and_sys_paths(
+            self,
+            out_dir : Path,
+            prefix : str,
+            record : bool=True,
+        ) -> tuple[Path, Path]:
         '''Initialize Topology and System output paths for a given directory'''
         topology_path = assemble_path(out_dir, prefix, extension='pdb', postfix='topology')
         system_path   = assemble_path(out_dir, prefix, extension='xml', postfix='system')
@@ -58,7 +63,13 @@ class SimulationPaths:
         return topology_path, system_path, state_path
     
     @classmethod
-    def from_dir_and_parameters(cls, out_dir : Path, prefix : str, sim_params : SimulationParameters, touch : bool=True) -> 'SimulationPaths':
+    def from_dir_and_parameters(
+            cls,
+            out_dir : Path,
+            prefix : str,
+            sim_params : SimulationParameters,
+            touch : bool=True,
+        ) -> 'SimulationPaths':
         '''Create file directory and initialize simulationPaths object from a set of SimulationParameters'''
         path_obj = cls() # create empty path instance
 
@@ -96,8 +107,15 @@ DEFAULT_STATE_PROPS : dict[str, bool] = {
 }
 
 @allow_string_paths
-def serialize_state_from_context(state_path : Path, context : Context, state_params : dict[str, bool]=DEFAULT_STATE_PROPS) -> None:
+def serialize_state_from_context(
+        state_path : Path,
+        context : Context,
+        state_params : dict[str, bool]=None,
+    ) -> None:
     '''For saving State data within an existing OpenMM Context to file'''
+    if state_params is None:
+        state_params = DEFAULT_STATE_PROPS
+
     state = context.getState(**state_params)
     with state_path.open('w') as file:
         file.write(XmlSerializer.serialize(state))

@@ -18,7 +18,11 @@ def get_context_positions(context : Context) -> Quantity:
     return context.getState(getPositions=True).getPositions(asNumpy=True) 
 
 # ENERGIES
-def get_openmm_energies(context : Context, preferred_unit : Optional[Unit]=None, force_group_names : Optional[dict[int, str]]=None) -> tuple[dict[str, Quantity], ...]:
+def get_openmm_energies(
+        context : Context,
+        preferred_unit : Optional[Unit]=None,
+        force_group_names : Optional[dict[int, str]]=None,
+    ) -> tuple[dict[str, Quantity], ...]:
     '''Evaluate energies of an OpenMM Context, both total and by individual force group
     Returns two dicts, the first of potential energies and the second by kinetic'''
     if force_group_names is None:
