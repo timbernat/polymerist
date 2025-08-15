@@ -17,7 +17,7 @@ from .thermo import EnsembleFactory
 from .parameters import ThermoParameters, SimulationParameters
 from .serialization.paths import SimulationPaths
 from .serialization.state import StateLike, load_state_flexible
-from .forces import _POLYMERIST_FORCE_GROUP, force_added_by_polymerist
+from .forces import _POLYMERIST_FORCE_GROUP, force_added_by_polymerist, impose_unique_force_groups
 
 
 def simulation_from_thermo(
@@ -46,6 +46,7 @@ def simulation_from_thermo(
             LOGGER.info(f'Registering new Force "{force.getName()}" to System to enforce chosen ensemble ({thermo_params.ensemble})')
             force.setForceGroup(_POLYMERIST_FORCE_GROUP)
             system.addForce(force) # add forces to System BEFORE creating Simulation to avoid having to reinitialize the Conext to preserve changes
+    impose_unique_force_groups(system) # NOTE: turns out to be necessary to attain energy contribution separation (can't just relabel after the simulation)
 
     # initialize Simulation
     simulation = Simulation(
