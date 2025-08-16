@@ -90,8 +90,8 @@ BarostatSerializer = enum_serializer_factory(Barostat)
 class BarostatParameters:
     '''Interface for initializing a constant-pressure simulation'''
     pressure : Quantity
-    temperature : Quantity
-    attempt_frequency : int = 25
+    temperature : Optional[Quantity] = None # DEVNOTE: made NoneType to allow "lazy" passing when coupled with thermostat 
+    update_frequency : int = 25
     barostat : Union[str, Barostat] = Barostat.MONTE_CARLO
 
     def __post_init__(self):
@@ -102,7 +102,7 @@ class BarostatParameters:
         '''The forces required to realized the desired barostat'''
         if self.temperature is None:
             raise ValueError('Barostat coupling temperature unset')
-        return (self.barostat.value(self.pressure, self.temperature, self.attempt_frequency),)
+        return (self.barostat.value(self.pressure, self.temperature, self.update_frequency),)
 
     def integrator(self, time_step : Quantity) -> Integrator:
         '''The integrator required to realized the desired barostat'''
@@ -129,27 +129,27 @@ class Ensemble(StrEnum):
 @dataclass
 class ThermoParameters:
     '''Encapsulation for initializing the OpenMM forces and integrator which realize a particular thermodynamic ensemble'''
-    thermostat_parameters : Optional[ThermostatParameters] = None
-    barostat_parameters   : Optional[BarostatParameters] = None
+    thermostat_params : Optional[ThermostatParameters] = None
+    barostat_params   : Optional[BarostatParameters  ] = None
     
     def __post_init__(self) -> None:
-        if self.barostat_parameters is not None:
-            if self.thermostat_parameters is None:
+        if self.barostat_params is not None:
+            if self.thermostat_params is None:
                 raise NPHEnsembleUnsupported
             
-            if self.barostat_parameters.temperature != self.thermostat_parameters.temperature:
-                LOGGER.warning(f'Adjusting Barostat temperature from {self.barostat_parameters.temperature} to {self.thermostat_parameters.temperature} to maintain temperature coupling w/ thermostat')
-                self.barostat_parameters.temperature = self.thermostat_parameters.temperature
+            if self.barostat_params.temperature != self.thermostat_params.temperature:
+                LOGGER.warning(f'Adjusting Barostat temperature from {self.barostat_params.temperature} to {self.thermostat_params.temperature} to maintain temperature coupling w/ thermostat')
+                self.barostat_params.temperature = self.thermostat_params.temperature
 
     @property
     def ensemble(self) -> Ensemble:
         '''The standard name of the thermodynamic ensemble being implemented here'''
-        if self.thermostat_parameters is None:
-            if self.barostat_parameters is not None:
+        if self.thermostat_params is None:
+            if self.barostat_params is not None:
                 raise NPHEnsembleUnsupported
             return Ensemble.NVE
         else:
-            if self.barostat_parameters is not None:
+            if self.barostat_params is not None:
                 return Ensemble.NPT
             return Ensemble.NVT
         
@@ -159,8 +159,8 @@ class ThermoParameters:
         
     def integrator(self, time_step : Quantity) -> Integrator:
         '''Specify how to integrate forces in each timestep'''
-        if self.thermostat_parameters:
-            integrator = self.thermostat_parameters.integrator(time_step)
+        if self.thermostat_params:
+            integrator = self.thermostat_params.integrator(time_step)
         else:
             integrator = VerletIntegrator(time_step)
 
@@ -171,12 +171,12 @@ class ThermoParameters:
     def forces(self) -> Optional[Iterable[Force]]:
         '''Specify any additional force contributions to position/velocity updates'''
         forces : list[Force] = []
-        if self.thermostat_parameters:
-            forces.extend(self.thermostat_parameters.forces())
-        if self.barostat_parameters:
-            forces.extend(self.barostat_parameters.forces())
+        if self.thermostat_params:
+            forces.extend(self.thermostat_params.forces())
+        if self.barostat_params:
+            forces.extend(self.barostat_params.forces())
 
         for force in forces:
-            LOGGER.info(f'Created {force.__class__.__name__} Force(s) for {self!s}')
+            LOGGER.info(f'Created {force.__class__.__name__} Force for {self!s}')
 
         return forces
