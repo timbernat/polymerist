@@ -13,8 +13,8 @@ from openmm import System
 from openmm.app import Simulation, Topology
 from openmm.unit import Quantity
 
-from .thermo import EnsembleFactory
-from .parameters import ThermoParameters, SimulationParameters
+from .thermo import ThermoParameters
+from .parameters import SimulationParameters
 from .serialization.paths import SimulationPaths
 from .serialization.state import StateLike, load_state_flexible
 from .forces import _POLYMERIST_FORCE_GROUP, force_added_by_polymerist, impose_unique_force_groups
@@ -29,7 +29,7 @@ def simulation_from_thermo(
         state : Optional[StateLike]=None,
     ) -> Simulation:
     '''Prepare an OpenMM simulation from a serialized thermodynamics parameter set'''
-    # clear forces previously added by another EnsembleFactory to avoid thermodynamic bleedover
+    # clear forces added from another set of thermodynamic parameters to avoid thermostat/barostat "bleedover"
     preexisting_force_indices : list[int] = sorted(
         (i for i, force in enumerate(system.getForces()) if force_added_by_polymerist(force)),
         reverse=True, # must remove greatest-to-least, as any lower-first would modify subsequent indices and cause offset
@@ -39,20 +39,17 @@ def simulation_from_thermo(
         system.removeForce(index)
 
     # register new custom Forces (if any) from provided thermodynamic parameters
-    ens_fac = EnsembleFactory.from_thermo_params(thermo_params)
-    if (extra_forces := ens_fac.forces()): # check if any extra forces are present
-        for force in extra_forces:
-            # TODO: label injected forces with dedicated forceGroup for tracking downstream
-            LOGGER.info(f'Registering new Force "{force.getName()}" to System to enforce chosen ensemble ({thermo_params.ensemble})')
-            force.setForceGroup(_POLYMERIST_FORCE_GROUP)
-            system.addForce(force) # add forces to System BEFORE creating Simulation to avoid having to reinitialize the Conext to preserve changes
+    for force in thermo_params.forces():
+        LOGGER.info(f'Registering new Force "{force.getName()}" to System to enforce chosen ensemble ({thermo_params.ensemble})')
+        force.setForceGroup(_POLYMERIST_FORCE_GROUP)
+        system.addForce(force)
     impose_unique_force_groups(system) # NOTE: turns out to be necessary to attain energy contribution separation (can't just relabel after the simulation)
 
     # initialize Simulation
     simulation = Simulation(
         topology=topology,
         system=system,
-        integrator=ens_fac.integrator(time_step),
+        integrator=thermo_params.integrator(time_step),
     )
     
     ## set Positions
@@ -67,9 +64,8 @@ def simulation_from_thermo(
         LOGGER.info('Setting simulation state')
         simulation.context.setState(state)
 
-    # ensure changes took, preserving State as necessary
+    ## ensure changes took, preserving State as necessary
     simulation.context.reinitialize(preserveState=True) # TOSELF : unclear whether this is necessary, redundant, or in fact harmful
-    # print(simulation.context.getPositions())
 
     return simulation
 

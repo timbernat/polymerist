@@ -1,4 +1,4 @@
-'''Simplifies creation of Simulations which correspond to a particular thermodynamic ensembles'''
+'''API for selecting thermostat and barostat actions which realize particular thermodynamic ensembles'''
 
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
@@ -6,109 +6,177 @@ __email__ = 'timotej.bernat@colorado.edu'
 import logging
 LOGGER = logging.getLogger(__name__)
 
-from typing import Any, ClassVar, Iterable, Optional
-from abc import ABC, abstractmethod, abstractproperty
+from typing import Iterable, Optional, Union
 from dataclasses import dataclass, field
+from enum import Enum, StrEnum
 
-from openmm import Integrator, VerletIntegrator, LangevinMiddleIntegrator
-from openmm.openmm import Force, MonteCarloBarostat
-from openmm.unit import Quantity, kelvin, atmosphere, picosecond
+from openmm.unit import Quantity, picosecond, kelvin, atmosphere
+from openmm import Force, Integrator
+from openmm import (
+    LangevinMiddleIntegrator,
+    LangevinIntegrator,
+    BrownianIntegrator,
+    NoseHooverIntegrator,
+    AndersenThermostat,
+    VerletIntegrator,
+)
+from openmm import (
+    MonteCarloBarostat,
+    MonteCarloFlexibleBarostat,
+)
 
-from ...genutils.decorators.classmod import register_subclasses, register_abstract_class_attrs
-from ...genutils.fileutils.jsonio.jsonify import make_jsonifiable
-from ...genutils.fileutils.jsonio.serialize import QuantitySerializer
+from polymerist.genutils.fileutils.jsonio.jsonify import make_jsonifiable
+from polymerist.genutils.fileutils.jsonio.serialize import (
+    MultiTypeSerializer,
+    QuantitySerializer,
+    enum_serializer_factory,
+)
 
 
-# PARAMETER CLASSES
-@make_jsonifiable(type_serializer=QuantitySerializer)
+# THERMOSTATS
+class Thermostat(Enum):
+    '''Common thermostats which OpenMM implements and which adhere to the interface defined here'''
+    ANDERSEN = AndersenThermostat
+    BROWNIAN = BrownianIntegrator
+    LANGEVIN = LangevinIntegrator
+    LANGEVIN_MIDDLE = LangevinMiddleIntegrator
+    NOSE_HOOVER = NoseHooverIntegrator
+    
+    # aliases for convenience
+    LANGEVINMIDDLE = LangevinMiddleIntegrator
+    NOSEHOOVER = NoseHooverIntegrator
+ThermostatSerializer = enum_serializer_factory(Thermostat)
+
+@make_jsonifiable(type_serializer=MultiTypeSerializer(QuantitySerializer, ThermostatSerializer))
+@dataclass
+class ThermostatParameters:
+    '''Interface for initializing a constant-temperature simulation'''
+    temperature : Quantity
+    timescale : Quantity = field(default_factory=lambda : 1 * picosecond**-1)
+    thermostat : Union[str, Thermostat] = Thermostat.LANGEVIN_MIDDLE
+
+    def __post_init__(self):
+        if isinstance(self.thermostat, str): # DEVNOTE: allowing strings is forgiving to users oblivious to enums here
+            self.thermostat = Thermostat[self.thermostat.upper()]
+
+    def forces(self) -> Iterable[Force]:
+        '''The forces required to realized the desired thermostat'''
+        if self.thermostat == Thermostat.ANDERSEN: # DEVNOTE: to my unending frustration, Andersen is the ONLY thermostat implemented as a Force (not an integrator)!
+            return (Thermostat.ANDERSEN.value(self.temperature, self.timescale),)
+        return tuple()
+
+    def integrator(self, time_step : Quantity) -> Integrator:
+        '''The integrator required to realized the desired thermostat'''
+        if self.thermostat == Thermostat.ANDERSEN: # DEVNOTE: to my unending frustration, Andersen is the ONLY thermostat implemented as a Force (not an integrator)!
+            return VerletIntegrator(time_step)
+        return self.thermostat.value(self.temperature, self.timescale, time_step)
+
+# BAROSTATS
+class Barostat(Enum):
+    '''Common barostats which OpenMM implements and which adhere to the interface defined here'''
+    # DEVNOTE: don't support Anisotropic or Membrane Barostats, since their call signatures don't fit the same interface as the 
+    # "vanilla" MonteCarloBarostat (vectored pressure and scale toggles for the former, non-optional surface tension for the latter)
+    MONTE_CARLO = MonteCarloBarostat
+    MONTE_CARLO_FLEXIBLE = MonteCarloFlexibleBarostat
+
+    # aliases for convenience
+    MC = MonteCarloBarostat
+    MONTECARLO = MonteCarloBarostat
+    FLEXIBLE = MonteCarloFlexibleBarostat
+BarostatSerializer = enum_serializer_factory(Barostat)
+
+@make_jsonifiable(type_serializer=MultiTypeSerializer(QuantitySerializer, BarostatSerializer))
+@dataclass
+class BarostatParameters:
+    '''Interface for initializing a constant-pressure simulation'''
+    pressure : Quantity
+    temperature : Quantity
+    attempt_frequency : int = 25
+    barostat : Union[str, Barostat] = Barostat.MONTE_CARLO
+
+    def __post_init__(self):
+        if isinstance(self.barostat, str): # DEVNOTE: allowing strings is forgiving to users oblivious to enums here
+            self.barostat = Barostat[self.barostat.upper()]
+
+    def forces(self) -> Iterable[Force]:
+        '''The forces required to realized the desired barostat'''
+        if self.temperature is None:
+            raise ValueError('Barostat coupling temperature unset')
+        return (self.barostat.value(self.pressure, self.temperature, self.attempt_frequency),)
+
+    def integrator(self, time_step : Quantity) -> Integrator:
+        '''The integrator required to realized the desired barostat'''
+        # DEVNOTE: just here to keep interface constant; since the NPH ensemble is not supported,
+        # there is never a need for the barostat to provide an integrator
+        return tuple()
+    
+# ENSEMBLES
+class NPHEnsembleUnsupported(ValueError):
+    '''
+    Raised when a user attempts to initialize ThermoParameters with a barostat but not thermostat
+    Would cause OpenMM to produce incorrect results (https://docs.openmm.org/latest/userguide/application/02_running_sims.html#pressure-coupling)
+    '''
+    def __init__(self, msg : str=f'NPH ensemble not supported; either add a thermostat or remove a barostat from thermodynamic parameters', *args, **kwargs):
+        super().__init__(msg, *args, **kwargs)
+
+class Ensemble(StrEnum):
+    '''Common thermodynamic ensembles which are realizable with the interfaces provided here'''
+    NVE = 'microcanonical'
+    NVT = 'canonical'
+    NPT = 'isothermal-isobaric'
+    
+@make_jsonifiable
 @dataclass
 class ThermoParameters:
-    '''For recording temperature, pressure, ensemble, and other thermodynamic parameters'''
-    ensemble       : str = 'NVT'
-    temperature    : Quantity = field(default_factory=lambda : (300 * kelvin)) # just specifying Quantities as default doesn't cut it, since these are (evidently) mutable defaults which dataclasses can't digest
-    pressure       : Quantity = field(default_factory=lambda : (1 * atmosphere))
-
-    friction_coeff : Quantity = field(default_factory=lambda : (1 / picosecond))
-    barostat_freq  : int = 25
-
+    '''Encapsulation for initializing the OpenMM forces and integrator which realize a particular thermodynamic ensemble'''
+    thermostat_parameters : Optional[ThermostatParameters] = None
+    barostat_parameters   : Optional[BarostatParameters] = None
+    
     def __post_init__(self) -> None:
-        self.ensemble = self.ensemble.upper() # ensure ensemble name is upper-case
+        if self.barostat_parameters is not None:
+            if self.thermostat_parameters is None:
+                raise NPHEnsembleUnsupported
+            
+            if self.barostat_parameters.temperature != self.thermostat_parameters.temperature:
+                LOGGER.warning(f'Adjusting Barostat temperature from {self.barostat_parameters.temperature} to {self.thermostat_parameters.temperature} to maintain temperature coupling w/ thermostat')
+                self.barostat_parameters.temperature = self.thermostat_parameters.temperature
 
-
-# ABSTRACT BASE FOR CREATING ENSEMBLE-SPECIFIC SIMULATION
-@dataclass
-@register_subclasses(key_attr='ensemble')
-@register_abstract_class_attrs('ensemble', 'ensemble_name')
-class EnsembleFactory(ABC):
-    '''Base class for implementing interface for generating ensemble-specific simulations'''
-    thermo_params : ThermoParameters
-
-    @classmethod
-    def from_thermo_params(cls, thermo_params : ThermoParameters) -> 'EnsembleFactory':
-        '''class method to automatically perform registry lookup (simplifies imports and use cases)'''
-        return EnsembleFactory.subclass_registry[thermo_params.ensemble](thermo_params)
-
-    # ENSEMBLE NAMING ATTRIBUTES
     @property
-    def desc(self) -> str:
+    def ensemble(self) -> Ensemble:
+        '''The standard name of the thermodynamic ensemble being implemented here'''
+        if self.thermostat_parameters is None:
+            if self.barostat_parameters is not None:
+                raise NPHEnsembleUnsupported
+            return Ensemble.NVE
+        else:
+            if self.barostat_parameters is not None:
+                return Ensemble.NPT
+            return Ensemble.NVT
+        
+    def __str__(self) -> str:
         '''Verbal description of ensemble'''
-        return f'{self.ensemble} ({self.ensemble_name.capitalize()}) ensemble'
-
-    def __post_init__(self) -> None:
-        self.__doc__ = f'Factory class for the {self.desc}' # auto-generate docstring by ensemble
-
-    # DEFINING ENSEMBLE-SPECIFIC INTEGRATORS AND FORCES
-    @abstractmethod
-    def _integrator(self, time_step : Quantity) -> Integrator:
-        '''Specify how to integrate forces in each timestep'''
-        pass
-
-    @abstractmethod
-    def _forces(self) -> Optional[Iterable[Force]]:
-        '''Specify any additional force contributions to position/velocity updates'''
-        pass
-
-    # CONCRETE METHODS WITH INTEGRATED LOGGING
+        return f'{self.ensemble.name} ({self.ensemble.value.capitalize()}) ensemble'
+        
     def integrator(self, time_step : Quantity) -> Integrator:
         '''Specify how to integrate forces in each timestep'''
-        integrator = self._integrator(time_step)
-        LOGGER.info(f'Created {integrator.__class__.__name__} for {self.desc}')
+        if self.thermostat_parameters:
+            integrator = self.thermostat_parameters.integrator(time_step)
+        else:
+            integrator = VerletIntegrator(time_step)
+
+        LOGGER.info(f'Created {integrator.__class__.__name__} for {self!s}')
         
         return integrator
 
     def forces(self) -> Optional[Iterable[Force]]:
         '''Specify any additional force contributions to position/velocity updates'''
-        forces = self._forces()
-        if forces:
-            force_str = ', '.join(force.__class__.__name__ for force in forces)
-            LOGGER.info(f'Created {force_str} Force(s) for {self.desc}')
+        forces : list[Force] = []
+        if self.thermostat_parameters:
+            forces.extend(self.thermostat_parameters.forces())
+        if self.barostat_parameters:
+            forces.extend(self.barostat_parameters.forces())
+
+        for force in forces:
+            LOGGER.info(f'Created {force.__class__.__name__} Force(s) for {self!s}')
 
         return forces
-
-
-# CONCRETE IMPLEMENTATIONS OF ENSEMBLES
-@dataclass
-class NVESimulationFactory(EnsembleFactory, ensemble='NVE', ensemble_name='microcanonical'):
-    def _integrator(self, time_step : Quantity) -> Integrator:
-        return VerletIntegrator(time_step)
-    
-    def _forces(self) -> Optional[Iterable[Force]]:
-        return None
-    
-@dataclass
-class NVTSimulationFactory(EnsembleFactory, ensemble='NVT', ensemble_name='canonical'): 
-    def _integrator(self, time_step : Quantity) -> Integrator:
-        return LangevinMiddleIntegrator(self.thermo_params.temperature, self.thermo_params.friction_coeff, time_step)
-    
-    def _forces(self) -> Optional[Iterable[Force]]:
-        return None # TODO : add implementation support for Andersen and Nose-Hoover thermostats (added to forces instead)
-    
-@dataclass
-class NPTSimulationFactory(EnsembleFactory, ensemble='NPT', ensemble_name='isothermal-isobaric'):
-    def _integrator(self, time_step : Quantity) -> Integrator:
-        return LangevinMiddleIntegrator(self.thermo_params.temperature, self.thermo_params.friction_coeff, time_step)
-    
-    def _forces(self) -> Optional[Iterable[Force]]:
-        return [MonteCarloBarostat(self.thermo_params.pressure, self.thermo_params.temperature, self.thermo_params.barostat_freq)]
-    
-  
