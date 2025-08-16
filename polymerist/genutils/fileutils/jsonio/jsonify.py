@@ -88,8 +88,20 @@ def make_jsonifiable(cls : Optional[C]=None, type_serializer : Optional[Union[Ty
                     multi_serializer.add_type_serializer(init_param_type.serializer)
 
         # generate serializable wrapper class
-        @wraps(cls, updated=()) # copy over docstring, module, etc; set updated to empty so as to not attempt __dict__updates (classes don;t have these)
         @dataclass
+        @wraps(
+            cls,
+            assigned=(
+                '__module__',
+                '__name__',
+                '__qualname__',
+                '__doc__',
+                # '__annotations__', 
+                ## DEVNOTE: NEED to have __annotations__ suppressed for wrapped functions to have correct signature on missing argument TypeError
+                ## Before you say it, NO, "wraps" can't just be placed before (i.e. around) the @dataclass call - that's what screws up the names in the first place
+            ),
+            updated=(), # DEVNOTE: set updated to empty so as to not attempt __dict__updates (classes don't have these)
+        ) # copy over docstring, module, etc; 
         class WrappedClass(cls, JSONifiable):
             '''Class which inherits from modified class and adds JSON serialization capability'''
             serializer : ClassVar[MultiTypeSerializer] = multi_serializer
@@ -103,10 +115,11 @@ def make_jsonifiable(cls : Optional[C]=None, type_serializer : Optional[Union[Ty
 
             @classmethod
             @allow_string_paths
-            def from_file(cls, load_path : Path) -> cls.__class__:
+            def from_file(cls, load_path : Path) -> cls:
                 assert(load_path.suffix == '.json')
                 with load_path.open('r') as loadfile:
                     return json.load(loadfile, object_hook=cls.serializer.decoder_hook)
+        print(cls.__annotations__)
 
         # !CRITICAL! that the custom serializer be registered for WrappedClass and NOT cls; otherwise, decoded instances will have different type to the parent class
         CustomSerializer = dataclass_serializer_factory(WrappedClass)
