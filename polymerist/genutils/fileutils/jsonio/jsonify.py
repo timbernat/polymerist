@@ -3,7 +3,17 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import Any, Callable, ClassVar, Optional, Type, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    ClassVar,
+    Optional,
+    Type,
+    TypeVar,
+    Union,
+    get_origin,
+    get_args,
+)
 C = TypeVar('C') # generic type for classes
 
 from dataclasses import dataclass, is_dataclass
@@ -68,8 +78,14 @@ def make_jsonifiable(cls : Optional[C]=None, type_serializer : Optional[Union[Ty
 
         # check if any of the init fields of the dataclass are also JSONifiable, register respective serializers if they are
         for init_param in signature(cls).parameters.values(): # TODO: find a way to have this recognize serializable classes in default containers (e.g. list[JSONifiable])
-            if isclass(init_param.annotation) and issubclass(init_param.annotation, JSONifiable): # check if the init field is itself a JSONifiable class
-                multi_serializer.add_type_serializer(init_param.annotation.serializer)
+            if get_origin(init_param.annotation) == Union:
+                init_param_types : tuple[Type] = get_args(init_param.annotation)
+            else:
+                init_param_types : tuple[Type] = (init_param.annotation,)
+            
+            for init_param_type in init_param_types: # scrape sub-TypeSerializers from annotated init argument types
+                if isclass(init_param_type) and issubclass(init_param_type, JSONifiable):
+                    multi_serializer.add_type_serializer(init_param_type.serializer)
 
         # generate serializable wrapper class
         @wraps(cls, updated=()) # copy over docstring, module, etc; set updated to empty so as to not attempt __dict__updates (classes don;t have these)
