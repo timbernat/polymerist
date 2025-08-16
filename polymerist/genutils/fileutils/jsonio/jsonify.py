@@ -5,7 +5,6 @@ __email__ = 'timotej.bernat@colorado.edu'
 
 from typing import (
     Any,
-    Callable,
     ClassVar,
     Optional,
     Type,
@@ -17,7 +16,7 @@ from typing import (
 C = TypeVar('C') # generic type for classes
 
 from dataclasses import dataclass, is_dataclass
-from functools import update_wrapper, wraps
+from functools import wraps
 from inspect import signature, isclass
 
 import json
@@ -119,7 +118,6 @@ def make_jsonifiable(cls : Optional[C]=None, type_serializer : Optional[Union[Ty
                 assert(load_path.suffix == '.json')
                 with load_path.open('r') as loadfile:
                     return json.load(loadfile, object_hook=cls.serializer.decoder_hook)
-        print(cls.__annotations__)
 
         # !CRITICAL! that the custom serializer be registered for WrappedClass and NOT cls; otherwise, decoded instances will have different type to the parent class
         CustomSerializer = dataclass_serializer_factory(WrappedClass)

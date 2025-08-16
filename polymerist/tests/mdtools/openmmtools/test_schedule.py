@@ -69,7 +69,7 @@ def openmm_system(interchange : Interchange) -> System:
     return interchange.to_openmm_system(combine_nonbonded_forces=False)
 
 @pytest.fixture(scope='function') # DEVNOTE: should be re-made per call to avoid coss-contamination
-def openmm_positions(interchange : Interchange) -> OpenMMQuantity[NDArray]:
+def openmm_positions(interchange : Interchange) -> OpenMMQuantity:
     '''OpenMM positions for the simulation'''
     return interchange.get_positions(include_virtual_sites=True).to_openmm()
 
@@ -128,5 +128,6 @@ def sim_params_NVT() -> SimulationParameters:
             report_state_data=True,
         ),
     )
+# TODO: add premade State compatible with the System defined here to test state injection at start of schedule
     
 # TESTS PROPER
