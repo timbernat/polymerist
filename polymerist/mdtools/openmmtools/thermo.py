@@ -138,7 +138,7 @@ class ThermoParameters:
                 raise NPHEnsembleUnsupported
             
             if self.barostat_params.temperature != self.thermostat_params.temperature:
-                LOGGER.warning(f'Adjusting Barostat temperature from {self.barostat_params.temperature} to {self.thermostat_params.temperature} to maintain temperature coupling w/ thermostat')
+                LOGGER.warning(f'Adjusting Barostat temperature from "{self.barostat_params.temperature}" to {self.thermostat_params.temperature} to maintain temperature coupling w/ thermostat')
                 self.barostat_params.temperature = self.thermostat_params.temperature
 
     @property
