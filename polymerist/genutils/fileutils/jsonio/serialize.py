@@ -4,11 +4,13 @@ __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
 from typing import Any, ClassVar, Optional, Type, TypeVar, Union
-from abc import ABC, abstractstaticmethod
+from abc import ABC, abstractmethod
 from inspect import isclass
 T = TypeVar('T') # generic type
 
+from enum import EnumType
 from pathlib import Path
+
 import numpy as np
 import openmm.unit
 
@@ -25,11 +27,13 @@ class TypeSerializer(ABC):
     '''Interface for defining how types which are not JSON serializable by default should be encoded and decoded'''
     python_type : ClassVar[Type[T]] # NOTE: this is kept here purely for static typehinting purposes
 
-    @abstractstaticmethod
+    @staticmethod
+    @abstractmethod
     def encode(python_obj : T) -> JSONSerializable:
         pass
 
-    @abstractstaticmethod
+    @staticmethod
+    @abstractmethod
     def decode(json_obj : JSONSerializable) -> T:
         pass
 
@@ -143,7 +147,7 @@ class QuantitySerializer(TypeSerializer, python_type=openmm.unit.Quantity):
         return openmm.unit.Quantity(value, unit)
     
 class NDArraySerializer(TypeSerializer, python_type=np.ndarray):
-    '''For handling JSON serialization of numpy arrays'''
+    '''For JSON-serializing of numpy n-dimensional arrays'''
     @staticmethod
     def encode(python_obj : np.ndarray[Any]) -> list[Any]:
         '''List-ify array and store string descriptor of numpy dtype'''
@@ -156,3 +160,20 @@ class NDArraySerializer(TypeSerializer, python_type=np.ndarray):
     def decode(value : list[Any]) -> np.ndarray[Any]:
         '''Reassemble numpy array from list and dtype'''
         return np.array(value['array'], dtype=value['dtype'])
+    
+def enum_serializer_factory(enumtype : EnumType) -> TypeSerializer:
+    '''Factory for generating a TypeSerializer specific to an Enum type'''
+    class EnumSerializer(TypeSerializer, python_type=enumtype):
+        @staticmethod
+        def encode(enum : enumtype) -> str:
+            return enum.name
+
+        @staticmethod
+        def decode(name : str) -> enumtype:
+            return enumtype[name]
+    enum_serializer_name : str = f'{enumtype.__name__}Serializer'
+    EnumSerializer.__name__ = enum_serializer_name
+    EnumSerializer.__qualname__ = enum_serializer_name
+    EnumSerializer.__doc__ = f'''For JSON-serializing {enumtype.__name__} enums'''
+
+    return EnumSerializer
