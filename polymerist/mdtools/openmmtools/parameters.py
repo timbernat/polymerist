@@ -8,7 +8,14 @@ from dataclasses import dataclass
 import numpy as np
 from openmm.unit import Quantity
 
-from .thermo import ThermoParameters
+from .thermo import (
+    Thermostat,
+    ThermostatParameters,
+    Barostat,
+    BarostatParameters,
+    Ensemble,
+    ThermoParameters,
+)
 from .reporters import ReporterParameters
 from ...genutils.fileutils.jsonio.jsonify import make_jsonifiable
 from ...genutils.fileutils.jsonio.serialize import QuantitySerializer
