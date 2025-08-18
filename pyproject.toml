@@ -34,7 +34,7 @@ dependencies = [
     "openmm",
     # DEV: at time of writing, latest stable version of lammps shipped w/ binaries on conda 
     # lammps-dependent code is unrunnable (citing MPI OSError) for more recent builds (i.e. 2025.MM.DD) 
-    "lammps==2024.08.29", 
+    "lammps<=2024.08.29", 
     "mdtraj",
 ]
 
