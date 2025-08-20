@@ -5,7 +5,14 @@ __email__ = 'timotej.bernat@colorado.edu'
 
 import pytest
 
-from numpy.typing import NDArray
+from polymerist.genutils.importutils.pkginspect import get_file_path_within_package
+from polymerist.tests import data as testdata
+
+from typing import Union
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
 
 from openmm.unit import (
     Quantity as OpenMMQuantity,
@@ -14,7 +21,7 @@ from openmm.unit import (
     gram, kelvin, atmosphere,
 )
 from openmm import System, State
-from openmm.app import Topology as OpenMMTopology
+from openmm.app import Simulation, Topology as OpenMMTopology
 
 from openff.toolkit import Molecule, ForceField
 from openff.interchange import Interchange
@@ -31,10 +38,12 @@ from polymerist.mdtools.openmmtools.parameters import (
     ReporterParameters,
     SimulationParameters,
 )
+from polymerist.mdtools.openmmtools.serialization.paths import SimulationPaths
+from polymerist.mdtools.openmmtools.execution import run_simulation_schedule
 
 
 # FIXTURES
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='session')
 def interchange() -> Interchange:
     '''OpenFF Interchange object from which to derive OpenMM simulation inputs'''
     offmol = Molecule.from_smiles('c1ccccc1C(=O)O')
@@ -58,24 +67,33 @@ def interchange() -> Interchange:
     inc = ff.create_interchange(packed_top, charge_from_molecules=[offmol, water_TIP3P])
     inc.box = bbox
     
-@pytest.fixture(scope='function') # DEVNOTE: should be re-made per call to avoid coss-contamination
+    return inc
+    
+ # DEV: would have love to make this per-function to avoid cross-contamination,
+ # but the session-scoped simulations below force me to make these session wide as well
+ # (will raise ScopeError and not run test if I don't do this)
+@pytest.fixture(scope='session')
 def openmm_topology(interchange : Interchange) -> OpenMMTopology:
     '''OpenMM Topology object for the simulation'''
     return interchange.to_openmm_topology(collate=False)
 
-@pytest.fixture(scope='function') # DEVNOTE: should be re-made per call to avoid coss-contamination
+@pytest.fixture(scope='session')
 def openmm_system(interchange : Interchange) -> System:
     '''OpenMM System object for the simulation'''
     return interchange.to_openmm_system(combine_nonbonded_forces=False)
 
-@pytest.fixture(scope='function') # DEVNOTE: should be re-made per call to avoid coss-contamination
+@pytest.fixture(scope='session')
 def openmm_positions(interchange : Interchange) -> OpenMMQuantity:
     '''OpenMM positions for the simulation'''
     return interchange.get_positions(include_virtual_sites=True).to_openmm()
 
-## TODO: load optional compatible initial state to test initial State injection
+@pytest.fixture
+def state_path() -> Path:
+    '''A pre-made State XML compatible with the above System to test injection of States'''
+    return get_file_path_within_package('openmm_data/benzoic_acid_state.xml', testdata)
+    
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='session')
 def sim_params_NPT() -> SimulationParameters:
     '''Simulation parameters for thermostatted Simulation'''
     return SimulationParameters(
@@ -94,7 +112,7 @@ def sim_params_NPT() -> SimulationParameters:
         ),
         integ_params=IntegratorParameters(
             time_step=1.0*femtosecond,
-            total_time=10*picosecond,
+            total_time=50*femtosecond, # NOTE: deliberately running super short - not testing quality of sims, just how they run
             num_samples=10,
         ),
         reporter_params=ReporterParameters(
@@ -105,7 +123,7 @@ def sim_params_NPT() -> SimulationParameters:
         ),
     )
     
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='session')
 def sim_params_NVT() -> SimulationParameters:
     '''Simulation parameters for thermostatted AND barostatted Simulation'''
     return SimulationParameters(
@@ -118,8 +136,8 @@ def sim_params_NVT() -> SimulationParameters:
         ),
         integ_params=IntegratorParameters(
             time_step=1.0*femtosecond,
-            total_time=5*picosecond,
-            num_samples=50,
+            total_time=40*femtosecond, # NOTE: deliberately running super short - not testing quality of sims, just how they run
+            num_samples=20,
         ),
         reporter_params=ReporterParameters(
             report_checkpoint=True,
@@ -128,6 +146,65 @@ def sim_params_NVT() -> SimulationParameters:
             report_state_data=True,
         ),
     )
-# TODO: add premade State compatible with the System defined here to test state injection at start of schedule
     
-# TESTS PROPER
+@pytest.fixture(scope='session') # NOTE: running simulations is pretty expensive and should only be done once
+def simulation_history(
+        tmp_path_factory, # this is a "magic" keyword from PyTest to generate a session-long temporary Path
+        sim_params_NPT : SimulationParameters,
+        sim_params_NVT : SimulationParameters,
+        openmm_topology : OpenMMTopology,
+        openmm_system : System,
+        openmm_positions : np.ndarray[float],
+    ) -> dict[str, dict[str, Union[Simulation, SimulationPaths]]]: 
+    '''The outputs of short simulations specified by the parameters above run in order'''
+    return run_simulation_schedule(
+        working_dir=tmp_path_factory.mktemp('openmm'),
+        schedule={
+            'NPT' : sim_params_NPT,
+            'NVT' : sim_params_NVT,
+        },
+        init_top=openmm_topology,
+        init_sys=openmm_system,
+        init_pos=openmm_positions,
+        init_state=None, # DEV: for now
+        return_history=True
+    )
+
+
+# TESTS
+def test_barostat_NPT(simulation_history) -> None:
+    '''Test that barostat action is being applied to constant-pressure simulations'''
+    sim_paths = simulation_history['NPT']['paths']
+    state_data : pd.DataFrame = pd.read_csv(sim_paths.state_data_path)
+    box_volumes : np.ndarray[float] = state_data['Box Volume (nm^3)'].values
+
+    assert not np.allclose(box_volumes[0], box_volumes) # simulation volume SHOULD be changing (i.e. non-constant) to maintain pressure
+
+# DEV: the way the simulation schedule is set up here ALSO tests that no barostat bleedover occurs (NPT is followed by NVT)
+def test_barostat_NVT_no_bleedover(simulation_history) -> None:
+    '''Test that barostat action is being applied to constant-pressure simulations'''
+    sim_paths = simulation_history['NVT']['paths']
+    state_data : pd.DataFrame = pd.read_csv(sim_paths.state_data_path)
+    box_volumes : np.ndarray[float] = state_data['Box Volume (nm^3)'].values
+
+    assert np.allclose(box_volumes[0], box_volumes) # simulation volume should be constant
+
+def test_inject_state(
+    tmp_path_factory, # this is a "magic" keyword from PyTest to generate a session-long temporary Path
+    sim_params_NVT : SimulationParameters,
+    openmm_topology : OpenMMTopology,
+    openmm_system : System,
+    openmm_positions : np.ndarray[float],
+    state_path : Path,
+) -> None:
+    '''Test that injection of custom state into first Simulation in schedule works'''
+    run_simulation_schedule(
+        working_dir=tmp_path_factory.mktemp('openmm'),
+        schedule={'sim' : sim_params_NVT},
+        init_top=openmm_topology,
+        init_sys=openmm_system,
+        init_pos=openmm_positions,
+        init_state=state_path, # DEV: just make up an empty State to see that this is possible
+        return_history=True
+    )
+    # no explicit assert - just making sure no Expcetions are raised
