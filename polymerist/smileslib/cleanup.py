@@ -59,7 +59,7 @@ class InvalidInChI(InvalidChemicalLineNotation):
 # CANONICALIZATION AND STRUCTURE EXPANSION
 def canonical_SMILES_from_mol(mol : Chem.Mol) -> str:
     '''
-    Cast Mol to a "canonical" SMILES format -
+    Cast Mol to a "canonical" SMILES format
     Mols with identical chemical structure should produce identical strings
     '''
     return Chem.CanonSmiles(Chem.MolToSmiles(mol, canonical=True))
@@ -69,6 +69,7 @@ def expanded_SMILES(
         assign_map_nums : bool=True,
         start_from : int=1,
         kekulize : bool=True,
+        canonicalize : bool=True, # DEV: set to match legacy behavior
     ) -> str:
     '''
     Expands and clarifies the chemical information contained within a passed SMILES string
@@ -89,4 +90,4 @@ def expanded_SMILES(
         Chem.Kekulize(rdmol, clearAromaticFlags=True)
     Chem.SanitizeMol(rdmol)
 
-    return Chem.MolToSmiles(rdmol, kekuleSmiles=kekulize, allBondsExplicit=True, allHsExplicit=True)
+    return Chem.MolToSmiles(rdmol, kekuleSmiles=kekulize, allBondsExplicit=True, allHsExplicit=True, canonical=canonicalize)
