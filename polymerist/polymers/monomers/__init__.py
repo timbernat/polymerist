@@ -9,3 +9,4 @@ from .fragments import (
     MPD_TMC_FRAGMENTS,
     PEG_PLGA_FRAGMENTS,
 )
+from .specification import compliant_mol_SMARTS

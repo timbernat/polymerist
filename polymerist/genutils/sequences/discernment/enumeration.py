@@ -37,10 +37,12 @@ class DISCERNMENTSolver():
         '''Precheck to see if a solution exists without attemting full enumeration'''
         if not self.symbol_inventory.contains_word(word, ignore_multiplicities=ignore_multiplicities):
             return False
+        
         try:
             first_solution = next(self.enumerate_choices(word, ignore_multiplicities=ignore_multiplicities, unique_bins=unique_bins))
-            return (first_solution != tuple()) # consider the null index sequence of the empty tuple to be a failure
         except StopIteration:
             return False
+        else:
+            return (first_solution != tuple()) # consider the null index sequence of the empty tuple to be a failure
     choices_exist = choice_exists = solutions_exist = solution_exists = choice_solutions_exist # aliases for convenience
         

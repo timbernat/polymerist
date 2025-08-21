@@ -10,8 +10,8 @@ from dataclasses import dataclass, field
 import ast
 from pathlib import Path
 
-from ..decorators.functional import allow_string_paths # TODO: see if there's anyway to bypass a relative import here
 from .pkginspect import is_module, is_package
+from ..fileutils.pathutils import allow_string_paths
 
 
 @dataclass

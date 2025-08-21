@@ -25,10 +25,10 @@ from openff.toolkit.topology import (
 
 from . import GTR
 from ...genutils.iteration import asiterable
-from ...genutils.fileutils.pathutils import dotless
-from ...genutils.decorators.functional import allow_string_paths, optional_in_place
+from ...genutils.fileutils.pathutils import dotless, allow_string_paths
+from ...genutils.decorators.functional import optional_in_place
 
-from ...rdutils.rdprops import RDPROP_GETTERS, RDPROP_SETTERS, copy_rd_props
+from ...rdutils.rdprops import RDPROP_SETTERS, copy_rdobj_props
 from ...rdutils.rdcoords.tiling import tile_lattice_with_rdmol
 
 
@@ -36,7 +36,6 @@ from ...rdutils.rdcoords.tiling import tile_lattice_with_rdmol
 def get_largest_offmol(offtop : Topology) -> Molecule:
     '''Return the largest molecule in a Topology'''
     return max(offtop.molecules, key=lambda offmol : offmol.n_atoms)
-
 
 # RDKIT METADATA-PRESERVING INTERCONVERSION
 def copy_atom_metadata(offatom : OFFAtom, rdatom : RDAtom, preserve_type : bool=True) -> None:
@@ -56,7 +55,6 @@ def to_rdkit_with_metadata(offmol : Molecule, preserve_type : bool=True) -> Mol:
         copy_atom_metadata(offatom, rdmol.GetAtomWithIdx(i), preserve_type=preserve_type)
 
     return rdmol
-
 
 # MOLECULE METADATA SERIALIZATION / DESERIALIZATION
 @optional_in_place
@@ -83,7 +81,6 @@ def unpackage_atom_metadata(offmol : Molecule) -> None:
 
     for atom_id, metadata in packaged_mdat.items():
         offmol.atoms[atom_id].metadata.update(metadata)
-
 
 # FILE I/O FUNCTIONS
 @allow_string_paths
@@ -113,14 +110,13 @@ def topology_from_sdf(path : Path, *args, **kwargs) -> Topology:
             for mol in asiterable(Molecule.from_file(path, *args, **kwargs)) # asiterable() gracefully handles the singleton case
     )
 
-
 # TOPOLOGY BUILD FUNCTIONS
 def topology_from_molecule_onto_lattice(offmol : Molecule, lattice_points : np.ndarray, rotate_randomly : bool=True, unique_mol_ids : bool=True):
     '''Convert a charged OpenFF Molecule into a Topology made up of copies of that Molecule tiled according to a lattice'''
     tiled_rdmol = tile_lattice_with_rdmol(offmol.to_rdkit(), lattice_points, rotate_randomly=rotate_randomly)
     tiled_offmols = [] 
     for mol_id, tiled_mol_copy in enumerate(Chem.GetMolFrags(tiled_rdmol, asMols=True, sanitizeFrags=False)):
-        copy_rd_props(tiled_rdmol, tiled_mol_copy) # ensure each individual fragment preserves the information of the parent molecule
+        copy_rdobj_props(tiled_rdmol, tiled_mol_copy) # ensure each individual fragment preserves the information of the parent molecule
         tiled_offmol = Molecule.from_rdkit(
             rdmol=tiled_mol_copy,
             allow_undefined_stereo=True,

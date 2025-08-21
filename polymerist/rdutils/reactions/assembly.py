@@ -8,12 +8,15 @@ from typing import Iterable, Optional, Union
 
 from rdkit import Chem
 from rdkit.Chem.rdchem import Mol
+from rdkit.Chem.rdmolops import SanitizeFlags, SANITIZE_ALL
 
 from .reactions import AnnotatedReaction
-from ..labeling import molwise
+from ..chemlabel import (
+    assign_contiguous_atom_map_nums,
+    relabel_map_nums,
+)
 from ..bonding._bonding import combined_rdmol
 from ..bonding.permutation import swap_bonds
-from ...polymers.monomers import specification
 
 
 @dataclass # TODO : make JSONifiable
@@ -29,24 +32,40 @@ class ReactionAssembler:
     def reactants(self) -> Mol:
         '''Combine cached reactive groups into single, contiguously-numbered Mol for manipulation'''
         # 1) extracting and labelling reactants
-        reactants = molwise.assign_contiguous_atom_map_nums(*self.reactive_groups, in_place=False) # needed up-front to display reactants for derangement determination
+        reactants = assign_contiguous_atom_map_nums(*self.reactive_groups, in_place=False) # needed up-front to display reactants for derangement determination
         return Chem.CombineMols(*reactants) 
 
-    def products(self, show_steps : bool=False) -> Mol:
+    def products(self,
+            show_steps : bool=False,
+            sanitize_ops : SanitizeFlags=SANITIZE_ALL,
+            bond_breakage_marker : str='--x->',
+            bond_formation_marker : str='---->',
+        ) -> Mol:
         '''Generate the product template defined by the provided reactants and bond derangement'''
         if not self.bond_derangement:
             raise ValueError('Must provide non-empty bond derangement')
 
         # 2) defining and swapping bonds to form product
-        products = swap_bonds(Chem.RWMol(self.reactants), self.bond_derangement, show_steps=show_steps) # create editable Mol
-        Chem.SanitizeMol(products, sanitizeOps=specification.SANITIZE_AS_KEKULE)
+        products = swap_bonds(
+            Chem.RWMol(self.reactants),
+            bond_derangement=self.bond_derangement,
+            show_steps=show_steps,
+            bond_breakage_marker=bond_breakage_marker,
+            bond_formation_marker=bond_formation_marker
+        ) # create editable Mol
+        Chem.SanitizeMol(products, sanitizeOps=sanitize_ops)
 
         return products
     
-    def products_by_importance(self, combined : bool=True, show_steps : bool=False) -> tuple[Union[Optional[Mol], list[Mol]], Union[Optional[Mol], list[Mol]]]:
+    def products_by_importance(
+            self,
+            combined : bool=True,
+            show_steps : bool=False,
+            sanitize_ops : SanitizeFlags=SANITIZE_ALL,
+        ) -> tuple[Union[Optional[Mol], list[Mol]], Union[Optional[Mol], list[Mol]]]:
         '''Partition reaction products into major and minor/byproducts, each returned as a single Combined Mol'''
         product_partition = main_products, byproducts = [], []
-        for product in Chem.GetMolFrags(self.products(show_steps=show_steps), asMols=True):
+        for product in Chem.GetMolFrags(self.products(show_steps=show_steps, sanitize_ops=sanitize_ops), asMols=True):
             for side_query_mol in self.byproducts:
                 if product.HasSubstructMatch(side_query_mol) and (product.GetNumAtoms() == side_query_mol.GetNumAtoms()):
                     byproducts.append(product)
@@ -67,8 +86,8 @@ class ReactionAssembler:
         '''Partitions map numbers present in the product(s) by whether or not they belong to a collection of side products
         Returns a set of map numbers NOT in a side product and set set which are'''
         return [
-            set(molwise.ordered_map_nums(product_mol)) if (product_mol is not None) else set()
-                for product_mol in self.products_by_importance(combined=True, show_steps=False) # CRITICAL that mols be combined here
+            set(atom.GetAtomMapNum() for atom in product_mol.GetAtoms()) if (product_mol is not None) else set()
+                for product_mol in self.products_by_importance(combined=True, show_steps=False, sanitize_ops=SANITIZE_ALL) # CRITICAL that mols be combined here
         ]
 
     @property
@@ -86,15 +105,15 @@ class ReactionAssembler:
 
         return relabeling
 
-    def assemble_rxn(self, show_steps : bool=False) -> AnnotatedReaction:
+    def assemble_rxn(self, show_steps : bool=False, sanitize_ops : SanitizeFlags=SANITIZE_ALL,) -> AnnotatedReaction:
         '''Assemble MDL rxn template from information stored in self'''
         reactants = self.reactants
-        products, byproducts = self.products_by_importance(combined=True, show_steps=show_steps)
+        products, byproducts = self.products_by_importance(combined=True, show_steps=show_steps, sanitize_ops=sanitize_ops)
 
         if byproducts is not None:
             relabeling = self.byproduct_relabeling
-            reactants = molwise.relabel_map_nums(reactants, relabeling=relabeling, in_place=False)
-            products  = molwise.relabel_map_nums(products , relabeling=relabeling, in_place=False)
+            reactants = relabel_map_nums(reactants, relabeling=relabeling, in_place=False)
+            products  = relabel_map_nums(products , relabeling=relabeling, in_place=False)
 
         rxn = AnnotatedReaction.from_rdmols(reactant_templates=[reactants], product_templates=[products])
         rxn.Initialize()

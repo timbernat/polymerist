@@ -1,27 +1,13 @@
-'''SMILES and SMARTS primitives and functions for validation'''
+'''Registry of primitive parts of SMILES and SMARTS'''
 
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
-
-from typing import TypeAlias
 
 from rdkit import Chem
 from rdkit.Chem.rdchem import BondType
 
 
-# VALIDATION
-Smiles : TypeAlias = str # purely for improving self-documentation of functions, no benefit to static type-checkers
-Smarts : TypeAlias = str # purely for improving self-documentation of functions, no benefit to static type-checkers
-
-def is_valid_SMARTS(smarts : Smarts) -> bool:
-    '''Check if SMARTS string is valid (according to RDKit)'''
-    return (Chem.MolFromSmarts(smarts) is not None)
-
-def is_valid_SMILES(smiles : Smiles) -> bool:
-    '''Check if SMARTS string is valid (according to RDKit)'''
-    return (Chem.MolFromSmiles(smiles) is not None)
-
-# BOND PRIMITIVES AND RELATED OBJECTS
+# BOND PRIMITIVES
 BOND_PRIMITIVES = '~-=#$:'
 BOND_PRIMITIVES_FOR_REGEX = r'[~\-=#$:]' # any of the SMARTS bond primitive chars, with a space to differentiate single-bond hyphen for the regex range char
 BOND_INITIALIZERS = {

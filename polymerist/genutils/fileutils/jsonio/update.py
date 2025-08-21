@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 from .serialize import JSONSerializable
-from ...decorators.functional import allow_string_paths
+from ..pathutils import allow_string_paths
 
 
 @allow_string_paths
@@ -21,6 +21,8 @@ def append_to_json(json_path : Path, **kwargs) -> None:
     with json_path.open('w') as json_file:
         jdat = json.dump(jdat, json_file, indent=4)
 
+# DEVNOTE: consider replacing with synched_collections JSON utils? 
+# https://github.com/glotzerlab/synced_collections/blob/main/synced_collections/backends/collection_json.py
 class JSONDict(dict): # TODO : add allow_str_path decorators
     '''Dict subclass which also updates an underlying JSON file - effectively and on-disc dict
     !NOTE! - JSON doesn't support non-string keys, so all keys given will be stringified - plan accordingly!'''
