@@ -33,7 +33,7 @@ def lammps_input_path() -> Path:
 
 @pytest.fixture
 def lammps_data_path() -> Path:
-    return Path('data.in') # important to note that this Path is RELATIVE to the LAMMPS file directory
+    return Path('data.lmp') # important to note that this Path is RELATIVE to the LAMMPS file directory
 
 @pytest.fixture
 def lattice_params_expected() -> dict[str, Quantity]:

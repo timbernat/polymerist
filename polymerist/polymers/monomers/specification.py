@@ -15,13 +15,19 @@ from rdkit.Chem import QueryAtom
 from ...smileslib.cleanup import (
     Smiles, 
     Smarts,
-    InvalidSMARTS,
     is_valid_SMARTS,
-    expanded_SMILES, # beyond being a necessary import, this also makes importing expanded_SMILES from this module backwards-compatible
+    InvalidSMARTS,
+    # DEVNOTE: DON'T TOUCH! - expanded_SMILES import remains here purely for 
+    # backwards-compatibility, as expanded_SMILES was originally defined in this module
+    expanded_SMILES, 
 )
 from ...smileslib.primitives import RDKIT_QUERYBONDS_BY_BONDTYPE
-from ...rdutils.cheminspect import all_Hs_are_explicit, has_aromatic_bonds
-from ...rdutils.chemlabel import has_fully_mapped_atoms, has_uniquely_mapped_atoms
+from ...rdutils.chemlabel import (
+    has_fully_mapped_atoms,
+    has_uniquely_mapped_atoms,
+    assign_ordered_atom_map_nums,
+    mol_to_smiles_and_atom_permutation,
+)
 
 
 # REGEX TEMPLATES FOR COMPLIANT SMARTS
@@ -92,7 +98,8 @@ def compliant_atom_query_from_info(
         isotope = "" # non-specific isotope is not explicitly written in string (left empty)
     
     if atomic_num == 0: # define dummy/wild atoms to be linkers
-        # atom_query = f'[{isotope}*:{atom_map_num}]'
+        # NOTE: to simplify info fetching from regex, require that dummy atoms be explicitly labelled as atomic number 0 (rather than "*")
+        # atom_query = f'[{isotope}*:{atom_map_num}]' 
         atom_query = f'[{isotope}#{atomic_num}:{atom_map_num}]'
     else:
         atom_query = f'[{isotope}#{atomic_num}D{degree}{formal_charge:+}:{atom_map_num}]'
@@ -121,39 +128,58 @@ def compliant_mol_SMARTS(smarts : Union[Smiles, Smarts]) -> str:
     '''Convert generic SMARTS string into a spec-compliant one'''
     # initialize Mol object from passed SMARTS
     if not is_valid_SMARTS(smarts):
-        raise InvalidSMARTS(f'Passed string "{smarts}" cannot be interpreted as a valid SMARTS pattern')
+        raise InvalidSMARTS(f'SMARTS string "{smarts}" cannot be interpreted as a valid SMARTS pattern')
+
+    # downconvert from general SMARTS to SMILES for structure expansion (cannot be done on QueryMols)
+    ## DEVNOTE: I know these SMILES/SMARTS conversions look superfluous, but they are absolutely necessary
+    ## The cast from SMARTS to SMILES allows this function to digest SMARTS while also allowing structural operations
+    ## (e.g. adding Hs to the intermediate mol), which otherwise wouldn't make sense on a naive SMARTS-based query Mol
+    struct_smiles, atom_order = mol_to_smiles_and_atom_permutation(
+        Chem.MolFromSmarts(smarts, mergeHs=False),
+        allBondsExplicit=True,
+        allHsExplicit=False,
+        kekuleSmiles=True,
+        canonical=False,
+    )
+    ## in general, RDKit scrambled the order of atoms when writing to SMILES, so we un-scramble them both to
+    ## respect the user's preference for atom order AND as a necessary condition for this function to be idempotent
+    struct_mol = Chem.RenumberAtoms(
+        Chem.MolFromSmiles(struct_smiles, sanitize=False),
+        newOrder=atom_order, 
+    )
     
-    rdmol = Chem.MolFromSmarts(smarts, mergeHs=False)
-    rdmol.UpdatePropertyCache() # required to set valence for explicit Hs check without otherwise performing sanitization
-    
-    # check explicit hydrogens and atom map numbers
-    if not (
-            has_fully_mapped_atoms(rdmol)
-            and has_uniquely_mapped_atoms(rdmol)
-            and all_Hs_are_explicit(rdmol)
-        ):
-        rdmol = Chem.MolFromSmarts(expanded_SMILES(smarts, kekulize=True)) # expand and kekulize query
-        
-    # check kekulization for good measure
-    if has_aromatic_bonds(rdmol):
-        Chem.SanitizeMol(rdmol, sanitizeOps=(Chem.SANITIZE_ALL & ~Chem.SANITIZE_SETAROMATICITY)) # sanitize everything EXCEPT reassignment of aromaticity
+    # make chemical info in atoms and bonds totally explicit
+    struct_mol.UpdatePropertyCache() # required to set valence for explicit Hs check without otherwise performing sanitization
+    struct_mol = Chem.AddHs(struct_mol, addCoords=False)
+    Chem.Kekulize(struct_mol, clearAromaticFlags=True) # force kekulization (required by spec)
+    Chem.SanitizeMol(struct_mol)#, sanitizeOps=Chem.SANITIZE_ALL & ~Chem.SANITIZE_ADJUSTHS & ~Chem.SANITIZE_KEKULIZE & ~Chem.SANITIZE_SETAROMATICITY) # ensure sanitization does not undo kekulization above
+
+    # ensure all atoms are uniquely mapped (also required by spec); don;t overwrite perfectly-valid existing mapping if present
+    # DEVNOTE: this MUST be done AFTER addition of Hs, so new unmapped H atoms don't get inserted after map number assignment
+    if not (has_fully_mapped_atoms(struct_mol) and has_uniquely_mapped_atoms(struct_mol)):
+        assign_ordered_atom_map_nums(struct_mol, start_from=1, in_place=True)
     
     # assign query info to atoms and bonds
-    for atom in rdmol.GetAtoms():
+    query_mol = Chem.MolFromSmarts(
+        Chem.MolToSmiles(struct_mol, kekuleSmiles=True, allBondsExplicit=True, allHsExplicit=True),
+        mergeHs=False,
+    )
+    for atom in query_mol.GetAtoms():
         atom_query = compliant_atom_query_from_rdatom(atom, as_atom=True)
         atom.SetQuery(atom_query)
 
-    for bond in rdmol.GetBonds():
+    for bond in query_mol.GetBonds():
         bond_query = RDKIT_QUERYBONDS_BY_BONDTYPE[bond.GetBondType()]
         bond.SetQuery(bond_query)
 
+    unsanitized_smarts = Chem.MolToSmarts(query_mol) # RDKit does some mangling of queries which needs to be corrected here
+    
     # sanitize away RDKit artifacts
-    unsanitized_smarts = Chem.MolToSmarts(rdmol) # RDKit does some mangling of queries which needs to be corrected here
     sanitized_smarts, num_repl = re.subn(
         pattern=ABERRANT_RDKIT_ATOM_SMARTS,
         repl=compliant_atom_query_from_re_match,
         string=unsanitized_smarts,
-        count=rdmol.GetNumAtoms() # can't possibly replace more queries than there are atoms
+        count=query_mol.GetNumAtoms() # can't possibly replace more queries than there are atoms
     )
     if num_repl > 0:
         LOGGER.debug(f'Cleaned {num_repl} SMARTS atom query aberrations introduced by RDKit')

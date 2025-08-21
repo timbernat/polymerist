@@ -7,10 +7,21 @@ __email__ = 'timotej.bernat@colorado.edu'
 import logging
 LOGGER = logging.getLogger(__name__)
 
-from typing import Any, Generator, Generic, Iterable, Mapping, Optional, Sequence, TypeVar, Union
-
-T = TypeVar('T')
-L = TypeVar('L')
+from typing import (
+    Any,
+    Generator,
+    Generic,
+    Hashable,
+    Iterable,
+    Mapping,
+    Optional,
+    Sequence,
+    TypeVar,
+    Union
+)
+# DEVNOTE: need to be hashable to use as dict keys in forward or involute inventory
+T = TypeVar('T', bound=Hashable) 
+L = TypeVar('L', bound=Hashable)
 
 from importlib.util import find_spec
 from functools import cached_property

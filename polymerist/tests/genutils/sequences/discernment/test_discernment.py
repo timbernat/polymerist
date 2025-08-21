@@ -4,97 +4,97 @@ __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
 import pytest
+
+from typing import Type
+from itertools import product as cartesian
+
 from polymerist.genutils.importutils.pkginspect import get_file_path_within_package
 from polymerist.tests import data as testdata
 
-import json
-from pathlib import Path
-
 from polymerist.genutils.sequences.discernment.inventory import SymbolInventory
-from polymerist.genutils.sequences.discernment.strategies import DISCERNMENTStrategy
+from polymerist.genutils.sequences.discernment.enumeration import DISCERNMENTSolver
+from polymerist.genutils.sequences.discernment.strategies import (
+    DISCERNMENTStrategy,
+    DISCERNMENTStrategyCartesian,
+    DISCERNMENTStrategyRecursive,
+    DISCERNMENTStrategyStack,
+)
+from polymerist.genutils.sequences.discernment.examples import DISCERNMENTExample
 
 
-# DEFINE/LOAD HARD-CODED INPUTS AND EXPECTED OUTPUTS TO A PARTICULAR DISCERNMENT PROBLEM
-@pytest.fixture(scope='module')
-def word() -> str:
-    return 'accg'
+# LOAD PREDEFINED INPUT-OUTPUT EXAMPLE PAIRS
+## SHORT EXAMPLE - for lighter tests on testing aspects of solution besides correctness (i.e. side-effects)
+EXAMPLE_SHORT = DISCERNMENTExample.from_file(
+    get_file_path_within_package('DISCERNMENT/discernment_example_short.json', testdata)
+)
+params_short = [
+    (strategy, *parameters)
+        for strategy, parameters in cartesian(DISCERNMENTStrategy.__subclasses__(), EXAMPLE_SHORT.enumerate_test_inputs())
+]
 
-@pytest.fixture(scope='module')
-def choice_bins() -> str:
-    return ('bbc','aced','bad','daea','fccce','g','abcd','fggegc')
-
-@pytest.fixture(scope='module')
-def symbol_inventory(choice_bins) -> SymbolInventory:
-    return SymbolInventory.from_bins(choice_bins)
-
-@pytest.fixture(scope='module')
-def solution_path() -> Path:
-    return get_file_path_within_package('correct_discernment_solution.json', testdata)
-
-@pytest.fixture(scope='module') 
-def correct_solution(solution_path) -> set[tuple[int, ...]]:
-    with solution_path.open('r') as file:
-        solution = set(
-            tuple(indices)
-                for indices in json.load(file)
-        )
-    return solution
+## LONG EXAMPLE - for more comprehensive tests on correctness
+EXAMPLE_LONG  = DISCERNMENTExample.from_file(
+    get_file_path_within_package('DISCERNMENT/discernment_example_long.json', testdata)
+)
+params_long = [
+    (strategy, *parameters)
+        for strategy, parameters in cartesian(DISCERNMENTStrategy.__subclasses__(), EXAMPLE_LONG.enumerate_test_inputs())
+]
 
 
-@pytest.mark.parametrize("ignore_multiplicities,unique_bins,DSClass", [(False, False, DSClass) for DSClass in DISCERNMENTStrategy.__subclasses__()]) # TODO: produce solutions with unique bins AND ignored multiplicities to fully test
+# TESTS PROPER
 class TestDISCERNMENTStrategies:
-    all_results : dict[str, set[int]] = {} # cache solutions to avoid tedoius recalculations
-    def test_preserves_symbol_inventory(
-        self,
-        word : str,
-        symbol_inventory : SymbolInventory,
-        correct_solution : set[tuple[int, ...]],
-        ignore_multiplicities : bool,
-        unique_bins : bool,
-        DSClass : type[DISCERNMENTStrategy],
-    ) -> None:
-        '''Check to ensure that all implementations of DISCERNMENT solution strageties yield the same outputs and don't modify a provided symbol inventory
-        Raises failure-specific Exception if inconsistency is detected, terminates silently (no Exception, returns None) otherwise'''
-        mod_sym_inv = symbol_inventory.deepcopy() # create a copy of the symbol inventory to ensure any errant modifications do not affect other tests
+    @pytest.mark.parametrize(
+        'strategy_type,choice_bins,target_word,ignore_multiplicities,unique_bins,solution_expected',
+        params_short, # no need to try lengthy examples here, just checking side-effects
+    )
+    def test_discernment_strategy_no_side_effects(
+            self,
+            strategy_type : Type[DISCERNMENTStrategy],
+            choice_bins : tuple[list[str], ...],
+            target_word : list[str],
+            ignore_multiplicities : bool,
+            unique_bins : bool,
+            solution_expected : set[tuple[int, ...]]
+        ) -> None:
+        '''Test that the act of enumerating DISCERNMENT solutions leaves the symbol inventory undisturbed'''
+        symbol_inventory = SymbolInventory.from_bins(choice_bins)
+        symbol_inventory_ref = symbol_inventory.deepcopy() # create a copy of the symbol inventory to ensure any errant modifications do not affect other tests
+        solver = DISCERNMENTSolver(symbol_inventory, strategy=strategy_type())
+        
+        for _ in solver.enumerate_choices(
+                word=target_word,
+                ignore_multiplicities=ignore_multiplicities,
+                unique_bins=unique_bins,
+            ):
+                pass
 
-        method_name = DSClass.__name__
-        ds_strat = DSClass()
-        proposed_solution = set(
-            idxs
-                for idxs in ds_strat.enumerate_choice_labels(
-                    word,
-                    mod_sym_inv,
-                    ignore_multiplicities=ignore_multiplicities,
-                    unique_bins=unique_bins
-                )
+        assert (symbol_inventory == symbol_inventory_ref), f'Algorithm {strategy_type.__name__} does not leave symbol inventory invariant'
+
+    @pytest.mark.parametrize(
+        'strategy_type,choice_bins,target_word,ignore_multiplicities,unique_bins,solution_expected',
+        params_short + params_long, # try both long and short examples to maximize number of test cases
+    )
+    def test_discernment_strategy_soundness(
+            self,
+            strategy_type : Type[DISCERNMENTStrategy],
+            choice_bins : tuple[list[str], ...],
+            target_word : list[str],
+            ignore_multiplicities : bool,
+            unique_bins : bool,
+            solution_expected : set[tuple[int, ...]]
+        ) -> None:
+        '''Test that DISCERNMENT solution strategy enumerates the correct label sequences for a given set of inputs'''
+        symbol_inventory = SymbolInventory.from_bins(choice_bins)
+        solver = DISCERNMENTSolver(symbol_inventory, strategy=strategy_type())
+        
+        solution_proposed = set(
+            tuple(labels)
+                for labels in solver.enumerate_choices(
+                        word=target_word,
+                        ignore_multiplicities=ignore_multiplicities,
+                        unique_bins=unique_bins,
+                    )
         )
-        self.all_results[method_name] = proposed_solution # cache for comparison in later tests
-        assert (mod_sym_inv == symbol_inventory), f'Algorithm {method_name} does not produce to correct enumeration of bin labels'
 
-    def test_solution_is_correct(
-        self,
-        word : str,
-        symbol_inventory : SymbolInventory,
-        correct_solution : set[tuple[int, ...]],
-        ignore_multiplicities : bool,
-        unique_bins : bool,
-        DSClass : type[DISCERNMENTStrategy],
-    ) -> None:
-        method_name = DSClass.__name__
-        assert (self.all_results[method_name] == correct_solution), f'Algorithm {method_name} does not return symbol inventory to original state after completion'
-
-    def test_solution_strategies_are_consistent(
-        self,
-        word : str,
-        symbol_inventory : SymbolInventory,
-        correct_solution : set[tuple[int, ...]],
-        ignore_multiplicities : bool,
-        unique_bins : bool,
-        DSClass : type[DISCERNMENTStrategy],
-    ) -> None:
-        method_name = DSClass.__name__
-        proposed_solution = self.all_results[method_name]
-
-        for other_method_name, other_solution in self.all_results.items(): # check against all other methods PRIOR TO INSERTION (minimal number of checks guaranteed to verify all pairwise checks)
-            # check both symmetric differences to make sure no solution sequences are unique to either method 
-            assert (proposed_solution - other_solution == set()) and (other_solution - proposed_solution == set()), f'Algorithms {method_name} and {other_method_name} produce inconsistent solutions'
+        assert (solution_proposed == solution_expected), f'Algorithm {strategy_type.__name__} does not produce correct solutions to enumeration problem'

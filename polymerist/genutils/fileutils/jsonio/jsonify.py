@@ -3,11 +3,20 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import Any, Callable, ClassVar, Optional, Type, TypeVar, Union
+from typing import (
+    Any,
+    ClassVar,
+    Optional,
+    Type,
+    TypeVar,
+    Union,
+    get_origin,
+    get_args,
+)
 C = TypeVar('C') # generic type for classes
 
 from dataclasses import dataclass, is_dataclass
-from functools import update_wrapper, wraps
+from functools import wraps
 from inspect import signature, isclass
 
 import json
@@ -68,12 +77,30 @@ def make_jsonifiable(cls : Optional[C]=None, type_serializer : Optional[Union[Ty
 
         # check if any of the init fields of the dataclass are also JSONifiable, register respective serializers if they are
         for init_param in signature(cls).parameters.values(): # TODO: find a way to have this recognize serializable classes in default containers (e.g. list[JSONifiable])
-            if isclass(init_param.annotation) and issubclass(init_param.annotation, JSONifiable): # check if the init field is itself a JSONifiable class
-                multi_serializer.add_type_serializer(init_param.annotation.serializer)
+            if get_origin(init_param.annotation) == Union:
+                init_param_types : tuple[Type] = get_args(init_param.annotation)
+            else:
+                init_param_types : tuple[Type] = (init_param.annotation,)
+            
+            for init_param_type in init_param_types: # scrape sub-TypeSerializers from annotated init argument types
+                if isclass(init_param_type) and issubclass(init_param_type, JSONifiable):
+                    multi_serializer.add_type_serializer(init_param_type.serializer)
 
         # generate serializable wrapper class
-        @wraps(cls, updated=()) # copy over docstring, module, etc; set updated to empty so as to not attempt __dict__updates (classes don;t have these)
         @dataclass
+        @wraps(
+            cls,
+            assigned=(
+                '__module__',
+                '__name__',
+                '__qualname__',
+                '__doc__',
+                # '__annotations__', 
+                ## DEVNOTE: NEED to have __annotations__ suppressed for wrapped functions to have correct signature on missing argument TypeError
+                ## Before you say it, NO, "wraps" can't just be placed before (i.e. around) the @dataclass call - that's what screws up the names in the first place
+            ),
+            updated=(), # DEVNOTE: set updated to empty so as to not attempt __dict__updates (classes don't have these)
+        ) # copy over docstring, module, etc; 
         class WrappedClass(cls, JSONifiable):
             '''Class which inherits from modified class and adds JSON serialization capability'''
             serializer : ClassVar[MultiTypeSerializer] = multi_serializer
@@ -87,7 +114,7 @@ def make_jsonifiable(cls : Optional[C]=None, type_serializer : Optional[Union[Ty
 
             @classmethod
             @allow_string_paths
-            def from_file(cls, load_path : Path) -> cls.__class__:
+            def from_file(cls, load_path : Path) -> cls:
                 assert(load_path.suffix == '.json')
                 with load_path.open('r') as loadfile:
                     return json.load(loadfile, object_hook=cls.serializer.decoder_hook)

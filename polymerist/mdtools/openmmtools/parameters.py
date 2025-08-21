@@ -3,16 +3,22 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from dataclasses import dataclass, field
-from typing import Any
+from dataclasses import dataclass
 
 import numpy as np
 from openmm.unit import Quantity
 
-from .thermo import ThermoParameters
+from .thermo import (
+    Thermostat,
+    ThermostatParameters,
+    Barostat,
+    BarostatParameters,
+    Ensemble,
+    ThermoParameters,
+)
 from .reporters import ReporterParameters
-from ...genutils.fileutils.jsonio.jsonify import make_jsonifiable, dataclass_serializer_factory
-from ...genutils.fileutils.jsonio.serialize import PathSerializer, QuantitySerializer, MultiTypeSerializer
+from ...genutils.fileutils.jsonio.jsonify import make_jsonifiable
+from ...genutils.fileutils.jsonio.serialize import QuantitySerializer
 
 
 # PARAMETER SET HANDLERS

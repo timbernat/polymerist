@@ -26,7 +26,7 @@ dependencies:
 
     # MD engines
     - openmm
-    # - lammps # NOTE: this grinds the conda/libmamba env solver to a halt, so we install it via pip instead
+    - lammps # DEV: keep an eye on this as updates roll out - 2024.08.29 is latest STABLE version at time of writing this comment (08/18/25)
     - mdtraj
     - pint # for units in case OpenFF is not installed
 
@@ -44,5 +44,4 @@ dependencies:
     - pubchempy
 
     # pip installs
-    - pip:
-        - lammps>=2024 # NOTE: see above - conda version of lammps exists, but makes env solve prohibitively slow
+    # - pip:

@@ -3,20 +3,36 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import TypeAlias
+from typing import Callable, TypeAlias, TypeVar
+T = TypeVar('T')
 
-from rdkit import Chem
+from functools import wraps
+
+from rdkit import Chem, RDLogger
 from rdkit.Chem.rdmolops import SanitizeFlags, SanitizeMol, SANITIZE_ALL, SANITIZE_SETAROMATICITY
 
+
+def suppress_rdkit_errors(func : Callable[..., T]) -> Callable[..., T]:
+    '''Decorator to suppress RDKit error messages during function execution'''
+    @wraps(func)
+    def decorator(*args, **kwargs):
+        RDLogger.DisableLog('rdApp.error')
+        ret = func(*args, **kwargs)
+        RDLogger.EnableLog('rdApp.error')
+        
+        return ret
+    return decorator
 
 # TYPING AND VALIDATION
 Smiles : TypeAlias = str # purely for improving self-documentation of functions, no benefit to static type-checkers
 Smarts : TypeAlias = str # purely for improving self-documentation of functions, no benefit to static type-checkers
 
+@suppress_rdkit_errors
 def is_valid_SMARTS(smarts : Smarts) -> bool:
     '''Check if SMARTS string is valid (according to RDKit)'''
     return (Chem.MolFromSmarts(smarts) is not None)
 
+@suppress_rdkit_errors
 def is_valid_SMILES(smiles : Smiles) -> bool:
     '''Check if SMARTS string is valid (according to RDKit)'''
     return (Chem.MolFromSmiles(smiles) is not None)
@@ -43,7 +59,7 @@ class InvalidInChI(InvalidChemicalLineNotation):
 # CANONICALIZATION AND STRUCTURE EXPANSION
 def canonical_SMILES_from_mol(mol : Chem.Mol) -> str:
     '''
-    Cast Mol to a "canonical" SMILES format -
+    Cast Mol to a "canonical" SMILES format
     Mols with identical chemical structure should produce identical strings
     '''
     return Chem.CanonSmiles(Chem.MolToSmiles(mol, canonical=True))
@@ -53,6 +69,7 @@ def expanded_SMILES(
         assign_map_nums : bool=True,
         start_from : int=1,
         kekulize : bool=True,
+        canonicalize : bool=True, # DEV: set to match legacy behavior
     ) -> str:
     '''
     Expands and clarifies the chemical information contained within a passed SMILES string
@@ -63,7 +80,7 @@ def expanded_SMILES(
     
     rdmol = Chem.MolFromSmiles(smiles, sanitize=False)
     rdmol.UpdatePropertyCache() # inject valence and ring info without mangling from sanitization
-    rdmol = Chem.AddHs(rdmol, addCoords=True)
+    rdmol = Chem.AddHs(rdmol, addCoords=False)
     
     if assign_map_nums:
         for map_num, atom in enumerate(rdmol.GetAtoms(), start=start_from): # NOTE: deliberately did not use anything from rdutils.chemlabel here to avoid coupling
@@ -73,4 +90,4 @@ def expanded_SMILES(
         Chem.Kekulize(rdmol, clearAromaticFlags=True)
     Chem.SanitizeMol(rdmol)
 
-    return Chem.MolToSmiles(rdmol, kekuleSmiles=kekulize, allBondsExplicit=True, allHsExplicit=True)
+    return Chem.MolToSmiles(rdmol, kekuleSmiles=kekulize, allBondsExplicit=True, allHsExplicit=True, canonical=canonicalize)

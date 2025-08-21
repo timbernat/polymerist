@@ -3,13 +3,16 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import Annotated, Literal, TypeAlias, Union
+from typing import Annotated, Literal, Union
 import numpy.typing as npt
 
 import numpy as np
 
 from openmm.unit import Quantity
-from pint import Quantity as PintQuantity
+from pint import (
+    Unit as PintUnit,
+    Quantity as PintQuantity,
+)
 
 from openff.toolkit import Topology
 from openff.interchange.components._packmol import _box_vectors_are_in_reduced_form
@@ -59,8 +62,21 @@ def pad_box_vectors_uniform(box_vectors : BoxVectorsQuantity, pad_amount : Quant
     '''Padd all box vectors by the same fixed distance'''
     return pad_box_vectors(box_vectors, np.ones(3)*pad_amount)
 
+@allow_openmm_units
+def box_vectors_flexible(box_vecs : Union[VectorQuantity, BoxVectorsQuantity]) -> BoxVectorsQuantity:
+    '''Allows for passing XYZ box dimensions '''
+    if not isinstance(box_vecs, PintQuantity):
+        raise TypeError('Box vectors passed have no associated units')
+    
+    if not isinstance(box_vecs.magnitude, np.ndarray):
+        raise TypeError('Must pass array-like Quantity as box vector')
+    
+    if box_vecs.ndim == 1:
+        return xyz_to_box_vectors(box_vecs)
+    return box_vecs
 
-# OBTAINING VOLUMES
+
+# PROPERTIES OF BOX VECTORS
 def _get_box_volume_unitless(box_vectors_mag : BoxVectors) -> float:
     '''Compute volume of a box given a set of 3x3 box vectors'''
     return np.abs(np.linalg.det(box_vectors_mag)) # return unsigned determinant
@@ -74,17 +90,21 @@ def get_box_volume(box_vectors : BoxVectorsQuantity, units_as_openm : bool=True)
         return openff_to_openmm(box_vol)
     return box_vol
 
+def encloses_box_vectors(outer_box_vectors : BoxVectorsQuantity, inner_box_vectors : BoxVectorsQuantity) -> bool:
+    '''Check whether the unit cell defined by the inner box vectors is completely contained within the outer box vectors'''
+    outer_vecs = box_vectors_flexible(outer_box_vectors) # DEVNOTE: done to avoid case work for missing units, wrong quantity type, etc.
+    inner_vecs = box_vectors_flexible(inner_box_vectors)
+    
+    vec_unit : PintUnit = outer_vecs.units
+    # vec_unit : PintUnit = inner_vecs.units # DEVNOTE: either choice is fine if unit dimensions are compatible; picked outer arbitrarily
+    outer_vecs_unitless = outer_vecs.m_as(vec_unit)
+    inner_vecs_unitless = inner_vecs.m_as(vec_unit)
+    
+    # Sufficient condition for containment: if the outer unit cell contains the inner, then all points in the inner unit cell,
+    # including namely the inner basis vectors, are convex combinations of the outer box basis vectors
+    # i.e. there exists a matrix C such that N = O @ C, where N is the inner basis, O the outer, and all elements of C are in [0, 1]
+    # Equivalently, one can think of O^-1 as taking the points it contains into the standard unit cube, all of whose coordinates are in [0, 1]
+    change_of_basis_matrix = np.linalg.inv(outer_vecs_unitless) @ inner_vecs_unitless
+    
+    return np.all((change_of_basis_matrix >= 0.0) & (change_of_basis_matrix <= 1.0)) 
 
-# CONVERSIONS
-@allow_openmm_units
-def box_vectors_flexible(box_vecs : Union[VectorQuantity, BoxVectorsQuantity]) -> BoxVectorsQuantity:
-    '''Allows for passing XYZ box dimensions '''
-    if not isinstance(box_vecs, PintQuantity):
-        raise TypeError('Box vectors passed have no associated units')
-    
-    if not isinstance(box_vecs.magnitude, np.ndarray):
-        raise TypeError('Must pass array-like Quantity as box vector')
-    
-    if box_vecs.ndim == 1:
-        return xyz_to_box_vectors(box_vecs)
-    return box_vecs
