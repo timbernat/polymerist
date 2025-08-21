@@ -4,12 +4,7 @@ __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
 import pytest
-
-from polymerist.genutils.importutils.pkginspect import get_file_path_within_package
-from polymerist.tests import data as testdata
-
 from typing import Union
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -20,7 +15,7 @@ from openmm.unit import (
     nanometer, centimeter,
     gram, kelvin, atmosphere,
 )
-from openmm import System, State
+from openmm import System, State, Context
 from openmm.app import Simulation, Topology as OpenMMTopology
 
 from openff.toolkit import Molecule, ForceField
@@ -39,6 +34,7 @@ from polymerist.mdtools.openmmtools.parameters import (
     SimulationParameters,
 )
 from polymerist.mdtools.openmmtools.serialization.paths import SimulationPaths
+from polymerist.mdtools.openmmtools.serialization.state import DEFAULT_STATE_PROPS
 from polymerist.mdtools.openmmtools.execution import run_simulation_schedule
 
 
@@ -86,12 +82,6 @@ def openmm_system(interchange : Interchange) -> System:
 def openmm_positions(interchange : Interchange) -> OpenMMQuantity:
     '''OpenMM positions for the simulation'''
     return interchange.get_positions(include_virtual_sites=True).to_openmm()
-
-@pytest.fixture
-def state_path() -> Path:
-    '''A pre-made State XML compatible with the above System to test injection of States'''
-    return get_file_path_within_package('openmm_data/benzoic_acid_state.xml', testdata)
-    
 
 @pytest.fixture(scope='session')
 def sim_params_NPT() -> SimulationParameters:
@@ -195,16 +185,23 @@ def test_inject_state(
     openmm_topology : OpenMMTopology,
     openmm_system : System,
     openmm_positions : np.ndarray[float],
-    state_path : Path,
 ) -> None:
     '''Test that injection of custom state into first Simulation in schedule works'''
+    # pre-load initial State to use for Simulation - DEV: loading state from file proved too unreliable for CI tests
+    context = Context(
+        openmm_system,
+        sim_params_NVT.thermo_params.integrator(time_step=sim_params_NVT.integ_params.time_step),
+    )
+    context.setPositions(openmm_positions)
+    state = context.getState(**DEFAULT_STATE_PROPS) 
+    
     run_simulation_schedule(
         working_dir=tmp_path_factory.mktemp('openmm'),
         schedule={'sim' : sim_params_NVT},
         init_top=openmm_topology,
         init_sys=openmm_system,
         init_pos=openmm_positions,
-        init_state=state_path, # DEV: just make up an empty State to see that this is possible
+        init_state=state,
         return_history=True
     )
-    # no explicit assert - just making sure no Expcetions are raised
+    # no explicit assert - just making sure no Exceptions are raised
