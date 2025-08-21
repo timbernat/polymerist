@@ -4,14 +4,10 @@ __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
 import logging
-
 LOGGER = logging.getLogger(__name__)
+from typing import Union
 
-from typing import Optional, Union
-
-import numpy as np
 from openmm.unit import Quantity
-
 from openff.toolkit import Topology, Molecule
 from openff.interchange.components import _packmol as packmol
 
