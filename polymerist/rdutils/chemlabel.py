@@ -131,7 +131,7 @@ def mol_to_smiles_and_atom_permutation(mol: Mol, *args, **kwargs) -> tuple[str, 
         
         E.g. the following call, using "smiles" returned above, will in general scramble atom order:
         >>> from rdkit.Chem.rdmolfiles import MolToSmiles
-        >>> mol = MolFromSmiles(smiles) # atom order doesn;t match that of exporting Mol
+        >>> mol = MolFromSmiles(smiles) # atom order doesn't match that of exporting Mol
         
         However, atom order can easily be restored by calling:
         >>> from rdkit.Chem.rdmolops import RenumberAtoms

@@ -138,7 +138,8 @@ def compliant_mol_SMARTS(smarts : Union[Smiles, Smarts]) -> str:
         Chem.MolFromSmarts(smarts, mergeHs=False),
         allBondsExplicit=True,
         allHsExplicit=False,
-        kekuleSmiles=True,
+        # kekuleSmiles=True,
+        kekuleSmiles=False,
         canonical=False,
     )
     ## in general, RDKit scrambled the order of atoms when writing to SMILES, so we un-scramble them both to
