@@ -153,7 +153,7 @@ class ThermoParameters:
                 return Ensemble.NPT
             return Ensemble.NVT
         
-    def __str__(self) -> str:
+    def describe_ensemble(self) -> str:
         '''Verbal description of ensemble'''
         return f'{self.ensemble.name} ({self.ensemble.value.capitalize()}) ensemble'
         
@@ -164,7 +164,7 @@ class ThermoParameters:
         else:
             integrator = VerletIntegrator(time_step)
 
-        LOGGER.info(f'Created {integrator.__class__.__name__} for {self!s}')
+        LOGGER.info(f'Created {integrator.__class__.__name__} for {self.describe_ensemble()}')
         
         return integrator
 
@@ -177,6 +177,6 @@ class ThermoParameters:
             forces.extend(self.barostat_params.forces())
 
         for force in forces:
-            LOGGER.info(f'Created {force.__class__.__name__} Force for {self!s}')
+            LOGGER.info(f'Created {force.__class__.__name__} Force for {self.describe_ensemble()}')
 
         return forces
