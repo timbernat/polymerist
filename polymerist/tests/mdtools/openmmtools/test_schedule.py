@@ -112,7 +112,7 @@ def sim_params_NPT() -> SimulationParameters:
         ),
         integ_params=IntegratorParameters(
             time_step=1.0*femtosecond,
-            total_time=50*femtosecond, # NOTE: deliberately running super short - not testing quality of sims, just how they run
+            total_time=0.5*picosecond, # NOTE: deliberately running super short - not testing quality of sims, just how they run
             num_samples=10,
         ),
         reporter_params=ReporterParameters(
@@ -136,7 +136,7 @@ def sim_params_NVT() -> SimulationParameters:
         ),
         integ_params=IntegratorParameters(
             time_step=1.0*femtosecond,
-            total_time=40*femtosecond, # NOTE: deliberately running super short - not testing quality of sims, just how they run
+            total_time=0.4*picosecond, # NOTE: deliberately running super short - not testing quality of sims, just how they run
             num_samples=20,
         ),
         reporter_params=ReporterParameters(
