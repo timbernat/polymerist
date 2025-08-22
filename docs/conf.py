@@ -43,16 +43,30 @@ release = ''
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autosummary',
-    'sphinx.ext.autodoc',
+    'autoapi.extension',
+    # 'sphinx.ext.autosummary',
+    # 'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
     'sphinx.ext.extlinks',
 ]
+autoapi_dirs = ['../polymerist']
+autoapi_ignore = ["*/tests/*",
+                  "*_version.py"]
+                  
+autoapi_options = [
+    'members', 
+    'undoc-members', 
+    #'private-members', 
+    #'special-members', 
+    'show-inheritance', 
+    'show-module-summary', 
+    'imported-members',
+]
 
-autosummary_generate = True
+# autosummary_generate = True
 napoleon_google_docstring = False
 napoleon_use_param = False
 napoleon_use_ivar = True
