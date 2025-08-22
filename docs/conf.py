@@ -53,8 +53,11 @@ extensions = [
     'sphinx.ext.extlinks',
 ]
 autoapi_dirs = ['../polymerist']
-autoapi_ignore = ["*/tests/*",
-                  "*_version.py"]
+autoapi_ignore = [
+    "*/tests/*",
+    "*/data/*",
+    "*_version.py",
+]
                   
 autoapi_options = [
     'members', 
