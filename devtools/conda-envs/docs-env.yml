@@ -1,0 +1,61 @@
+name: polymerist-env
+channels:
+    - conda-forge
+    - openeye
+dependencies:
+    # Basic Python dependencies
+    - python=3.11.0
+    - pip
+
+    # Unit testing
+    - pytest
+    - pytest-cov
+    - codecov
+
+   # Docs
+    - sphinx
+    - sphinx-autoapi
+    - sphinx_rtd_theme
+
+    # Numerical libraries
+    - numpy
+    - pandas
+    - networkx
+    - anytree
+  
+    # Visualization
+    - pillow
+    - matplotlib
+    - jupyterlab
+    - ipywidgets==8.0.4 # more recent versions don't work with Jupyter notebooks, for some reason
+    - py3Dmol
+    - nglview==3.0.6
+
+    # Molecule building
+    - rdkit
+    - mbuild
+    - openbabel
+    - packmol<=20.15.1 # DEVNOTE: have no idea why, but versions tested later than this release (at least 20.16.1 and 21.0.4) introduce PDB CONECT errors where there were previously none
+    - openeye-toolkits # TODO: consider making this optional?
+
+    # MD engines
+    - openmm
+    - lammps # DEV: keep an eye on this as updates roll out - 2024.08.29 is latest STABLE version at time of writing this comment (08/18/25)
+    - mdtraj
+    - pint # for units in case OpenFF is not installed
+
+    # OpenFF stack
+    - openff-toolkit>=0.16
+    - openff-interchange>=0.4
+    - openff-nagl>=0.5
+    - openff-nagl-models>=0.3
+
+    # Espaloma
+    - espaloma_charge>=0.0.8
+
+    # Chemical database queries
+    - cirpy
+    - pubchempy
+
+    # pip installs
+    # - pip:
