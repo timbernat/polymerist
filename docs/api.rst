@@ -4,4 +4,5 @@ API Documentation
 .. autosummary::
    :toctree: autosummary
 
-   polymerist.canvas
+   polymerist.pascal
+   polymerist.module_hierarchy
