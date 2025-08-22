@@ -18,4 +18,7 @@ python:
       path: .
 
 conda:
-  environment: devtools/conda-envs/release-build.yml
+  environment: devtools/conda-envs/docs-env.yml
+
+sphinx:
+  configuration: docs/conf.py
