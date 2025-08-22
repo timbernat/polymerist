@@ -7,7 +7,7 @@ Installation
 ############
 Polymerist has the following dependencies:
 
-* Python 3.7 or later
+* Python 3.11.z (no later version supported)
 * NumPy
 * SciPy
 * RDKit
