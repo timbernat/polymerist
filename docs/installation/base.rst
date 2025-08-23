@@ -10,11 +10,14 @@ can be obtained by running the following shell commands:
     mamba create -n polymerist-env python=3.11
     mamba activate polymerist-env
     pip install polymerist
-    mamba install -c conda-forge openff-toolkit mbuild openbabel
+    mamba install -c conda-forge openff-toolkit mbuild openbabel "packmol<=20.15.1"
 
 The final mamba install is done as a one-liner (rather than in parts)
 to reconcile any discrepancies between packmol versions between the
-3 packages required (namely the openff-toolkit, mbuild, and openbabel)
+3 conda-only packages required (namely the openff-toolkit, mbuild, and openbabel).
+
+The packmol pin is to ensure solvation utilities work correctly; this will save you headaches,
+any later versions give inscrutable PDB errors where there previously were none.
 
 Installing the 'openff-toolkit <https://github.com/openforcefield/openff-toolkit`_ will take
 **_at least_** a few minutes, and will make the terminal output quite busy; remain calm, that's normal! 
@@ -45,7 +48,7 @@ Testing of installation is analogous to the python code above.
     mamba create -n polymerist-env python=3.11
     mamba activate polymerist-env
     pip install polymerist[interactive,chemdb]
-    mamba install -c conda-forge openff-toolkit mbuild openbabel
+    mamba install -c conda-forge openff-toolkit mbuild openbabel "packmol<=20.15.1"
 
 Conda install (**NOT** recommended)
 -----------------------------------
@@ -57,4 +60,4 @@ These will perform the same installation, just much more slowly:
     conda create -n polymerist-env python=3.11
     conda activate polymerist-env
     pip install polymerist[interactive,chemdb]
-    conda install -c conda-forge openff-toolkit mbuild openbabel
+    conda install -c conda-forge openff-toolkit mbuild openbabel "packmol<=20.15.1"
