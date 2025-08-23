@@ -43,7 +43,8 @@ release = ''
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autosummary',
+    'autoapi.extension',
+    # 'sphinx.ext.autosummary',
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
@@ -51,8 +52,23 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.extlinks',
 ]
+autoapi_dirs = ['../polymerist']
+autoapi_ignore = [
+    "*/tests/*",
+    "*/data/*",
+    "*_version.py",
+]
+autoapi_options = [
+    'members', 
+    'undoc-members', 
+    #'private-members', 
+    #'special-members', 
+    'show-inheritance', 
+    'show-module-summary', 
+    'imported-members',
+]
 
-autosummary_generate = True
+# autosummary_generate = True
 napoleon_google_docstring = False
 napoleon_use_param = False
 napoleon_use_ivar = True
@@ -144,20 +160,28 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'polymerist.tex', 'Polymer-Oriented LibrarY of Monomer Expression Rules and In-silico Synthesis Tools Documentation',
-     'polymerist', 'manual'),
+    (
+        master_doc,
+        'polymerist.tex',
+        'Polymer-Oriented LibrarY of Monomer Expression Rules and In-silico Synthesis Tools Documentation',
+        'polymerist',
+        'manual',
+    ),
 ]
-
 
 # -- Options for manual page output ------------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'polymerist', 'Polymer-Oriented LibrarY of Monomer Expression Rules and In-silico Synthesis Tools Documentation',
-     [author], 1)
+    (
+        master_doc,
+        'polymerist',
+        'Polymer-Oriented LibrarY of Monomer Expression Rules and In-silico Synthesis Tools Documentation',
+        [author],
+        1,
+    )
 ]
-
 
 # -- Options for Texinfo output ----------------------------------------------
 
@@ -165,10 +189,15 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'polymerist', 'Polymer-Oriented LibrarY of Monomer Expression Rules and In-silico Synthesis Tools Documentation',
-     author, 'polymerist', 'A unified set of tools for setting up general organic polymer systems for MD within the OpenFF framework',
-     'Miscellaneous'),
+    (
+        master_doc,
+        'polymerist',
+        'Polymer-Oriented LibrarY of Monomer Expression Rules and In-silico Synthesis Tools Documentation',
+        author,
+        'polymerist',
+        'A unified set of tools for setting up general organic polymer systems for MD within the OpenFF framework',
+        'Miscellaneous',
+    ),
 ]
-
 
 # -- Extension configuration -------------------------------------------------
