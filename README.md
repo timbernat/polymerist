@@ -35,7 +35,7 @@ Examples of how to import and invoke the core features of `polymerist` can be fo
 Before proceeding with installation, ensure you have some iteration of a Python package and environment management system installed on your machine. We recommend using `mamba`, installable via [Miniforge](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html). [Miniconda](https://docs.anaconda.com/free/miniconda/miniconda-install/) and other [Anaconda](https://www.anaconda.com/download) manager also work; however **if you opt to use `conda` over `mamba`, be prepared for a markedly slower and more tedious install process!**
 
 ## Installation
-The distribution for `polymerist` is hosted on [PyPI](https://pypi.org/project/polymerist/). For detailed instruction on how to install polymerist and other required toolkits, see [the installation docs](https://polymerist.readthedocs.io/en/docs/). Here we provide an abridged summary to get you going
+The distribution for `polymerist` is hosted on [PyPI](https://pypi.org/project/polymerist/). For detailed instruction on how to install polymerist and other required toolkits, see [the installation docs](https://polymerist.readthedocs.io/en/docs/installation/index.html). Here we provide an abridged summary to get you going
 
 ### Base install
 A fully-featured install in a safe virtual environment (named "polymerist-env", here) can be obtained by running the following terminal commands:
