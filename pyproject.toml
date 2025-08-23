@@ -65,7 +65,7 @@ chemdb = [
 ]
 
 [project.urls]
-Homepage = "https://polymerist.readthedocs.io/en/latest/"
+Homepage = "https://polymerist.readthedocs.io/en/docs/"
 Documentation = "https://polymerist.readthedocs.io/en/docs/"
 Download = "https://pypi.org/project/polymerist/"
 Source = "https://github.com/timbernat/polymerist"

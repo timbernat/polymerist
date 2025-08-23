@@ -80,11 +80,6 @@ def initialize_simulation_and_files(
     ) -> tuple[Simulation, SimulationPaths]:
     '''Create simulation, bind Reporters, and update simulation Paths with newly-generated files'''
     sim_paths = SimulationPaths.from_dir_and_parameters(out_dir, prefix, sim_params, touch=True)
-    if state is None:
-        LOGGER.info(f'No explicit initial State supplied, defaulting to State cached in "{sim_paths.state_path}"')
-        state = sim_paths.state_path
-
-    # create simulation and add reporters
     simulation = simulation_from_thermo(
         topology,
         system,
