@@ -22,7 +22,8 @@ import polymerist
 
 # -- Project information -----------------------------------------------------
 
-project = 'Polymer-Oriented LibrarY of Monomer Expression Rules and In-silico Synthesis Tools'
+# project = 'Polymer-Oriented LibrarY of Monomer Expression Rules and In-silico Synthesis Tools'
+project = 'polymerist'
 copyright = ("2024, Timotej Bernat. Project structure based on the "
              "Computational Molecular Science Python Cookiecutter version 1.1")
 author = 'Timotej Bernat'
@@ -43,7 +44,7 @@ release = ''
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'autoapi.extension',
+    # 'autoapi.extension',
     # 'sphinx.ext.autosummary',
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
