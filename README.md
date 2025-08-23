@@ -44,7 +44,7 @@ A fully-featured install in a safe virtual environment (named "polymerist-env", 
 mamba create -n polymerist-env python=3.11
 mamba activate polymerist-env
 pip install polymerist
-mamba install -c conda-forge openff-toolkit mbuild openbabel
+mamba install -c conda-forge openff-toolkit mbuild openbabel "packmol<=20.15.1"
 ```
 
 #### Mamba install (extended)
@@ -53,7 +53,7 @@ An extended install with [Jupyter Notebook](https://jupyter.org/) support, molec
 mamba create -n polymerist-env python=3.11
 mamba activate polymerist-env
 pip install polymerist[interactive,chemdb]
-mamba install -c conda-forge openff-toolkit mbuild openbabel
+mamba install -c conda-forge openff-toolkit mbuild openbabel "packmol<=20.15.1"
 ```
 
 ### Testing installation
