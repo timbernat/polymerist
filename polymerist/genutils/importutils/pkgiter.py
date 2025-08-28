@@ -7,7 +7,7 @@ import logging
 LOGGER = logging.getLogger(__name__)
 
 from types import ModuleType
-from typing import Generator, Iterable, Optional, Union
+from typing import Container, Generator, Iterable, Optional, Union
 
 from importlib import import_module
 from pkgutil import iter_modules as _iter_modules
@@ -50,7 +50,11 @@ module_tree = compile_tree_factory(
 )
 
 # BACKWARDS-COMPATIBLE PORTS OF LEGACY IMPORTUTILS FUNCTIONS
-def module_tree_direct(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None) -> Node:
+def module_tree_direct(
+        module : ModuleType,
+        recursive : bool=True,
+        blacklist : Optional[Container[str]]=None,
+    ) -> Node:
     '''Produce a tree from the Python package hierarchy starting with a given module
     
     Parameters
@@ -60,7 +64,7 @@ def module_tree_direct(module : ModuleType, recursive : bool=True, blacklist : O
         Represented in the Node object returned by this function
     recursive : bool, default=True
         Whether or not to recursively import modules from subpackages and add them to the tree
-    blacklist : list[str] (optional), default None
+    blacklist : Container[str] (optional)
         List of module names to exclude from tree building
         If provided, will exclude any modules whose names occur in this list
 
@@ -78,7 +82,11 @@ def module_tree_direct(module : ModuleType, recursive : bool=True, blacklist : O
         exclude=lambda module : module_stem(module) in blacklist,
     )
 
-def iter_submodules(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None) -> Generator[ModuleType, None, None]:
+def iter_submodules(
+        module : ModuleType,
+        recursive : bool=True,
+        blacklist : Optional[Container[str]]=None,
+    ) -> Generator[ModuleType, None, None]:
     '''
     Generates all modules which can be imported from the given toplevel module
     
@@ -89,7 +97,7 @@ def iter_submodules(module : ModuleType, recursive : bool=True, blacklist : Opti
         Represented in the Node object returned by this function
     recursive : bool, default=True
         Whether or not to recursively import modules from subpackages and add them to the tree
-    blacklist : list[str] (optional), default None
+    blacklist : Container[str] (optional)
         List of module names to exclude from tree building
         If provided, will exclude any modules whose names occur in this list
 
@@ -102,7 +110,11 @@ def iter_submodules(module : ModuleType, recursive : bool=True, blacklist : Opti
     for module_node in PreOrderIter(modtree):
         yield module_node.module
 
-def iter_submodule_info(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None) -> Generator[tuple[ModuleType, str, bool], None, None]:
+def iter_submodule_info(
+        module : ModuleType,
+        recursive : bool=True,
+        blacklist : Optional[Container[str]]=None,
+    ) -> Generator[tuple[ModuleType, str, bool], None, None]:
     '''
     Generates information about all modules which can be imported from the given toplevel module
     Namely, yields the module object, module name, and whether or not the module is a package
@@ -114,7 +126,7 @@ def iter_submodule_info(module : ModuleType, recursive : bool=True, blacklist : 
         Represented in the Node object returned by this function
     recursive : bool, default=True
         Whether or not to recursively import modules from subpackages and add them to the tree
-    blacklist : list[str] (optional), default None
+    blacklist : Container[str] (optional)
         List of module names to exclude from tree building
         If provided, will exclude any modules whose names occur in this list
 
@@ -128,7 +140,11 @@ def iter_submodule_info(module : ModuleType, recursive : bool=True, blacklist : 
     for module_node in PreOrderIter(modtree):
         yield module_node.module, module_node.name, module_node.is_leaf
 
-def register_submodules(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None) -> None:
+def register_submodules(
+        module : ModuleType,
+        recursive : bool=True,
+        blacklist : Optional[Container[str]]=None
+    ) -> None:
     '''
     Registers all submodules of a given module into it's own namespace (i.e. autoimports submodules)
     
@@ -139,7 +155,7 @@ def register_submodules(module : ModuleType, recursive : bool=True, blacklist : 
         Represented in the Node object returned by this function
     recursive : bool, default=True
         Whether or not to recursively import modules from subpackages and add them to the tree
-    blacklist : list[str] (optional), default None
+    blacklist : Container[str] (optional)
         List of module names to exclude from tree building
         If provided, will exclude any modules whose names occur in this list
 
@@ -150,7 +166,12 @@ def register_submodules(module : ModuleType, recursive : bool=True, blacklist : 
     for submodule in iter_submodules(module, recursive=recursive, blacklist=blacklist):
         setattr(module, submodule.__name__, submodule)
 
-def module_hierarchy(module : ModuleType, recursive : bool=True, blacklist : Optional[Iterable[str]]=None, style : Union[str, AbstractStyle]=ContStyle()) -> str:
+def module_hierarchy(
+        module : ModuleType,
+        recursive : bool=True,
+        blacklist : Optional[Container[str]]=None,
+        style : Union[str, AbstractStyle]=ContStyle()
+    ) -> str:
     '''
     Generates a printable string which summarizes a Python packages hierarchy. Reminiscent of GNU tree output
 
@@ -161,7 +182,7 @@ def module_hierarchy(module : ModuleType, recursive : bool=True, blacklist : Opt
         Represented in the Node object returned by this function
     recursive : bool, default=True
         Whether or not to recursively import modules from subpackages and add them to the tree
-    blacklist : list[str] (optional), default None
+    blacklist : Container[str] (optional)
         List of module names to exclude from tree building
         If provided, will exclude any modules whose names occur in this list
     style : str or AbstractStyle
