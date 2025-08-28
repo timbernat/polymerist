@@ -38,7 +38,8 @@ class ModuleToNodeCorrespondence(NodeCorrespondence, FROMTYPE=ModuleType):
             try:
                 submodule = import_module(module_name)
                 yield submodule
-            except (ModuleNotFoundError, MissingPrerequisitePackage):
+            except (ImportError, ModuleNotFoundError, MissingPrerequisitePackage) as module_error:
+                LOGGER.error(f'Failed to import submodule {module_name} due to {type(module_error).__name__}: "{module_error}"')
                 continue
 
 module_tree = compile_tree_factory(
