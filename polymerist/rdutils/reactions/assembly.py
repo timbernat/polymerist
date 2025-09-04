@@ -6,15 +6,12 @@ __email__ = 'timotej.bernat@colorado.edu'
 from dataclasses import dataclass, field
 from typing import Iterable, Optional, Union
 
-from rdkit import Chem
-from rdkit.Chem.rdchem import Mol
-from rdkit.Chem.rdmolops import SanitizeFlags, SANITIZE_ALL
+from rdkit.Chem.rdchem import Mol, RWMol
+from rdkit.Chem.rdmolops import GetMolFrags, SanitizeMol, SanitizeFlags, SANITIZE_ALL
 
 from .reactions import AnnotatedReaction
-from ..chemlabel import (
-    assign_contiguous_atom_map_nums,
-    relabel_map_nums,
-)
+from ..chemlabel import relabel_map_nums
+
 from ..bonding._bonding import combined_rdmol
 from ..bonding.permutation import swap_bonds
 
@@ -29,11 +26,14 @@ class ReactionAssembler:
     # TODO : incorporate stereo
 
     @property
-    def reactants(self) -> Mol:
+    def reactants(self) -> RWMol:
         '''Combine cached reactive groups into single, contiguously-numbered Mol for manipulation'''
-        # 1) extracting and labelling reactants
-        reactants = assign_contiguous_atom_map_nums(*self.reactive_groups, in_place=False) # needed up-front to display reactants for derangement determination
-        return Chem.CombineMols(*reactants) 
+        return combined_rdmol(
+            *self.reactive_groups,
+            # NOTE: unique mapping and editablility are essential for well-defined behavior throughout!
+            assign_map_nums=True,
+            editable=True,
+        )
 
     def products(self,
             show_steps : bool=False,
@@ -47,13 +47,13 @@ class ReactionAssembler:
 
         # 2) defining and swapping bonds to form product
         products = swap_bonds(
-            Chem.RWMol(self.reactants),
+            self.reactants, # NOTE: this should be an RWMol (not just Mol) instance!
             bond_derangement=self.bond_derangement,
             show_steps=show_steps,
             bond_breakage_marker=bond_breakage_marker,
             bond_formation_marker=bond_formation_marker
         ) # create editable Mol
-        Chem.SanitizeMol(products, sanitizeOps=sanitize_ops)
+        SanitizeMol(products, sanitizeOps=sanitize_ops)
 
         return products
     
@@ -65,7 +65,7 @@ class ReactionAssembler:
         ) -> tuple[Union[Optional[Mol], list[Mol]], Union[Optional[Mol], list[Mol]]]:
         '''Partition reaction products into major and minor/byproducts, each returned as a single Combined Mol'''
         product_partition = main_products, byproducts = [], []
-        for product in Chem.GetMolFrags(self.products(show_steps=show_steps, sanitize_ops=sanitize_ops), asMols=True):
+        for product in GetMolFrags(self.products(show_steps=show_steps, sanitize_ops=sanitize_ops), asMols=True):
             for side_query_mol in self.byproducts:
                 if product.HasSubstructMatch(side_query_mol) and (product.GetNumAtoms() == side_query_mol.GetNumAtoms()):
                     byproducts.append(product)
