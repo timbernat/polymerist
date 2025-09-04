@@ -27,15 +27,15 @@ polymerization mechanism, and any co-molecules (e.g. solvent) you wish to model.
 * 2.3 - `Solvation and packing of polymer melts <https://github.com/timbernat/polymerist_examples/blob/main/2-preparation/2.3-melt_packing_and_solvation.ipynb>`_
 * 2.4 - `Reduction Charge Transfer (RCT) for generating custom library charges <https://github.com/timbernat/polymerist_examples/blob/main/2-preparation/2.4-RCT_demo.ipynb>`_
 
-3 - `Running polymer simulations <https://github.com/timbernat/polymerist_examples/blob/main/3-simulation/3.0-index.ipynb>`_
+3 - `Running polymer simulations <https://github.com/timbernat/polymerist_examples/blob/main/3-workflows/3.0-index.ipynb>`_
 ============================================================================================================================
-* 3.1 - `Exporting polymer systems to common MD engines <https://github.com/timbernat/polymerist_examples/blob/main/3-simulation/3.1-MD_export_with_Interchange.ipynb>`_
-* 3.2 - `Reproducibly serializing OpenMM simulations <https://github.com/timbernat/polymerist_examples/blob/main/3-simulation/3.2-serializable_simulation_parameters.ipynb>`_
-* 3.3 - `Running series of OpenMM simulations <https://github.com/timbernat/polymerist_examples/blob/main/3-simulation/3.3-running_openmm_simulations.ipynb>`_
-* 3.4 - `A start-to-finish polymer simulation workflow <https://github.com/timbernat/polymerist_examples/blob/main/3-simulation/3.4-full_workflow_demo.ipynb>`_
+* 3.1 - `Exporting polymer systems to common MD engines <https://github.com/timbernat/polymerist_examples/blob/main/3-workflows/3.1-MD_export_with_Interchange.ipynb>`_
+* 3.2 - `Reproducibly serializing OpenMM simulations <https://github.com/timbernat/polymerist_examples/blob/main/3-workflows/3.2-serializable_simulation_parameters.ipynb>`_
+* 3.3 - `Running series of OpenMM simulations <https://github.com/timbernat/polymerist_examples/blob/main/3-workflows/3.3-running_openmm_simulations.ipynb>`_
+* 3.4 - `A start-to-finish polymer simulation workflow <https://github.com/timbernat/polymerist_examples/blob/main/3-workflows/3.4-full_workflow_demo.ipynb>`_
 
-`Miscellaneous <https://github.com/timbernat/polymerist_examples/blob/main/4-misc/4.0-index.ipynb>`_
+`Miscellaneous <https://github.com/timbernat/polymerist_examples/blob/main/4-miscellaneous/>`_
 ====================================================================================================
-* `Exporting arbitrary Python objects to JSON <https://github.com/timbernat/polymerist_examples/blob/main/4-miscellanous/jsonification.ipynb>`_
-* `Automated ring piercing detection (PINPRICS) <https://github.com/timbernat/polymerist_examples/blob/main/4-miscellanous/ring-piercing.ipynb>`_
-* `Loading boron-containing molecules into OpenFF <https://github.com/timbernat/polymerist_examples/blob/main/4-miscellanous/openff_boron_demo.py>`_
+* `Exporting arbitrary Python objects to JSON <https://github.com/timbernat/polymerist_examples/blob/main/4-miscellaneous/jsonification.ipynb>`_
+* `Automated ring piercing detection (PINPRICS) <https://github.com/timbernat/polymerist_examples/blob/main/4-miscellaneous/ring-piercing.ipynb>`_
+* `Loading boron-containing molecules into OpenFF <https://github.com/timbernat/polymerist_examples/blob/main/4-miscellaneous/openff_boron_demo.py>`_
