@@ -90,7 +90,19 @@ def save_molecule(path : Path, offmol : Molecule, toolkit_registry : ToolkitRegi
 
 @allow_string_paths
 def topology_to_sdf(path : Path, offtop : Topology, toolkit_registry : ToolkitRegistry=GTR) -> None:
-    '''Save an OpenFF Topology to an SDF file file atom metadata preserved'''
+    '''
+    Save an OpenFF Topology to an SDF file, preserving all atom metadata
+    
+    Parameters
+    ----------
+    path : Path
+        The path of the SDF file to save to
+    offtop : Topology
+        An OpenFF Topology
+    toolkit_registry : ToolkitRegistry, default=GLOBAL_TOOLKIT_REGISTRY
+        The toolkit registry to use for serializing each Molecule object within the Topology
+        Defaults to the Global Toolkit Registry supplied by the OpenFF toolkit
+    '''
     assert(path.suffix == '.sdf')
 
     with path.open('w') as sdf_file:# TODO : maybe change to append mode instead?
@@ -101,7 +113,22 @@ def topology_to_sdf(path : Path, offtop : Topology, toolkit_registry : ToolkitRe
 
 @allow_string_paths
 def topology_from_sdf(path : Path, *args, **kwargs) -> Topology:
-    '''Load an OpenFF Topology from an SDF file, assigning metadata and partial charges if stored'''
+    '''
+    Load an OpenFF Topology from an SDF file, assigning metadata and partial charges if stored
+
+    Parameters
+    ----------
+    path : Path
+        The path of the SDF file to load
+    *args, **kwargs : Any
+        Additional positional arguments to pass to Molecule.from_file()
+
+    Returns
+    -------
+    Topology
+        An OpenFF Topology object containing the molecule(s) found in the SDF,
+        each with its associated metadata and partial charges from the SDF bound
+    '''
     assert(path.suffix == '.sdf')
 
     LOGGER.debug(f'Loading serialized SDF Topology from {path}')
@@ -111,8 +138,32 @@ def topology_from_sdf(path : Path, *args, **kwargs) -> Topology:
     )
 
 # TOPOLOGY BUILD FUNCTIONS
-def topology_from_molecule_onto_lattice(offmol : Molecule, lattice_points : np.ndarray, rotate_randomly : bool=True, unique_mol_ids : bool=True):
-    '''Convert a charged OpenFF Molecule into a Topology made up of copies of that Molecule tiled according to a lattice'''
+def topology_from_molecule_onto_lattice(
+        offmol : Molecule,
+        lattice_points : np.ndarray,
+        rotate_randomly : bool=True,
+        unique_mol_ids : bool=True
+    ) -> Topology:
+    '''
+    Copy and tile an OpenFF Molecule onto a set of specified lattice sites
+    For each lattice site provided, a copy of the Molecule will be placed with its center of mass coincident to that site
+    
+    Parameters
+    ----------
+    offmol : Molecule
+        The OpenFF Molecule to tile onto the lattice
+    lattice_points : np.ndarray
+        An Nx3 array where each row is the xyz coordinate of a lattice site
+    rotate_randomly : bool, default=True
+        Whether to apply a random SO(3) rotation to each copy of the Molecule
+    unique_mol_ids : bool, default=True
+        Whether to assign unique IDs to each copy of the Molecule
+
+    Returns
+    -------
+    Topology
+        A Topology containing all tiled copies of the original molecule
+    '''
     tiled_rdmol = tile_lattice_with_rdmol(offmol.to_rdkit(), lattice_points, rotate_randomly=rotate_randomly)
     tiled_offmols = [] 
     for mol_id, tiled_mol_copy in enumerate(Chem.GetMolFrags(tiled_rdmol, asMols=True, sanitizeFrags=False)):

@@ -35,14 +35,40 @@ class BoxVectorError(Exception):
 # OBTAINING AND SCALING BOX VECTORS
 @allow_openmm_units
 def xyz_to_box_vectors(xyz : VectorQuantity) -> BoxVectorsQuantity:
-    '''Convert 3-vector of XYZ box dimensions into monoclinic box vectors in 3x3 diagonal reduced form'''
+    '''
+    Convert 3-vector of XYZ box dimensions into monoclinic box vectors in 3x3 diagonal reduced form
+    
+    Parameters
+    ----------
+    xyz : VectorQuantity
+        3-element vector with associated units whose components
+        indicate the length of the box in the x, y, and z directions
+
+    Returns
+    -------
+    box_vectors : BoxVectorsQuantity
+        A 3x3 matrix with associated units (same units as input vector)
+        representing the monoclinic box vectors in reduced form
+    '''
     assert(xyz.shape) == (3,)
     return np.diag(xyz.magnitude) * xyz.units # convert to diagonal matrix
 
 def get_topology_bbox(offtop : Topology) -> BoxVectorsQuantity:
-    '''Get the tight bounding-box XYZ dimensions of a Topology'''
-    xyz = offtop.get_positions().ptp(axis=0)
-    return xyz_to_box_vectors(xyz)
+    '''
+    Get the tight bounding box of an OpenFF Topology
+    
+    Parameters
+    ----------
+    offtop : Topology
+        An OpenFF Topology
+
+    Returns
+    -------
+    box_vectors : BoxVectorsQuantity
+        The unit-aware box vectors representing the smallest monoclinic
+        bounding box which contains all atoms in the Topology
+    '''
+    return xyz_to_box_vectors(offtop.get_positions().ptp(axis=0))
 
 def _pad_box_vectors_unitless(box_vectors_mag : BoxVectors, pad_vec_mag : Vector) -> BoxVectors:
     '''Pad box vectors along each axis by a specified amount (given by each scalar component of a padding_vector)'''
@@ -55,11 +81,47 @@ def _pad_box_vectors_unitless(box_vectors_mag : BoxVectors, pad_vec_mag : Vector
     
 @allow_openmm_units
 def pad_box_vectors(box_vectors : BoxVectorsQuantity, pad_vec : VectorQuantity) -> BoxVectorsQuantity:
-    '''Pad each box vector on either side by a fixed distance given by a component of a padding vector'''
+    '''
+    Pad an array of box vectors by some fixed distance from each face
+    Padding amount is set for each axis separately (i.e. x, y, and z)
+
+    Parameters
+    ----------
+    box_vectors : BoxVectorsQuantity
+        The unit-aware box vectors array to pad
+    pad_vec : VectorQuantity
+        The padding vector specifying the amount to pad each pair of faces along each axis
+        
+        E.g. a vector of np.array([1, 2, 3])*nanometer would pad the faces perpendicular to
+        the x axis by 1 nm, perpendicular to the y axis by 2 nm, and the z-axis by 3 nm
+        The lengths of the edges of the box would increase by 2, 4, and 6 nm along the x, y, and z axes, respectively
+
+    Returns
+    -------
+    box_vectors : BoxVectorsQuantity
+        The padded box vectors
+    '''
     return _pad_box_vectors_unitless(box_vectors.magnitude, pad_vec.m_as(box_vectors.units)) * box_vectors.units
 
 def pad_box_vectors_uniform(box_vectors : BoxVectorsQuantity, pad_amount : Quantity) -> BoxVectorsQuantity:
-    '''Padd all box vectors by the same fixed distance'''
+    '''
+    Pad an array of box vectors by a fixed distance from each face of the box
+    
+    Parameters
+    ----------
+    box_vectors : BoxVectorsQuantity
+        The unit-aware box vectors array to pad
+    pad_amount : Quantity
+        The distance to pad out from each face of the box
+        
+        For a box with initial dimensions (Lx, Ly, Lz), the dimensions of the box returned
+        after padding here will be (Lx + 2*pad_amount, Ly + 2*pad_amount, Lz + 2*pad_amount)
+
+    Returns
+    -------
+    box_vectors : BoxVectorsQuantity
+        The padded box vectors
+    '''
     return pad_box_vectors(box_vectors, np.ones(3)*pad_amount)
 
 @allow_openmm_units
