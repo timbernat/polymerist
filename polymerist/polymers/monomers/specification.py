@@ -61,8 +61,25 @@ ABERRANT_RDKIT_ATOM_SMARTS = re.compile( # pattern for a specification-compliant
 )
 
 def disambiguate_formal_charge(sign : str, magnitude : str) -> int:
-    '''Convert possibly explicit sign and magnitude of SMILES-compliant atom formal charge
-    entry to an explicit signed integer value (e.g. "+" -> +1, "--" -> -2)'''
+    '''
+    Convert a (possibly implicit) sign and magnitude of a SMILES-compliant atom
+    formal charge entry to an explicit signed integer value (e.g. "+" -> +1, "--" -> -2)
+    
+    Parameters
+    ----------
+    sign : str ("", "+", or "-"
+        The string (possibly empty) representing the sign of the formal charge
+    magnitude : str ("" or digit string)
+        The string (possibly empty) representing the magnitude of the formal charge (digits only)
+        
+    Returns
+    -------
+    formal_charge : int
+        The explicit signed integer value of the formal charge
+        
+        Will raise ValueError if sign and magnitude passed 
+        cannot be coerced into the appropriate types
+    '''
     if not magnitude:
         if not sign:
             sign, magnitude = '+0' # special case for when the field is totally blank (atoms considered neutral by default)
@@ -125,7 +142,20 @@ def compliant_atom_query_from_re_match(match : re.Match) -> str:
 
 # CONVERSION METHODS
 def compliant_mol_SMARTS(smarts : Union[Smiles, Smarts]) -> str:
-    '''Convert generic SMARTS string into a spec-compliant one'''
+    '''
+    Convert a generic SMARTS string into a monomer specification-compliant one
+    For details on specification, see https://doi-org.colorado.idm.oclc.org/10.1021/acs.jcim.3c01691
+    
+    Parameters
+    ----------
+    smarts : Union[Smiles, Smarts]
+        The SMARTS (or, by virtue of superset, SMILES) string to convert
+
+    Returns
+    -------
+    compliant_smarts : Smarts
+        The structurally-correspondent monomer specification-compliant SMARTS string
+    '''
     # initialize Mol object from passed SMARTS
     if not is_valid_SMARTS(smarts):
         raise InvalidSMARTS(f'SMARTS string "{smarts}" cannot be interpreted as a valid SMARTS pattern')

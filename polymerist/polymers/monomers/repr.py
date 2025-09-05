@@ -186,23 +186,9 @@ class MonomerGroup:
     __radd__ = __add__ # support reverse addition
 
     # CHEMICAL INFORMATION
-    def unique(self, cap_group : Union[Smarts, Chem.Mol]=Chem.MolFromSmarts('[H]-[*]')) -> 'MonomerGroup':
-        '''Return a MonomerGroup containing only the unique monomers present, given a particular port saturating group (by default just a hydrogen)'''
-        raise NotImplementedError
-        # unique_mono = set()
-        # for SMARTS in monomer_smarts.values():
-        #     monomer = Chem.MolFromSmarts(SMARTS)
-        #     clear_atom_map_nums(monomer, in_place=True) 
-        #     hydrogenate_monomer_ports(monomer, in_place=True) 
-        #     unique_mono.add(Chem.MolToSmiles(monomer)) # TODO : eventually make this SMARTS-based (or even better RDKit Mol-based); can't for now since hydrogenated fragments don't equate
-
-        # return unique_mono
-
     def is_homopolymer(self) -> bool:
         '''Identify if a polymer is a homopolymer (i.e. only 1 type of middle monomer)'''
-        # n_mid, n_term = count_middle_and_term_mono(monomer_smarts) # TODO : reimplement with comparison of port-hydrogenated monomers
-        # return (n_mid == 1)
-        return (len(self.unique()) == 1) # by definition, a homopolymer only has 1 unique class of monomer
+        return (len(self.rdmols(term_only=False)) == 1) # by definition, a homopolymer only has 1 unique class of middle monomer
 
     # GRAPH INFORMATION
     @property
