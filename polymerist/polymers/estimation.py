@@ -11,8 +11,24 @@ from ..rdutils.bonding.portlib import get_num_ports
 
 
 def estimate_n_atoms_linear(monomers : MonomerGroup, n_monomers : int) -> int:
-    '''Given a set of monomers and the desired degree of polymerization, estimate the length of the resulting chain
-    !NOTE! : As-implemented, only works for linear homopolymers and block copolymers with equal an distribution of monomers'''
+    '''
+    For a given collection of monomer fragments and a desired degree of polymerization,
+    estimates and returns the number of atoms present in the resulting chain    
+    
+    !NOTE! : As-implemented, only works for linear homopolymers and block copolymers with equal an distribution of monomers
+
+    Parameters
+    ----------
+    monomers : MonomerGroup
+        A collection of monomer fragments
+    n_monomers : int
+        The desired degree of polymerization (i.e. number of repeat units in the polymer chain)
+
+    Returns
+    -------
+    n_atoms : int
+        The estimated number of atoms in the resulting chain
+    '''
     # TOSELF : omitted logging for now, as it gets repeated on EVERY cycle in when called estimate_n_monomers_supremum()
     num_mono = monomers.n_monomers
     mono_term    = np.zeros(num_mono, dtype=bool) # terminality of each monomer (i.e. whether or not it is a term group)
@@ -32,14 +48,28 @@ def estimate_n_atoms_linear(monomers : MonomerGroup, n_monomers : int) -> int:
     num_mid  = num_mono - num_term # assumed that all monomers are either terminal or not
     mono_multip[~mono_term] = (n_monomers - num_term) / num_mid # naive assumption that all middle monomers contribute rest of chain equally (for homopolymers, this is always true)
 
-    N = mono_contrib @ mono_multip # compute dot product to yield final count
-    
-    return N
+    return mono_contrib @ mono_multip # compute dot product to yield final count
 
 def estimate_n_monomers_infimum(monomers : MonomerGroup, n_atoms_max : int, n_monomers_min : int=3) -> int:
     '''
-    For a given collection of monomer fragments, returns the largest number of monomers which guarantees that
-    a polymer chain made up of those monomers will have no more than the specified maximum number of atoms
+    For a given collection of monomer fragments and an UPPER bound on the number of atoms,
+    returns the LARGEST number of monomers which guarantees that a polymer chain made
+    up of that many monomers will have NO MORE THAN the specified maximum number of atoms
+    
+    Parameters
+    ----------
+    monomers : MonomerGroup
+        A collection of monomer fragments
+    n_atoms_max : int
+        The maximum number of atoms the resulting chain should contain
+    n_monomers_min : int
+        The minimum number of monomers to consider (default is 3)
+
+    Returns
+    -------
+    n_monomers_infimum : int
+        The greatest lower bound on the number of monomers
+        needed to achieve the desired chain length (i.e. number of atom)
     '''
     n_atoms_base = estimate_n_atoms_linear(monomers, n_monomers_min)
     if n_atoms_base > n_atoms_max: # pre-check when optimization is impossible
@@ -53,7 +83,27 @@ def estimate_n_monomers_infimum(monomers : MonomerGroup, n_atoms_max : int, n_mo
 
 def estimate_n_monomers_supremum(monomers : MonomerGroup, n_atoms_min : int, n_monomers_min : int=3) -> int: # NOTE : as currently defined, this also subsumes the case when the estimate and calculated length are exactly equal
     '''
-    For a given collection of monomer fragments, returns the smallest number of monomers which guarantees that
-    a polymer chain made up of those monomers will have no fewer than the specified minimum number of atoms
+    For a given collection of monomer fragments and a LOWER bound on the number of atoms,
+    returns the SMALLEST number of monomers which guarantees that a polymer chain made
+    up of that many monomers will have NO FEWER THAN the specified minimum number of atoms
+
+    Parameters
+    ----------
+    monomers : MonomerGroup
+        A collection of monomer fragments
+    n_atoms_min : int
+        The minimum number of atoms the resulting chain should contain
+    n_monomers_min : int
+        The minimum number of monomers to consider (default is 3)
+
+    Returns
+    -------
+    n_monomers_supremum : int
+        The least upper bound on the number of monomers
+        needed to achieve the desired chain length (i.e. number of atoms)
     '''
-    return estimate_n_monomers_infimum(monomers, n_atoms_min, n_monomers_min=n_monomers_min) + 1 # by definition, a ny more monomers than the infimum guarantees the chain will surpass a given number of atoms
+    return estimate_n_monomers_infimum(
+        monomers,
+        n_atoms_max=n_atoms_min,
+        n_monomers_min=n_monomers_min,
+    ) + 1 # by definition, any more monomers than the infimum guarantees the chain will surpass a given number of atoms
