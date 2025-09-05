@@ -116,7 +116,7 @@ def mbmol_to_rdkit_pdb(
         atom_labeller : Optional[SerialAtomLabeller]=None,
         resname_map : Optional[dict[str, str]]=None,
     ) -> None:
-    '''Save an MBuild Compound into an RDKit-formatted PDB file'''
+    # DEV: "missing" docstring here is deliberate; this is needed to dynamically set the resname_map default as it displays
     Chem.MolToPDBFile(
         mbmol_to_rdmol(
             mbmol,
@@ -125,6 +125,26 @@ def mbmol_to_rdkit_pdb(
         ),
         pdb_path,
     )
+mbmol_to_rdkit_pdb.__doc__ =  f'''
+    Save an mBuild Compound into an RDKit-formatted PDB file
+    
+    Parameters
+    ----------
+    pdb_path : str
+        The PDB file path to write the structure to
+    mbmol : Compound
+        The mBuild Compound to convert
+    atom_labeller : Optional[SerialAtomLabeller], default SerialAtomLabeller()
+        An optional SerialAtomLabeller instance which defines the
+        desired behavior for sequentially naming PDB atom lines
+    resname_map : Optional[dict[str, str]], default {_DEFAULT_RESNAME_MAP}
+        An optional remapping dict of 3-letter residue names
+        Any residue name found in the keys of this map will be 
+        replaced with its corresponding value in the PDB output
+        
+        For example, a dict with pair "FOO" : "BAR" would rename
+        all residues named "FOO" to "BAR" in the PDB output
+    '''
     
 @allow_string_paths
 def mbmol_to_openmm_pdb(
@@ -133,7 +153,7 @@ def mbmol_to_openmm_pdb(
         atom_labeller : Optional[SerialAtomLabeller]=None,
         resname_map : Optional[dict[str, str]]=None,
     ) -> None:
-    '''Save an MBuild Compound into an OpenMM-formatted PDB file'''
+    # DEV: "missing" docstring here is deliberate; this is needed to dynamically set the resname_map default as it displays
     if resname_map is None: # avoid mutable default
         resname_map = _DEFAULT_RESNAME_MAP 
 
@@ -154,3 +174,23 @@ def mbmol_to_openmm_pdb(
         atom_labeller=atom_labeller,
         resname_map=resname_map,
     )
+mbmol_to_rdkit_pdb.__doc__ =  f'''
+    Save an mBuild Compound into an OpenMM-formatted PDB file
+    
+    Parameters
+    ----------
+    pdb_path : str
+        The PDB file path to write the structure to
+    mbmol : Compound
+        The mBuild Compound to convert
+    atom_labeller : Optional[SerialAtomLabeller], default SerialAtomLabeller()
+        An optional SerialAtomLabeller instance which defines the
+        desired behavior for sequentially naming PDB atom lines
+    resname_map : Optional[dict[str, str]], default {_DEFAULT_RESNAME_MAP}
+        An optional remapping dict of 3-letter residue names
+        Any residue name found in the keys of this map will be 
+        replaced with its corresponding value in the PDB output
+        
+        For example, a dict with pair "FOO" : "BAR" would rename
+        all residues named "FOO" to "BAR" in the PDB output
+    '''
