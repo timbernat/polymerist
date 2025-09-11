@@ -98,11 +98,18 @@ def build_linear_polymer(
     monomers_selected = MonomerGroup() # used to track and estimate sized of the monomers being used for building
     
     ## 2A) ADD MIDDLE MONOMERS TO CHAIN
-    for symbol, (resname, middle_monomer) in zip(sequence_unique, monomers.iter_rdmols(term_only=False)): # zip with sequence limits number of middle monomers to length of block sequence
-        LOGGER.info(f'Registering middle monomer {resname} (block identifier "{symbol}")')
+    monomer_list = list(monomers.iter_rdmols(term_only=False))
+    
+    for symbol in sequence_unique:
+        # Convert symbol (A, B, C, ...) to index (0, 1, 2, ...)
+        idx = ord(symbol) - ord("A")
+        resname, middle_monomer = monomer_list[idx]
+    
+        LOGGER.info(f'Registering middle monomer {resname} (block identifier \"{symbol}\")')
         mb_monomer, linker_ids = mbmol_from_mono_rdmol(middle_monomer, resname=resname)
         polymer.add_monomer(compound=mb_monomer, indices=linker_ids)
         monomers_selected.monomers[resname] = monomers.monomers[resname]
+
 
     ## 2B) ADD TERMINAL MONOMERS TO CHAIN
     for head_or_tail, (resname, term_monomer) in end_groups.items():
