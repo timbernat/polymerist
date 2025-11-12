@@ -10,6 +10,7 @@ dependencies:
     # Unit testing
     - pytest
     - pytest-cov
+    - nbval
 
     # Numerical libraries
     - numpy
