@@ -12,6 +12,11 @@ dependencies:
     - pytest-cov
     - nbval
 
+    # Visualization (needed for automated notebook tests)
+    - jupyterlab
+    - py3Dmol
+    - nglview==3.0.6
+
     # Numerical libraries
     - numpy
     - pandas
