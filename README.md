@@ -6,7 +6,7 @@ Polymer-Oriented LibrarY of Monomer Expression Rules and In-silico Synthesis Too
 
 A unified set of tools for setting up molecular dynamics simulations of general organic polymer systems. Based upon concepts introduced in ["Parameterization of General Organic Polymers within the Open Force Field Framework" (Davel, Connor M., Bernat, Timotej, Wagner, Jeffrey R., and Shirts, Michael R.)](https://pubs.acs.org/doi/10.1021/acs.jcim.3c01691)
 
-![abstract](docs/_static/polymer_param_graphic_TOC.png)
+![abstract](docs/images/polymer_param_graphic_TOC.png)
 
 ## Features
 Includes functionality for:

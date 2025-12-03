@@ -7,7 +7,7 @@ Welcome to polymerist's documentation!
 ==============================================================================================================
 This is the documentation for the Polymer-Oriented LibrarY of Monomer Expression Rules and In-silico Synthesis Tools, or just "polymerist" for short.
 
-.. image:: _static/polymer_param_graphic_TOC.png
+.. image:: images/polymer_param_graphic_TOC.png
 
 Polymerist is a unified set of tools for setting up molecular dynamics simulations of general organic polymer systems.
 It was originally developed around concepts introduced in our manuscript 

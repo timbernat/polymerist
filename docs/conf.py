@@ -24,8 +24,10 @@ import polymerist
 
 # project = 'Polymer-Oriented LibrarY of Monomer Expression Rules and In-silico Synthesis Tools'
 project = 'polymerist'
-copyright = ("2024, Timotej Bernat. Project structure based on the "
-             "Computational Molecular Science Python Cookiecutter version 1.1")
+copyright = (
+    "2024, Timotej Bernat. Project structure based on the "
+    "Computational Molecular Science Python Cookiecutter version 1.1"
+)
 author = 'Timotej Bernat'
 
 # The short X.Y version
@@ -108,6 +110,10 @@ pygments_style = 'default'
 # a list of builtin themes.
 #
 html_theme = 'sphinx_rtd_theme'
+
+# The name of an image file (relative to this directory) to place at the top
+# of the sidebar.
+html_logo = "images/logo.png"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the

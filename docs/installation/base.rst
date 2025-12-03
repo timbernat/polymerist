@@ -19,7 +19,7 @@ to reconcile any discrepancies between packmol versions between the
 The packmol pin is to ensure solvation utilities work correctly; this will save you headaches,
 any later versions give inscrutable PDB errors where there previously were none.
 
-Installing the 'openff-toolkit <https://github.com/openforcefield/openff-toolkit`_ will take
+Installing the `openff-toolkit <https://github.com/openforcefield/openff-toolkit/>`_ will take
 **_at least_** a few minutes, and will make the terminal output quite busy; remain calm, that's normal! 
 
 Test installation
