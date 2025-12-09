@@ -67,16 +67,10 @@ jobs:
 
       - name: Run example notebook tests
         run: |
-          nb_status="passing"
-          
           git clone https://github.com/timbernat/polymerist_examples
           pushd polymerist_examples
-          bash notebook_tests_master.sh || nb_status="failing"
+          source notebook_tests_master.sh
           popd
-
-          if [ $nb_status = "failing" ]; then
-            exit 1
-          fi
 
       - name: CodeCov
         uses: codecov/codecov-action@v5
