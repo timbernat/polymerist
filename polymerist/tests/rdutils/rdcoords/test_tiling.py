@@ -13,6 +13,7 @@ from rdkit.Chem.rdMolTransforms import ComputeCanonicalTransform, TransformConfo
 
 from polymerist.genutils.importutils.pkginspect import get_dir_path_within_package
 from polymerist.tests import data as testdata
+from polymerist.rdutils.rdcoords.tiling import tile_lattice_with_rdmol
 
 
 @pytest.fixture
@@ -35,15 +36,12 @@ def test_canon_transform_stereo_inversion(chiral_mol : Mol) -> None:
     Made necessary by an RDKit bug, (only patched in RDKit 2025.09.x) reported in
     https://github.com/rdkit/rdkit/issues/8992 and even earlier in https://github.com/rdkit/rdkit/issues/8720 
     ''' # TODO: invoke tiler to check that internal patches cover this issue (current test only test for underlying issue, which my code can't fix)
+    lattice = np.zeros((1, 3), dtype=float)
     chiral_atom_idx : int = 1 # atom known to be stereocenter in this structure
-    conformer = chiral_mol.GetConformer(0)
-    centering = ComputeCanonicalTransform(conformer)
-    orient : float = np.sign(np.linalg.det(centering))
-
+    
     chiral_tag_init = chiral_mol.GetAtomWithIdx(chiral_atom_idx).GetChiralTag()
-    TransformConformer(conformer, centering)
-    AssignStereochemistryFrom3D(chiral_mol) # ensure that stereo is updated post-transform
-    chiral_tag_final = chiral_mol.GetAtomWithIdx(chiral_atom_idx).GetChiralTag()
+    tiled_mol = tile_lattice_with_rdmol(chiral_mol, lattice, rotate_randomly=False, conf_id=0)
+    AssignStereochemistryFrom3D(tiled_mol) # ensure that stereo is updated post-transform
+    chiral_tag_final = tiled_mol.GetAtomWithIdx(chiral_atom_idx).GetChiralTag()
 
-    # DEV: not checking eps neighborhood of 1.0 to avoid precision headaches; positivity sufficies for this check 
-    assert (orient > 0.0) and (chiral_tag_init == chiral_tag_final)
+    assert (chiral_tag_init == chiral_tag_final)
