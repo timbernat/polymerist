@@ -55,7 +55,6 @@ class TypeSerializer(ABC):
         if type_name is None:
             return json_dict # return unmodified dict for untyped entries
         
-        # raise Exception when attempting to decode typed entry of the wrong type
         if type_name != cls.python_type.__name__:
             raise TypeError(f'{cls.python_type.__name__} decoder cannot decode JSON-serialized object of type {type_name}')
 
@@ -89,7 +88,7 @@ class MultiTypeSerializer:
         for type_ser in self.type_sers:
             try:
                 return type_ser.encoder_default(python_obj)
-            except:
+            except TypeError:
                 pass # keep trying rest of encoders (don't immediately raise error) - TODO : make this less redundant-looking?
         else:
             raise TypeError(f'Object of type {python_obj.__class__.__name__} is not JSON serializable')
@@ -98,13 +97,24 @@ class MultiTypeSerializer:
         for type_ser in self.type_sers:
             try:
                 return type_ser.decoder_hook(json_dict)
-            except:
+            except TypeError:
                 pass # keep trying rest of encoders (don't immediately raise error) - TODO : make this less redundant-looking?
         else: # only raised if no return occurs in any iteration - each decoder works for default-decodable values
             raise TypeError(f'No registered decoders for dict : {json_dict}')
 
 
 # CONCRETE IMPLEMENTATIONS
+S = TypeVar('S', bound=JSONSerializable)
+class SetSerializer(TypeSerializer, python_type=set):
+    '''For JSON-serializing builtin Python sets'''
+    @staticmethod
+    def encode(python_obj : set[S]) -> list[S]:
+        return list(python_obj)
+
+    @staticmethod
+    def decode(json_obj : list[S]) -> set[S]:
+        return set(json_obj)
+
 class PathSerializer(TypeSerializer, python_type=Path):
     '''For JSON-serializing OpenMM Quantities'''
     @staticmethod
@@ -149,7 +159,7 @@ class QuantitySerializer(TypeSerializer, python_type=openmm.unit.Quantity):
 class NDArraySerializer(TypeSerializer, python_type=np.ndarray):
     '''For JSON-serializing of numpy n-dimensional arrays'''
     @staticmethod
-    def encode(python_obj : np.ndarray[Any]) -> list[Any]:
+    def encode(python_obj : np.ndarray) -> dict[str, Union[list, str]]:
         '''List-ify array and store string descriptor of numpy dtype'''
         return {
             'array' : python_obj.tolist(),
@@ -157,7 +167,7 @@ class NDArraySerializer(TypeSerializer, python_type=np.ndarray):
         }
     
     @staticmethod
-    def decode(value : list[Any]) -> np.ndarray[Any]:
+    def decode(value : dict[str, Union[list, str]]) -> np.ndarray:
         '''Reassemble numpy array from list and dtype'''
         return np.array(value['array'], dtype=value['dtype'])
     
