@@ -16,13 +16,14 @@ from functools import wraps
 
 class MissingPrerequisitePackage(Exception):
     '''Raised when a package dependency cannot be found and the user should be alerted with install instructions'''
-    def __init__(self,
-            importing_package_name : str,
-            use_case : str,
-            install_link : str,
-            dependency_name : str,
-            dependency_name_formal : Optional[str]=None
-        ):
+    def __init__(
+        self,
+        importing_package_name : str,
+        use_case : str,
+        install_link : str,
+        dependency_name : str,
+        dependency_name_formal : Optional[str]=None
+    ):
         if dependency_name_formal is None:
             dependency_name_formal = dependency_name
         
@@ -61,7 +62,7 @@ def module_installed(module_name : str) -> bool:
     except (ValueError, AttributeError, ModuleNotFoundError): # these could all be raised by a missing module
         return False
     
-def modules_installed(*module_names : list[str]) -> bool:
+def modules_installed(*module_names : str) -> bool:
     '''
     Check whether one or more modules are all present
     Will only return true if ALL specified modules are found
@@ -79,9 +80,9 @@ def modules_installed(*module_names : list[str]) -> bool:
     return all(module_installed(module_name) for module_name in module_names)
 
 def requires_modules(
-        *required_module_names : list[str],
-        missing_module_error : Union[Exception, type[Exception]]=ImportError,
-    ) -> Callable[[TCall[..., ReturnType]], TCall[..., ReturnType]]:
+    *required_module_names : str,
+    missing_module_error : Union[Exception, type[Exception]]=ImportError,
+) -> Callable[[TCall[..., ReturnType]], TCall[..., ReturnType]]:
     '''
     Decorator which enforces optional module dependencies prior to function execution
     
