@@ -20,14 +20,14 @@ from ...genutils.textual.substrings import unique_string
 
 
 def build_linear_polymer(
-        monomers : MonomerGroup,
-        n_monomers : int,
-        sequence : str='A',
-        minimize_sequence : bool=True,
-        allow_partial_sequences : bool=False,
-        add_Hs : bool=False,
-        energy_minimize : bool=False,
-    ) -> MBPolymer:
+    monomers : MonomerGroup,
+    n_monomers : int,
+    sequence : str='A',
+    minimize_sequence : bool=True,
+    allow_partial_sequences : bool=False,
+    add_Hs : bool=False,
+    energy_minimize : bool=False,
+) -> MBPolymer:
     '''
     Builds a linear polymer structure from a specified pool of monomers, sequence, target chain length, and other parameters
     
