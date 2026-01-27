@@ -6,7 +6,7 @@ __email__ = 'timotej.bernat@colorado.edu'
 import logging
 LOGGER = logging.getLogger(__name__)
 
-from typing import Generator, Optional, Iterable, Union
+from typing import Generator, Iterable, Mapping, Optional, Union
 from dataclasses import dataclass, field
 
 from itertools import cycle
@@ -25,7 +25,7 @@ from ...rdutils.bonding.portlib import get_num_ports
 @dataclass
 class MonomerGroup:
     '''Stores collections of residue-labelled monomer SMARTS'''
-    monomers : dict[str, Union[Smarts, list[Smarts]]] = field(default_factory=dict)
+    monomers : dict[str, list[Smarts]] = field(default_factory=dict)
     term_orient : dict[str, str] = field(default_factory=dict) # keys are either "head" or "tail", values are the names of residues in "monomers"
 
     # MONOMER ADDITION AND VALIDATION
@@ -68,13 +68,13 @@ class MonomerGroup:
             self._add_monomer(resname, smarts) # assume any other inputs are singular values or strings 
     
     # DUNDER "MAGIC" METHODS
-    def __getitem__(self, resname : str) -> str:
+    def __getitem__(self, resname : str) -> list[Smarts]:
         '''Convenience method to access .monomers directly from instance'''
         return self.monomers[resname] # NOTE: deliberately avoid "get()" here to propagate KeyError
         # BUG: user can directly append to the returned value to forgo monomer validation checks;
-        # this is not unit to __getitem__ but rather a consequence of thinly-wrapping builtin types
+        # this is not unique to __getitem__ but rather a consequence of thinly-wrapping builtin types
 
-    def __setitem__(self, resname : str, smarts : Smarts) -> str:
+    def __setitem__(self, resname : str, smarts : Smarts) -> None:
         '''Convenience method to access .monomers directly from instance'''
         self.add_monomer(resname, smarts)
         
@@ -140,7 +140,7 @@ class MonomerGroup:
         return sum(1 for  _ in self.iter_rdmols(term_only=None))
     
     # END GROUP DETERMINATION 
-    def linear_end_groups(self) -> dict[str, tuple[str, Chem.Mol]]:
+    def linear_end_groups(self) -> Mapping[str, tuple[str, Chem.Mol]]:
         '''
         Returns head-and-tail end group residue names and Mol objects as defined by term_orient
         
@@ -166,7 +166,7 @@ class MonomerGroup:
             }
         else:
             term_orient_auto : dict[str, Smarts] = {}
-            end_groups_auto  : dict[str, Chem.Mol] = {}
+            end_groups_auto  : dict[str, tuple[str, Chem.Mol]] = {}
             for head_or_tail, (resname, rdmol) in zip(['head', 'tail'], self.iter_rdmols(term_only=True)): # zip will bottom out early if fewer than 2 terminal monomers are present
                 term_orient_auto[head_or_tail] = resname # populate purely for logging
                 end_groups_auto[head_or_tail]  = (resname, rdmol)
@@ -186,6 +186,7 @@ class MonomerGroup:
     __radd__ = __add__ # support reverse addition
 
     # CHEMICAL INFORMATION
+    @property
     def is_homopolymer(self) -> bool:
         '''Identify if a polymer is a homopolymer (i.e. only 1 type of middle monomer)'''
         return (len(self.rdmols(term_only=False)) == 1) # by definition, a homopolymer only has 1 unique class of middle monomer
