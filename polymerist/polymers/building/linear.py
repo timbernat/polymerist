@@ -34,34 +34,37 @@ def build_linear_polymer(
     Parameters
     ----------
     monomers : MonomerGroup
-        A group of fragments containing at least the distinct repeat units which occur in the target polymer
+        A group of fragments containing AT LEAST the distinct repeat units which occur in the target polymer
         
         IMPORTANT: if the "term_orient" field of the MonomerGroup is not set (with "head" and "tail" monomer designations),
         the first two terminal (1-valent) monomers in the group will be auto-assigned and taken as the head and tail, respectively,
         or, if there is only one terminal monomer present, it will be used as both the head and tail.
     n_monomers : int
         The number of monomer units in the target polymer chain
-        This includes the terminal monomers in the count, e.g. n_monomers=10 with a head and tail group specified will induce 8 middle monomers
+        
+        This INCLUDES the terminal monomers in the count;
+        E.g. n_monomers=10 with a head and tail group specified will induce 8 middle monomers
     sequence : str, default='A'
-        A string of characters representing the sequence of monomers as they should occur within the polymer chain
-        Each unique character in the string will be associated with a unique monomer in the provided MonomerGroup,
-        in the order that they appear, e.g. "BACA" will take the second, first, third, and first monomers defined in the group
+        A string of characters representing the sequence of MIDDLE monomers as they should occur within the polymer chain
+        If the sequence is shorter than n_monomers - # end groups, the sequence will be repeated until the target chain length is reached.
+
+        Each unique character in the string will be associated with a unique repeat unit in the provided MonomerGroup, specified by <>
+        In no explicit mapping is provided, each unique symbol will be mapped to the repeat unit at that symbol's position when lexicographically sorted
+        E.g. "BACA" will take the second, first, third, and first monomers defined in the MonomerGroup; so will "baca", "2131", "caea", and "tipi"
         
-        IMPORTANT: the sequence string only specifies the MIDDLE monomers in the chain, i.e. terminal monomers are not given by the sequence string,
-        but either by the "term_orient" field of the MonomerGroup or the auto-determined end groups if that is unset
-        
-        If the sequence is shorter than n_monomers, the sequence will be repeated until the target chain length is reached.
+        IMPORTANT: terminal monomers are not given by this sequence string, but are specified by either
+        the "term_orient" field of the MonomerGroup or the auto-determined end groups if that is unset
     minimize_sequence : bool, default=True
-        Whether to attempt to reduce the sequence provided into a minimal, repeating subsequence
+        Whether to attempt to reduce the sequence provided into a minimal, repeating subsequence ("kernel")
         E.g. "ABABAB" will be reduced to 3*"AB" if this is set to True
         
-        Note carefully that this has NOTHING TO DO WITH energy minimization; that is controlled by the energy_minimize flag
+        N.B.: this has NOTHING TO DO WITH energy minimization; that is controlled by the energy_minimize flag
     allow_partial_sequences : bool, default=False
         Whether to allow fractional repetitions of the sequence kernel to fill the target chain length
         
         For example, given a monomer group with head/tail specified and parameters n_monomers=10 and sequence="BAC" (inducing 10 - 2 = 8 middle monomers):
         allow_partial_sequences=True will repeat the sequence 2 + 2/3 times, yielding the equivalent middle monomer sequence "BACBACBA", while
-        allow_partial_sequences=False would raise Exception, since the sequence "BAC" cannot be repeated to fill 8 middle monomers exactly.
+        allow_partial_sequences=False would raise PartialBlockSequence Exception, since the sequence "BAC" cannot be repeated to fill 8 middle monomers exactly.
     add_Hs : bool, default=False
         Whether to instruct the mbuild Polymer recipe to cap uncapped terminal groups with hydrogens,
         in cases where the user has failed to provide ANY terminal monomers in the MonomerGroup
@@ -98,7 +101,7 @@ def build_linear_polymer(
     monomers_selected = MonomerGroup() # used to track and estimate sized of the monomers being used for building
     
     ## 2A) ADD MIDDLE MONOMERS TO CHAIN
-    for symbol, (resname, middle_monomer) in zip(sequence_unique, monomers.iter_rdmols(term_only=False)): # zip with sequence limits number of middle monomers to length of block sequence
+    for symbol, (resname, middle_monomer) in zip(sorted(sequence_unique), monomers.iter_rdmols(term_only=False)): # zip with sequence limits number of middle monomers to length of block sequence
         LOGGER.info(f'Registering middle monomer {resname} (block identifier "{symbol}")')
         mb_monomer, linker_ids = mbmol_from_mono_rdmol(middle_monomer, resname=resname)
         polymer.add_monomer(compound=mb_monomer, indices=linker_ids)
