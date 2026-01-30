@@ -150,10 +150,21 @@ def build_linear_polymer(
         }
 
     middle_monomer_table = monomers.rdmols(term_only=False) # cache this locally - DEV: ugly, but don't want to shift MonomerGroup API around too much
+    if (num_symbols_unique := len(sequence_unique)) > (num_middle_monomers := len(middle_monomer_table)):
+        raise ValueError(f'Too few unique repeat units ({num_middle_monomers}) to ascribe to each symbols of a {num_symbols_unique}-symbol sequence')
+    
     for symbol in sorted(sequence_unique): # avoiding sequence_map.items() - won't count on sequence map being sorted (e.g. if a user passes one in)
         resname = sequence_map[symbol]     # another reason not to use sequence_map.items() here is we want a big, fat KeyError for undefined symbols in the sequence
-        middle_monomer = middle_monomer_table[resname][0] # not the most transparent, but behavior is undefined anyway if the user provides anything but 1 repeat unit for a given name
-    
+        middle_monomer_choices = middle_monomer_table[resname]
+        num_middle_monomer_choices : int = len(middle_monomer_choices)
+        
+        if num_middle_monomer_choices == 0:
+            raise IndexError(f'No monomer templates for "{resname}" defined in MonomerGroup')
+        elif num_middle_monomer_choices > 1:
+            raise IndexError(f'Ambiguous choice for template "{resname}" ({num_middle_monomer_choices} templates defined for that label)')
+        else:
+            middle_monomer = middle_monomer_table[resname][0]
+        
         LOGGER.info(f'Registering middle monomer {resname} (block identifier "{symbol}")')
         mb_monomer, linker_ids = mbmol_from_mono_rdmol(middle_monomer, resname=resname)
         polymer.add_monomer(compound=mb_monomer, indices=linker_ids)
