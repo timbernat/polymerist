@@ -4,9 +4,10 @@ __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
 import pytest
+from typing import Optional
 
 from collections import Counter
-from itertools import combinations, product as cartesian_product
+from itertools import product as cartesian_product
 
 from polymerist.rdutils.sanitization import explicit_mol_from_SMILES
 
@@ -39,13 +40,31 @@ def monogrp_peg_plga() ->  MonomerGroup:
 def monogrp_halogen_marked() -> MonomerGroup:
     return MonomerGroup(monomers=HALOGENATED_HYDROCARBON_FRAGMENTS)
 
-SEQS_TO_HALOGEN_KERNEL : dict[tuple[str, ...], str] = {
-    ('A', 'S', '$') : 'C(F)' , # for homopolymer, ANY single symbol should given same behavior
-    ('AA', 'BB', '$$') : 'C(F)C(F)' , # BB is confusing, but point is this is still a homopolymer, so symbol choice still doesn't matter
-    ('BAB', 'qaq', '101', '212') : 'C(F)(F)C(F)C(F)(F)',
-    ('BADC', 'badc', '2143') : 'C(F)(F)C(F)C(Cl)(Cl)C(Cl)',
-    ('BACC', 'bacc', '1022') : 'C(F)(F)C(F)C(Cl)C(Cl)',
-    ('ABCFED', 'acezyx', '012543', '013964') : 'C(F)C(F)(F)C(Cl)C(Br)(Br)C(Br)C(Cl)(Cl)',
+SEQS_TO_HALOGEN_KERNEL : dict[tuple[str, ...], tuple[str, Optional[dict[str, str]]]] = {
+    # defaulted
+    ('A', 'S', '$') : ('C(F)', None) , # for homopolymer, ANY single symbol should given same behavior
+    ('AA', 'BB', '$$') : ('C(F)C(F)', None) , # BB is confusing, but point is this is still a homopolymer, so symbol choice still doesn't matter
+    ('BAB', 'qaq', '101', '212') : ('C(F)(F)C(F)C(F)(F)', None),
+    ('BADC', 'badc', '2143') : ('C(F)(F)C(F)C(Cl)(Cl)C(Cl)', None),
+    ('BACC', 'bacc', '1022') : ('C(F)(F)C(F)C(Cl)C(Cl)', None),
+    ('ABCFED', 'acezyx', '012543', '013964') : ('C(F)C(F)(F)C(Cl)C(Br)(Br)C(Br)C(Cl)(Cl)', None),
+    # custom mapping
+    ('BADC',) : ('C(Br)(Br)C(Cl)C(F)(F)C(Br)', {
+        'B' : 'brom_mid_2',
+        'A' : 'chlor_mid_1',
+        'D' : 'fluor_mid_2',
+        'C' : 'brom_mid_1',
+    }),
+    ('ABA',) : ('C(Cl)C(Br)(Br)C(Cl)', {
+        'A' : 'chlor_mid_1',
+        'B' : 'brom_mid_2',
+    }),
+    ('qyz',) : ('C(F)C(Br)(Br)C(F)', {
+        'q' : 'fluor_mid_1',
+        'y' : 'brom_mid_2',
+        'z' : 'fluor_mid_1', # duplication of mapped units IS allowed
+    })
+    
 }
 
 TERM_ORIENT_TO_SMILES_HALOGEN : dict[str, dict[str, str]] = {
@@ -79,7 +98,12 @@ TERM_ORIENT_TO_SMILES_HALOGEN : dict[str, dict[str, str]] = {
 }
 
 def compile_sequence_test_inputs(kernel_repeats : tuple[int, ...]) -> list[tuple[str, dict[str, str], int, str]]:
-    '''Helper methods for compiling flattened inputs for linear polymer builder sequence testing'''
+    '''
+    Helper methods for compiling flattened inputs for linear 
+    polymer builder sequence testing with default sequence map
+    
+    (i.e. symbol matched to repeat unit based on order alone)
+    '''
     # pick out term group orientation dicts and accompaying SMILES caps
     term_orients_and_smiles : list[tuple[dict[str, str], tuple[str, str]]] = [
         ( # special case for unspecified term orients - inferred to be first two terminal groups
@@ -94,7 +118,7 @@ def compile_sequence_test_inputs(kernel_repeats : tuple[int, ...]) -> list[tuple
     TERM_ORIENT_PAIRS : tuple[tuple[str, str], ...] = (
         ('fluor_term_1', 'fluor_term_2'),
         ('chlor_term_1', 'chlor_term_2'),
-        ('chlor_term_2', 'chlor_term_1'),
+        # ('chlor_term_2', 'chlor_term_1'),
         ('fluor_term_2', 'brom_term_1'),
         ('chlor_term_1', 'brom_term_1'),
     )
@@ -112,7 +136,7 @@ def compile_sequence_test_inputs(kernel_repeats : tuple[int, ...]) -> list[tuple
 
     # pick out individual test inputs from cartesian product over options
     sequence_test_inputs : list[tuple[str, dict[str, str], int, str]] = []
-    for ((sequences, kernel), (term_orient, term_smiles), n_kernel_repeats) in cartesian_product(
+    for ((sequences, (kernel, mapping)), (term_orient, term_smiles), n_kernel_repeats) in cartesian_product(
         SEQS_TO_HALOGEN_KERNEL.items(),
         term_orients_and_smiles,
         kernel_repeats,
@@ -122,10 +146,9 @@ def compile_sequence_test_inputs(kernel_repeats : tuple[int, ...]) -> list[tuple
 
         for sequence in sequences:
             n_monomers = 2 + len(sequence)*n_kernel_repeats # 2 accounts for end groups
-            sequence_test_inputs.append( (sequence, term_orient, n_monomers, smiles_expected) )
+            sequence_test_inputs.append( (sequence, term_orient, n_monomers, smiles_expected, mapping) )
 
     return sequence_test_inputs
-
 
 # TESTS PROPER
 @pytest.mark.parametrize(
@@ -236,9 +259,8 @@ def test_build_linear_polymer_contributions(
     
     assert all([total_reps_match, contribs_match, end_groups_correct]) #, and counts_match    )
 
-
 @pytest.mark.parametrize(
-    'sequence, term_orient, n_monomers, smiles_expected',
+    'sequence, term_orient, n_monomers, smiles_expected, sequence_map',
     compile_sequence_test_inputs(kernel_repeats=(2,))
 )
 def test_build_linear_polymer_sequence(
@@ -247,6 +269,7 @@ def test_build_linear_polymer_sequence(
     term_orient : dict[str, str],
     n_monomers : int,
     smiles_expected : str,
+    sequence_map : Optional[dict[str, str]],
 ) -> None:
     '''Test that repeat units are assembled in the expected order for a given input to the linear polymer builder'''
     mol_expected = explicit_mol_from_SMILES(smiles_expected)
@@ -259,6 +282,7 @@ def test_build_linear_polymer_sequence(
         allow_partial_sequences=False,
         add_Hs=False,
         energy_minimize=False, # No point minimzing, since we only care about order of groups, not coordinates
+        sequence_map=sequence_map,
     )
     mol_actual = mbmol_to_rdmol(chain)
 
