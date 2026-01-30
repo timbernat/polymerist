@@ -22,14 +22,14 @@ from .serialization.paths import SimulationPaths
 
 
 def run_simulation_schedule(
-        working_dir : Path,
-        schedule : dict[str, SimulationParameters],
-        init_top : Topology,
-        init_sys : System,
-        init_pos : ndarray,
-        init_state : Optional[StateLike]=None,
-        return_history : bool=False,
-    ) -> Optional[dict[str, tuple[Simulation, SimulationPaths]]]:
+    working_dir : Path,
+    schedule : dict[str, SimulationParameters],
+    init_top : Topology,
+    init_sys : System,
+    init_pos : ndarray,
+    init_state : Optional[StateLike]=None,
+    return_history : bool=False,
+) -> Optional[dict[str, tuple[Simulation, SimulationPaths]]]:
     '''Run several OpenMM simulations in series, based on an initial set of OpenMM objects and a "schedule" consisting of a sequence of named parameter sets'''
     if not isinstance(init_pos, Quantity):
         raise TypeError('Positions must have associated OpenMM units') # TODO : provide more robust check for this

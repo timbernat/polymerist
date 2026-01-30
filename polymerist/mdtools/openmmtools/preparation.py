@@ -21,13 +21,13 @@ from .forces import _POLYMERIST_FORCE_GROUP, force_added_by_polymerist, impose_u
 
 
 def simulation_from_thermo(
-        topology : Topology,
-        system : System,
-        thermo_params : ThermoParameters,
-        time_step : Quantity,
-        positions : Optional[Quantity]=None,
-        state : Optional[StateLike]=None,
-    ) -> Simulation:
+    topology : Topology,
+    system : System,
+    thermo_params : ThermoParameters,
+    time_step : Quantity,
+    positions : Optional[Quantity]=None,
+    state : Optional[StateLike]=None,
+) -> Simulation:
     '''Prepare an OpenMM simulation from a serialized thermodynamics parameter set'''
     # clear forces added from another set of thermodynamic parameters to avoid thermostat/barostat "bleedover"
     preexisting_force_indices : list[int] = sorted(
@@ -70,14 +70,14 @@ def simulation_from_thermo(
     return simulation
 
 def initialize_simulation_and_files(
-        out_dir : Path,
-        prefix : str,
-        sim_params : SimulationParameters,
-        topology : Topology,
-        system : System,
-        positions : Optional[Quantity]=None,
-        state : Optional[StateLike]=None,
-    ) -> tuple[Simulation, SimulationPaths]:
+    out_dir : Path,
+    prefix : str,
+    sim_params : SimulationParameters,
+    topology : Topology,
+    system : System,
+    positions : Optional[Quantity]=None,
+    state : Optional[StateLike]=None,
+) -> tuple[Simulation, SimulationPaths]:
     '''Create simulation, bind Reporters, and update simulation Paths with newly-generated files'''
     sim_paths = SimulationPaths.from_dir_and_parameters(out_dir, prefix, sim_params, touch=True)
     simulation = simulation_from_thermo(

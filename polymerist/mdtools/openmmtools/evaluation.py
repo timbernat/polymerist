@@ -19,10 +19,10 @@ def get_context_positions(context : Context) -> Quantity:
 
 # ENERGIES
 def get_openmm_energies(
-        context : Context,
-        preferred_unit : Optional[Unit]=None,
-        force_group_names : Optional[dict[int, str]]=None,
-    ) -> dict[str, Quantity]:
+    context : Context,
+    preferred_unit : Optional[Unit]=None,
+    force_group_names : Optional[dict[int, str]]=None,
+) -> dict[str, Quantity]:
     '''
     Evaluate energies of an OpenMM Context
     
