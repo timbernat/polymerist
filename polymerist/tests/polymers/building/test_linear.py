@@ -11,7 +11,12 @@ from itertools import combinations, product as cartesian_product
 from polymerist.rdutils.sanitization import explicit_mol_from_SMILES
 
 from polymerist.polymers.monomers.repr import MonomerGroup
-from polymerist.polymers.monomers.fragments import PE_FRAGMENTS, MPD_TMC_FRAGMENTS, PEG_PLGA_FRAGMENTS
+from polymerist.polymers.monomers.fragments import (
+    PE_FRAGMENTS,
+    MPD_TMC_FRAGMENTS,
+    PEG_PLGA_FRAGMENTS,
+    HALOGENATED_HYDROCARBON_FRAGMENTS,
+)
 from polymerist.polymers.building.linear import build_linear_polymer
 from polymerist.polymers.building.mbconvert import mbmol_to_rdmol
 from polymerist.polymers.exceptions import MorphologyError, PartialBlockSequence, EmptyBlockSequence
@@ -32,33 +37,7 @@ def monogrp_peg_plga() ->  MonomerGroup:
 
 @pytest.fixture(scope='function')
 def monogrp_halogen_marked() -> MonomerGroup:
-    '''
-    A MonomerGroup with single-carbon repeat units marked by halogens
-    to make repeat units easy to distinguish when testing repeat unit sequencing
-    '''
-    monogrp = MonomerGroup()
-    mono_smarts = {
-        # fluorines
-        'fluor_term_1' : 'OC(F)-*',
-        'fluor_mid_1'  : '*-C(F)-*',
-        'fluor_mid_2'  : '*-C(F)(F)-*',
-        'fluor_term_2' : '*-C(F)C(=O)O',
-        # chlorines
-        'chlor_term_1' : 'OC(Cl)-*',
-        'chlor_mid_1'  : '*-C(Cl)-*',
-        'chlor_mid_2'  : '*-C(Cl)(Cl)-*',
-        'chlor_term_2' : '*-C(Cl)C(=O)O',
-        # bromines
-        'brom_term_1' : 'OC(Br)-*',
-        'brom_mid_1'  : '*-C(Br)-*',
-        'brom_mid_2'  : '*-C(Br)(Br)-*',
-        'brom_term_2' : '*-C(Br)C(=O)O',
-    }
-    # term_orient deliberately omitted - to be set in test
-    for resname, smarts in mono_smarts.items():
-        monogrp.add_monomer(resname, smarts)
-
-    return monogrp
+    return MonomerGroup(monomers=HALOGENATED_HYDROCARBON_FRAGMENTS)
 
 SEQS_TO_HALOGEN_KERNEL : dict[tuple[str, ...], str] = {
     ('A', 'S', '$') : 'C(F)' , # for homopolymer, ANY single symbol should given same behavior
