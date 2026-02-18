@@ -292,4 +292,4 @@ def test_jsonify_dataclass_deserialize(
         test_obj.to_file(file.name)
         test_obj_loaded = container_type.from_file(file.name)
         
-        assert(asdict(test_obj), asdict(test_obj_loaded))
+        assert_equal(asdict(test_obj), asdict(test_obj_loaded))
