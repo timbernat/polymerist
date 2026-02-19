@@ -6,6 +6,7 @@ dependencies:
     # Basic Python dependencies
     - python=3.11.0
     - pip
+    - setuptools<82 # to avoid ImportErrors from pkg_resources deprecation
 
     # Unit testing
     - pytest
