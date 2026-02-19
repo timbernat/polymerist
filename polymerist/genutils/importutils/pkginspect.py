@@ -54,7 +54,7 @@ def module_parts(module : Union[str, ModuleType]) -> tuple[Optional[str], str]:
 
     return parent_package_name, module_stem
 
-def module_stem(module : Union[str, ModuleType]) -> tuple[Optional[str], str]:
+def module_stem(module : Union[str, ModuleType]) -> str:
     '''Takes a module (as its name or as ModuleType) and returns its relative module name'''
     return module_parts(module)[-1]
 

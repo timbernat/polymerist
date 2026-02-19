@@ -34,11 +34,11 @@ class NodeCorrespondence(ABC, Generic[T]):
         pass
 
 def compile_tree_factory(
-        node_corresp : NodeCorrespondence[T],
-        class_alias : Optional[str]=None,
-        obj_attr_name : Optional[str]=None,
-        exclude_mixin : Optional[Filter[T]]=None,
-    ) -> Callable[[T, Optional[int], Optional[Filter[T]]], Node]:
+    node_corresp : NodeCorrespondence[T],
+    class_alias : Optional[str]=None,
+    obj_attr_name : Optional[str]=None,
+    exclude_mixin : Optional[Filter[T]]=None,
+) -> Callable[[T, Optional[int], Optional[Filter[T]]], Node]:
     '''
     Factory method for producing a tree-generating function from a NodeCorrespondence
     
