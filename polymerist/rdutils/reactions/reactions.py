@@ -307,13 +307,13 @@ class AnnotatedReaction(ChemicalReaction):
         return SymbolInventory(fn_group_sym_inv)
         
     def enumerate_valid_reactant_orderings(
-            self,
-            reactant_pool : Union[Iterable[Mol], Mapping[L, Mol]],
-            labeling_method : Optional[Callable[[Mol], L]]=None,
-            as_mols : bool=True,
-            allow_resampling : bool=False,
-            deterministic : bool=True,
-        ) -> Generator[Union[None, tuple[L], tuple[Mol]], None, None]:
+        self,
+        reactant_pool : Union[Iterable[Mol], Mapping[L, Mol]],
+        labeling_method : Optional[Callable[[Mol], L]]=None,
+        as_mols : bool=True,
+        allow_resampling : bool=False,
+        deterministic : bool=True,
+    ) -> Generator[Union[None, tuple[L], tuple[Mol]], None, None]:
         '''
         Enumerates all orderings of reactants compatible with the reactant templates defined in this reaction
 
@@ -360,12 +360,12 @@ class AnnotatedReaction(ChemicalReaction):
             yield None 
     
     def valid_reactant_ordering(
-            self,
-            reactant_pool : Sequence[Mol],
-            as_mols : bool=True,
-            allow_resampling : bool=False,
-            deterministic : bool=True,
-        ) -> Union[None, tuple[int], tuple[Mol]]:
+        self,
+        reactant_pool : Sequence[Mol],
+        as_mols : bool=True,
+        allow_resampling : bool=False,
+        deterministic : bool=True,
+    ) -> Union[None, tuple[int], tuple[Mol]]:
         '''
         Get first ordering of reactants compatible with the reactant templates defined in this reaction
 
@@ -396,6 +396,14 @@ class AnnotatedReaction(ChemicalReaction):
             deterministic=True,
         ) is not None
 
+    def acts_by_autopolymerization(self, reactant_pool : Sequence[Mol]) -> bool:
+        '''
+        Determine whether this reaction necessarily acts via autopolymerization
+        (i.e. REQUIRES reactants to react with themselves to occur) on the given reactant inputs
+        '''
+        return self.has_reactable_subset(reactant_pool, allow_resampling=True) \
+            and not self.has_reactable_subset(reactant_pool, allow_resampling=False) # check if reaction becomes impossible if resampling of reactants is disallowed
+
     # RUNNING CHEMICAL REACTIONS
     def validate_reactants(self, reactants : Sequence[Mol], allow_resampling : bool=False) -> None:
         '''Check whether a collection of reactant Mols can be reacted with this reaction definition'''
@@ -418,11 +426,11 @@ class AnnotatedReaction(ChemicalReaction):
     
     @staticmethod
     def apply_atom_info_to_product(
-            product : Mol,
-            product_atom_infos : Iterable['AtomTraceInfo'],
-            reactants : Sequence[Mol],
-            apply_map_labels : bool=True,
-        ) -> None:
+        product : Mol,
+        product_atom_infos : Iterable['AtomTraceInfo'],
+        reactants : Sequence[Mol],
+        apply_map_labels : bool=True,
+    ) -> None:
         '''Transfer props and (if requested) map number information from atoms in reactant Mols to their corresponding atoms in a product Mol
         Acts in-place on the "product" Mol instance'''
         for atom_info in product_atom_infos:
@@ -439,9 +447,9 @@ class AnnotatedReaction(ChemicalReaction):
                 
     @staticmethod
     def apply_bond_info_to_product(
-            product : Mol,
-            product_bond_infos : Iterable['BondTraceInfo'],
-        ) -> None:
+        product : Mol,
+        product_bond_infos : Iterable['BondTraceInfo'],
+    ) -> None:
         '''Mark any changed bonds with bond props and clean up bond type info in places where bonds get modified
         Acts in-place on the "product" Mol instance'''
         for bond_info in product_bond_infos:
@@ -460,12 +468,12 @@ class AnnotatedReaction(ChemicalReaction):
 
     @sanitizable_mol_outputs
     def react(
-            self,
-            reactants : Sequence[Mol],
-            repetitions : int=1,
-            keep_map_labels : bool=True,
-            _suppress_reactant_validation : bool=False,
-        ) -> Generator[Mol, None, None]:
+        self,
+        reactants : Sequence[Mol],
+        repetitions : int=1,
+        keep_map_labels : bool=True,
+        _suppress_reactant_validation : bool=False,
+    ) -> Generator[Mol, None, None]:
         '''
         Execute reaction over a collection of reactants and generate product molecule(s)
         Does not require reactants to match the ORDER of the expected reactant templates by default 

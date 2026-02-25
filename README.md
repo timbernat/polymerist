@@ -22,7 +22,7 @@ Includes functionality for:
 * Much more!
 
 ## Documentation
-Complete documentation for polymerist can be found on the [`polymerist` ReadTheDocs page](https://polymerist.readthedocs.io/en/docs/)
+Complete documentation for polymerist can be found on the [`polymerist` ReadTheDocs page](https://polymerist.readthedocs.io/en/latest/)
   
 ## Examples
 Examples of how to import and invoke the core features of `polymerist` can be found in the accompanying [polymerist_examples repository](https://github.com/timbernat/polymerist_examples).

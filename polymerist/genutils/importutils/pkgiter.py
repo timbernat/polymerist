@@ -51,11 +51,12 @@ module_tree = compile_tree_factory(
 
 # BACKWARDS-COMPATIBLE PORTS OF LEGACY IMPORTUTILS FUNCTIONS
 def module_tree_direct(
-        module : ModuleType,
-        recursive : bool=True,
-        blacklist : Optional[Container[str]]=None,
-    ) -> Node:
-    '''Produce a tree from the Python package hierarchy starting with a given module
+    module : ModuleType,
+    recursive : bool=True,
+    blacklist : Optional[Container[str]]=None,
+) -> Node:
+    '''
+    Produce a tree from the Python package hierarchy starting with a given module
     
     Parameters
     ----------
@@ -83,10 +84,10 @@ def module_tree_direct(
     )
 
 def iter_submodules(
-        module : ModuleType,
-        recursive : bool=True,
-        blacklist : Optional[Container[str]]=None,
-    ) -> Generator[ModuleType, None, None]:
+    module : ModuleType,
+    recursive : bool=True,
+    blacklist : Optional[Container[str]]=None,
+) -> Generator[ModuleType, None, None]:
     '''
     Generates all modules which can be imported from the given toplevel module
     
@@ -111,10 +112,10 @@ def iter_submodules(
         yield module_node.module
 
 def iter_submodule_info(
-        module : ModuleType,
-        recursive : bool=True,
-        blacklist : Optional[Container[str]]=None,
-    ) -> Generator[tuple[ModuleType, str, bool], None, None]:
+    module : ModuleType,
+    recursive : bool=True,
+    blacklist : Optional[Container[str]]=None,
+) -> Generator[tuple[ModuleType, str, bool], None, None]:
     '''
     Generates information about all modules which can be imported from the given toplevel module
     Namely, yields the module object, module name, and whether or not the module is a package
@@ -141,10 +142,10 @@ def iter_submodule_info(
         yield module_node.module, module_node.name, module_node.is_leaf
 
 def register_submodules(
-        module : ModuleType,
-        recursive : bool=True,
-        blacklist : Optional[Container[str]]=None
-    ) -> None:
+    module : ModuleType,
+    recursive : bool=True,
+    blacklist : Optional[Container[str]]=None
+) -> None:
     '''
     Registers all submodules of a given module into it's own namespace (i.e. autoimports submodules)
     
@@ -167,11 +168,11 @@ def register_submodules(
         setattr(module, submodule.__name__, submodule)
 
 def module_hierarchy(
-        module : ModuleType,
-        recursive : bool=True,
-        blacklist : Optional[Container[str]]=None,
-        style : Union[str, AbstractStyle]=ContStyle()
-    ) -> str:
+    module : ModuleType,
+    recursive : bool=True,
+    blacklist : Optional[Container[str]]=None,
+    style : Union[str, AbstractStyle]=ContStyle()
+) -> str:
     '''
     Generates a printable string which summarizes a Python packages hierarchy. Reminiscent of GNU tree output
 

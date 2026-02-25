@@ -53,10 +53,10 @@ def load_state_flexible(state : Optional[StateLike]=None) -> Optional[State]:
 
 @allow_string_paths
 def serialize_state_from_context(
-        state_path : Path,
-        context : Context,
-        state_params : dict[str, bool]=None,
-    ) -> None:
+    state_path : Path,
+    context : Context,
+    state_params : dict[str, bool]=None,
+) -> None:
     '''For saving State data within an existing OpenMM Context to file'''
     if state_params is None:
         state_params = DEFAULT_STATE_PROPS

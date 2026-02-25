@@ -11,6 +11,8 @@ with warnings.catch_warnings(record=True): # suppress numerous and irritating mb
     warnings.filterwarnings('ignore',  category=DeprecationWarning)
     from mbuild.lib.recipes.polymer import Polymer as MBPolymer
 
+from typing import Optional
+
 from .mbconvert import mbmol_from_mono_rdmol
 from .sequencing import LinearCopolymerSequencer
 from ..exceptions import MorphologyError
@@ -20,54 +22,94 @@ from ...genutils.textual.substrings import unique_string
 
 
 def build_linear_polymer(
-        monomers : MonomerGroup,
-        n_monomers : int,
-        sequence : str='A',
-        minimize_sequence : bool=True,
-        allow_partial_sequences : bool=False,
-        add_Hs : bool=False,
-        energy_minimize : bool=False,
-    ) -> MBPolymer:
+    monomers : MonomerGroup,
+    n_monomers : int,
+    sequence : str='A',
+    minimize_sequence : bool=True,
+    allow_partial_sequences : bool=False,
+    add_Hs : bool=False,
+    energy_minimize : bool=False,
+    sequence_map : Optional[dict[str, str]]=None,
+) -> MBPolymer:
     '''
     Builds a linear polymer structure from a specified pool of monomers, sequence, target chain length, and other parameters
     
     Parameters
     ----------
     monomers : MonomerGroup
-        A group of fragments containing at least the distinct repeat units which occur in the target polymer
+        A group of fragments containing AT LEAST the distinct repeat units which occur in the target polymer
         
         IMPORTANT: if the "term_orient" field of the MonomerGroup is not set (with "head" and "tail" monomer designations),
         the first two terminal (1-valent) monomers in the group will be auto-assigned and taken as the head and tail, respectively,
         or, if there is only one terminal monomer present, it will be used as both the head and tail.
     n_monomers : int
         The number of monomer units in the target polymer chain
-        This includes the terminal monomers in the count, e.g. n_monomers=10 with a head and tail group specified will induce 8 middle monomers
+        
+        This INCLUDES the terminal monomers in the count;
+        E.g. n_monomers=10 with a head and tail group specified will induce 8 middle monomers
     sequence : str, default='A'
-        A string of characters representing the sequence of monomers as they should occur within the polymer chain
-        Each unique character in the string will be associated with a unique monomer in the provided MonomerGroup,
-        in the order that they appear, e.g. "BACA" will take the second, first, third, and first monomers defined in the group
+        A string of characters representing the sequence of MIDDLE monomers as they should occur within the polymer chain
+        If the sequence is shorter than n_monomers - # end groups, the sequence will be repeated until the target chain length is reached.
+
+        Each unique character in the string will be associated with a unique repeat unit
+        in the provided MonomerGroup, as specified by `sequence_map` (see below)
         
-        IMPORTANT: the sequence string only specifies the MIDDLE monomers in the chain, i.e. terminal monomers are not given by the sequence string,
-        but either by the "term_orient" field of the MonomerGroup or the auto-determined end groups if that is unset
-        
-        If the sequence is shorter than n_monomers, the sequence will be repeated until the target chain length is reached.
+        IMPORTANT: terminal monomers are not given by this sequence string, but are specified by either
+        the "term_orient" field of the MonomerGroup or the auto-determined end groups if that is unset
     minimize_sequence : bool, default=True
-        Whether to attempt to reduce the sequence provided into a minimal, repeating subsequence
+        Whether to attempt to reduce the sequence provided into a minimal, repeating subsequence ("kernel")
         E.g. "ABABAB" will be reduced to 3*"AB" if this is set to True
         
-        Note carefully that this has NOTHING TO DO WITH energy minimization; that is controlled by the energy_minimize flag
+        N.B.: this has NOTHING TO DO WITH energy minimization; that is controlled by the energy_minimize flag
     allow_partial_sequences : bool, default=False
         Whether to allow fractional repetitions of the sequence kernel to fill the target chain length
         
-        For example, given a monomer group with head/tail specified and parameters n_monomers=10 and sequence="BAC" (inducing 10 - 2 = 8 middle monomers):
-        allow_partial_sequences=True will repeat the sequence 2 + 2/3 times, yielding the equivalent middle monomer sequence "BACBACBA", while
-        allow_partial_sequences=False would raise Exception, since the sequence "BAC" cannot be repeated to fill 8 middle monomers exactly.
+        For example, given a monomer group with head/tail specified and parameters
+        n_monomers=10 and sequence="BAC" (inducing 10 - 2 = 8 middle monomers):
+        * allow_partial_sequences=True will repeat the sequence 2 + 2/3 times,
+          yielding the equivalent middle monomer sequence "BACBACBA", while
+        * allow_partial_sequences=False would raise PartialBlockSequence Exception,
+          since the sequence "BAC" cannot be repeated to fill 8 middle monomers exactly.
     add_Hs : bool, default=False
         Whether to instruct the mbuild Polymer recipe to cap uncapped terminal groups with hydrogens,
         in cases where the user has failed to provide ANY terminal monomers in the MonomerGroup
     energy_minimize : bool, default=False
         Whether to perform a brief UFF energy minimization after build to relax the resulting polymer structure
-        Tends to give less-unphysical conformers for larger polymers, but is significantly slower, especially for longer chains
+        Tends to give less-unphysical conformers for larger polymers but is significantly slower, especially for longer chains
+    sequence_map : dict[str, str], default None
+        Mapping from individual symbols (characters) in the sequence to the
+        names of repeat units in monomers to associate with those symbols
+        
+        If no explicit mapping is provided, each unique symbol will be mapped to the
+        MIDDLE repeat unit at that symbol's position when lexicographically sorted
+        E.g. "BACA" will take the second, first, third, and first monomers defined
+        in the MonomerGroup; so will "baca", "2131", "caea", and "tipi"
+        
+        For a more detailed example, suppose the contents of monomers.monomers looked like:
+        >>> {
+        >>>     'EG_term' : [...]
+        >>>     'EG' : [...],
+        >>>     'GA' : [...],
+        >>>     'LA' : [...],
+        >>>     ...
+        >>> }
+        
+        Given sequence='bac' with sequence_map unset, a map of 
+        >>> sequence_map = { # this is the default!!
+        >>>     'a' : 'EG',
+        >>>     'b' : 'GA',
+        >>>     'c' : 'LA',
+        >>> }
+        would be generated by default (skipping over the terminal repeat unit 'EG_term') and
+        the resulting polymer would be build as [head group]-[GA]-[EG]-[LA]-[GA]-[EG]-...
+        
+        On the other hand, supplying a map as:
+        >>> sequence_map = {
+        >>>     'a' : 'GA',
+        >>>     'b' : 'LA',
+        >>>     'c' : 'EG',
+        >>> }
+        would instead assemble the polymer as [head group]-[LA]-[GA]-[EG]-[LA]-[GA]-...
         
     Returns
     -------
@@ -93,12 +135,36 @@ def build_linear_polymer(
     )
     sequence_unique = unique_string(sequence_compliant, preserve_order=True) # only register a new monomer for each appearance of a new, unique symbol in the sequence
     
-    # 2) REGISTERING MONOMERS TO BE USED FOR CHAIN ASSEMBLY
+    # 2) REGISTER MONOMERS TO BE USED FOR CHAIN ASSEMBLY
     polymer = MBPolymer() 
-    monomers_selected = MonomerGroup() # used to track and estimate sized of the monomers being used for building
+    monomers_selected = MonomerGroup() # need only the subset of repeat units used in assembly to accurately assess linearity and estimate chain size (in current implementations)
     
     ## 2A) ADD MIDDLE MONOMERS TO CHAIN
-    for symbol, (resname, middle_monomer) in zip(sequence_unique, monomers.iter_rdmols(term_only=False)): # zip with sequence limits number of middle monomers to length of block sequence
+    if sequence_map is None:
+        sequence_map = {
+            symbol : resname
+                for symbol, (resname, middle_monomer) in zip(
+                    sorted(sequence_unique),
+                    monomers.iter_rdmols(term_only=False), # iterate over non-terminal repeat units only
+                )
+        }
+
+    middle_monomer_table = monomers.rdmols(term_only=False) # cache this locally - DEV: ugly, but don't want to shift MonomerGroup API around too much
+    if (num_symbols_unique := len(sequence_unique)) > (num_middle_monomers := len(middle_monomer_table)):
+        raise ValueError(f'Too few unique repeat units ({num_middle_monomers}) to ascribe to each symbols of a {num_symbols_unique}-symbol sequence')
+    
+    for symbol in sorted(sequence_unique): # avoiding sequence_map.items() - won't count on sequence map being sorted (e.g. if a user passes one in)
+        resname = sequence_map[symbol]     # another reason not to use sequence_map.items() here is we want a big, fat KeyError for undefined symbols in the sequence
+        middle_monomer_choices = middle_monomer_table[resname]
+        num_middle_monomer_choices : int = len(middle_monomer_choices)
+        
+        if num_middle_monomer_choices == 0:
+            raise IndexError(f'No monomer templates for "{resname}" defined in MonomerGroup')
+        elif num_middle_monomer_choices > 1:
+            raise IndexError(f'Ambiguous choice for template "{resname}" ({num_middle_monomer_choices} templates defined for that label)')
+        else:
+            middle_monomer = middle_monomer_table[resname][0]
+        
         LOGGER.info(f'Registering middle monomer {resname} (block identifier "{symbol}")')
         mb_monomer, linker_ids = mbmol_from_mono_rdmol(middle_monomer, resname=resname)
         polymer.add_monomer(compound=mb_monomer, indices=linker_ids)

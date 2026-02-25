@@ -22,7 +22,8 @@ requires-python = "~=3.11"
 # Declare any run-time dependencies that should be installed with the package.
 dependencies = [
     "importlib-resources", # added to allow incorporation of `data` later on
-    "numpy<2.0.0", # DEV: pinning this, as leaving it unpinned causes errors when improting mbuild (deprecated numpy.vecdot function)
+    "setuptools<82.0.0",   # added to avoid CI errors due to pkg_resources deprecation
+    "numpy<2.0.0", # DEV: pinning this, as leaving it unpinned causes errors when importing mbuild (deprecated numpy.vecdot function)
     "scipy",
     "pandas",
     "rich",
@@ -31,11 +32,11 @@ dependencies = [
     "anytree",
     "networkx",
     "rdkit",
+    "mdtraj",
     "openmm",
-    # DEV: at time of writing, latest stable version of lammps shipped w/ binaries on conda 
+    # DEV: as of 08/18/2025, latest stable version of lammps shipped w/ binaries on conda 
     # lammps-dependent code is unrunnable (citing MPI OSError) for more recent builds (i.e. 2025.MM.DD) 
     "lammps<=2024.08.29", 
-    "mdtraj",
 ]
 
 # Update the urls once the hosting is set up.

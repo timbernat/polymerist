@@ -35,7 +35,11 @@ from ...mdtools.openmmtools.serialization.topology import serialize_openmm_pdb
 
 
 # Conversion from other formats to Compound
-def mbmol_from_mono_rdmol(rdmol : Chem.Mol, resname : Optional[str]=None, kekulize : bool=True) -> tuple[Compound, list[int]]:
+def mbmol_from_mono_rdmol(
+    rdmol : Chem.Mol,
+    resname : Optional[str]=None,
+    kekulize : bool=True,
+) -> tuple[Compound, list[int]]:
     '''
     Accepts a monomer-spec-compliant SMARTS string and returns an mbuild Compound and a list of the indices of atom ports
     If "resname" is provided, will assign that name to the mBuild Compound returned
@@ -67,10 +71,10 @@ _DEFAULT_RESNAME_MAP : dict[str, str] = { # module-wide config for default PDB r
 }
 
 def mbmol_to_rdmol( # TODO: deduplify PDB atom name and residue numbering code against serialize_openmm_pdb()
-        mbmol : Compound,
-        atom_labeller : Optional[SerialAtomLabeller]=None,
-        resname_map : Optional[dict[str, str]]=None
-    ) -> Chem.Mol:
+    mbmol : Compound,
+    atom_labeller : Optional[SerialAtomLabeller]=None,
+    resname_map : Optional[dict[str, str]]=None
+) -> Chem.Mol:
     '''Convert an mBuild Compound into an RDKit Mol, with correct atom coordinates and PDB residue info'''
     if atom_labeller is None:
         atom_labeller = SerialAtomLabeller()
@@ -111,11 +115,11 @@ def mbmol_to_rdmol( # TODO: deduplify PDB atom name and residue numbering code a
 # Serialization of Compounds to files
 @allow_pathlib_paths
 def mbmol_to_rdkit_pdb(
-        pdb_path : str,
-        mbmol : Compound, 
-        atom_labeller : Optional[SerialAtomLabeller]=None,
-        resname_map : Optional[dict[str, str]]=None,
-    ) -> None:
+    pdb_path : str,
+    mbmol : Compound, 
+    atom_labeller : Optional[SerialAtomLabeller]=None,
+    resname_map : Optional[dict[str, str]]=None,
+) -> None:
     # DEV: "missing" docstring here is deliberate; this is needed to dynamically set the resname_map default as it displays
     Chem.MolToPDBFile(
         mbmol_to_rdmol(
@@ -148,11 +152,11 @@ mbmol_to_rdkit_pdb.__doc__ =  f'''
     
 @allow_string_paths
 def mbmol_to_openmm_pdb(
-        pdb_path : Path,
-        mbmol : Compound, 
-        atom_labeller : Optional[SerialAtomLabeller]=None,
-        resname_map : Optional[dict[str, str]]=None,
-    ) -> None:
+    pdb_path : Path,
+    mbmol : Compound, 
+    atom_labeller : Optional[SerialAtomLabeller]=None,
+    resname_map : Optional[dict[str, str]]=None,
+) -> None:
     # DEV: "missing" docstring here is deliberate; this is needed to dynamically set the resname_map default as it displays
     if resname_map is None: # avoid mutable default
         resname_map = _DEFAULT_RESNAME_MAP 

@@ -30,3 +30,21 @@ PEG_PLGA_FRAGMENTS : dict[str, list[str]] = { # fragments for all variants of PE
     'PGA-1B': ['[*:1]-[#8D2+0:2]-[#6D4+0:3](-[#6D3+0:4](=[#8D1+0:5])-[#8D2+0:6]-[#1D1+0:9])(-[#1D1+0:7])-[#1D1+0:8]'],
     'PGA-2': ['[*:1]-[#8D2+0:2]-[#6D4+0:3](-[#6D3+0:4](=[#8D1+0:5])-[*:6])(-[#1D1+0:7])-[#1D1+0:8]'],
 }
+
+HALOGENATED_HYDROCARBON_FRAGMENTS = { # halogenated hydrocarbons with ester tails - particularly easy to visually identify sequences
+    # fluorides
+    'fluor_term_1': ['[#8D2+0:1](-[#6D4+0:2](-[#9D1+0:3])(-[*:4])-[#1D1+0:6])-[#1D1+0:5]'],                       # oxygen end group with 1 halogen on the carbon
+    'fluor_mid_1': ['[*:1]-[#6D4+0:2](-[#9D1+0:3])(-[*:4])-[#1D1+0:5]'],                                          # singly-halogenated carbon
+    'fluor_mid_2': ['[*:1]-[#6D4+0:2](-[#9D1+0:3])(-[#9D1+0:4])-[*:5]'],                                          # doubly-halogenated carbon
+    'fluor_term_2': ['[*:1]-[#6D4+0:2](-[#9D1+0:3])(-[#6D3+0:4](=[#8D1+0:5])-[#8D2+0:6]-[#1D1+0:8])-[#1D1+0:7]'], # carbxyl end group with singly-halogenated carbon
+    # chlorides
+    'chlor_term_1': ['[#8D2+0:1](-[#6D4+0:2](-[#17D1+0:3])(-[*:4])-[#1D1+0:6])-[#1D1+0:5]'], # same pattern as for fluorides
+    'chlor_mid_1': ['[*:1]-[#6D4+0:2](-[#17D1+0:3])(-[*:4])-[#1D1+0:5]'],
+    'chlor_mid_2': ['[*:1]-[#6D4+0:2](-[#17D1+0:3])(-[#17D1+0:4])-[*:5]'],
+    'chlor_term_2': ['[*:1]-[#6D4+0:2](-[#17D1+0:3])(-[#6D3+0:4](=[#8D1+0:5])-[#8D2+0:6]-[#1D1+0:8])-[#1D1+0:7]'],
+    # bromides
+    'brom_term_1': ['[#8D2+0:1](-[#6D4+0:2](-[#35D1+0:3])(-[*:4])-[#1D1+0:6])-[#1D1+0:5]'],
+    'brom_mid_1': ['[*:1]-[#6D4+0:2](-[#35D1+0:3])(-[*:4])-[#1D1+0:5]'],
+    'brom_mid_2': ['[*:1]-[#6D4+0:2](-[#35D1+0:3])(-[#35D1+0:4])-[*:5]'],
+    'brom_term_2': ['[*:1]-[#6D4+0:2](-[#35D1+0:3])(-[#6D3+0:4](=[#8D1+0:5])-[#8D2+0:6]-[#1D1+0:8])-[#1D1+0:7]'],
+}

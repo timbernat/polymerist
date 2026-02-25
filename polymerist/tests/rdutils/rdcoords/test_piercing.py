@@ -1,4 +1,7 @@
-'''Unit tests for `sanitization` package'''
+'''Unit tests for `piercing` package'''
+
+__author__ = 'Timotej Bernat'
+__email__ = 'timotej.bernat@colorado.edu'
 
 import pytest
 from pathlib import Path

@@ -33,11 +33,11 @@ class SimulationPaths:
 
     @allow_string_paths
     def init_top_and_sys_paths(
-            self,
-            out_dir : Path,
-            prefix : str,
-            record : bool=True,
-        ) -> tuple[Path, Path]:
+        self,
+        out_dir : Path,
+        prefix : str,
+        record : bool=True,
+    ) -> tuple[Path, Path]:
         '''Initialize Topology and System output paths for a given directory'''
         topology_path = assemble_path(out_dir, prefix, extension='pdb', postfix='topology')
         system_path   = assemble_path(out_dir, prefix, extension='xml', postfix='system')
@@ -52,12 +52,12 @@ class SimulationPaths:
     
     @classmethod
     def from_dir_and_parameters(
-            cls,
-            out_dir : Path,
-            prefix : str,
-            sim_params : SimulationParameters,
-            touch : bool=True,
-        ) -> 'SimulationPaths':
+        cls,
+        out_dir : Path,
+        prefix : str,
+        sim_params : SimulationParameters,
+        touch : bool=True,
+    ) -> 'SimulationPaths':
         '''Create file directory and initialize simulationPaths object from a set of SimulationParameters'''
         path_obj = cls() # create empty path instance
 

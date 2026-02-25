@@ -3,6 +3,9 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
+import logging
+LOGGER = logging.getLogger(__name__)
+
 import numpy as np
 from rdkit.Chem import Mol, CombineMols
 from rdkit.Chem.rdMolTransforms import ComputeCanonicalTransform, TransformConformer
@@ -31,6 +34,15 @@ def tile_lattice_with_rdmol(rdmol : Mol, lattice_points : np.ndarray[Shape[N, 3]
     
     conformer = rdmol.GetConformer(conf_id)
     centering = ComputeCanonicalTransform(conformer, ignoreHs=True) # translation which centers the given conformer
+    
+    rotation = centering[:-1, :-1]
+    orient_sign = np.sign(np.linalg.det(rotation))
+    if orient_sign < 0.0:
+        centering[:-1, :-1] *= orient_sign # enforce right-handed coordinate system to avoid unintended inversions
+        LOGGER.warning(
+            'Caught and corrected stereochemical inversion during RDKit alignment transform;\n' 
+            'recommend upgrading RDKit to >=2025.09.x(see https://github.com/rdkit/rdkit/issues/8720)'
+        )
 
     tiled_topology = None
     for point in lattice_points:
