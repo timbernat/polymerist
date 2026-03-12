@@ -16,8 +16,8 @@ def generate_water_TIP3P() -> Molecule:
     '''Helper method for creating a new TIP3P water representation from scratch'''
     TIP3P_ATOM_CHARGES = { # NOTE : units deliberately omitted here (become applied to entire charge array)
         'H' :  0.417,
-        'O' : -0.843
-    }
+        'O' : -0.834
+    } # values obtained from Jorgensem et. al.: https://doi.org/10.1063/1.445869
 
     water = Molecule.from_smiles('O')
     water.name = 'water_TIP3P'
@@ -29,6 +29,7 @@ def generate_water_TIP3P() -> Molecule:
 
 
 # predefine water file, if not already present
+print('new stuff')
 _water_path = _MODULE_PATH / 'water_TIP3P.sdf'
 if not _water_path.exists():
     water = generate_water_TIP3P()

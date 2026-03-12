@@ -3,7 +3,7 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import Any, Container, Union
+from typing import Any, Container, Optional, Union
 
 from enum import Enum
 from collections import defaultdict
@@ -17,7 +17,7 @@ from ...genutils.textual.prettyprint import dict_to_indented_str
 # REFERENCE FOR NONBONDED METHODS
 ## referenced from "Attributes" section of docs page: https://docs.openmm.org/latest/api-python/generated/openmm.openmm.NonbondedForce.html#nonbondedforce
 ## necessary to assign meaningful names to the otherwise-inaccessible int enum for these methods in the OpenMM API
-_NONBOND_METHOD_NAMES : tuple[str] = (
+_NONBOND_METHOD_NAMES : tuple[str, ...] = (
     'NoCutoff',
     'CutoffNonPeriodic',
     'CutoffPeriodic',
@@ -38,7 +38,7 @@ LongRangeNonbondedMethod = Enum('LongRangeNonbondedMethod', _NONBOND_METHOD_VALU
 # DESCRIBING PARAMETERS CONTAINED IN FORCES
 def describe_force(force : Force) -> dict[str, Any]:
     '''Provides a dictionary which summarizes the parameters of a Force'''
-    force_attrs = compile_argfree_getable_attrs(force, getter_re='\Aget', repl_str='') # getter string here asserts that "get" is at the start of the attribute name
+    force_attrs = compile_argfree_getable_attrs(force, getter_re=r'\Aget', repl_str='') # getter string here asserts that "get" is at the start of the attribute name
     force_attrs['Type'] = type(force).__name__
     
     # NOTE: the overlap in long range method enum values is coincidental for NonbondedForce, CustomNonbondedForce
@@ -82,7 +82,7 @@ def force_groups_are_unique(system : System) -> bool:
     else:
         return True
 
-def uniquify_force_groups(system : System, except_for : Container[int]=None) -> None:
+def uniquify_force_groups(system : System, except_for : Optional[Container[int]]=None) -> None:
     # DEVNOTE: docstring assigned below - dynamic docstrings cannot be assigned in-place
     if except_for is None:
         except_for = {_POLYMERIST_FORCE_GROUP} # don't squash polymerist-assigned forceGroups unless SPECIFICALLY requested
@@ -110,7 +110,7 @@ except_for : Container[int], optional, default={{{_POLYMERIST_FORCE_GROUP}}}
     of creation of and modifications to forces done by this library
 '''
 
-def impose_unique_force_groups(ommsys : System, except_for : Container[int]=None) -> None:
+def impose_unique_force_groups(ommsys : System, except_for : Optional[Container[int]]=None) -> None:
     '''Impose unique labels on Forces in an OpenMM System'''
     if not force_groups_are_unique(ommsys):
         uniquify_force_groups(ommsys, except_for=except_for)
