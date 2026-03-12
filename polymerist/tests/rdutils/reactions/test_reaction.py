@@ -63,7 +63,7 @@ def explicit_mols_from_SMILES(allsmiles : Iterable[Smiles]) -> tuple[Chem.Mol, .
         ## polyurethane (isocyanate route) - # Bayer HDI + BDO
         (
             "[#1:1]-[#8:2]-[!$([#6]=[#8]):3].[#8:4]=[#6:5]=[#7:6]-[*:7]>>[#1:1]-[#7:6](-[#6:5](-[#8:2]-[!$([#6]=[#8]):3])=[#8:4])-[*:7]",
-            ('O=C=N\CCCCCC/N=C=O', 'OCCCCO'),
+            (r'O=C=N\CCCCCC/N=C=O', 'OCCCCO'),
             ('O=C=NCCCCCCNC(=O)OCCCCO',),
         ),
         ## polyurethane (non-isocyanate route) - # PCA (propylene carbonate acrylate) + hexamethylenediamine
