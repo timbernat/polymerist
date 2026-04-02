@@ -12,6 +12,7 @@ from rdkit.Chem import Mol, BondType
 
 REACTANT_INDEX_PROPNAME : str = 'reactant_idx' # name of the atom property to assign reactant template indices to
 BOND_CHANGE_PROPNAME : str = 'bond_change'  # name of bond property to set on bonds to indicate they have changed in a reaction
+BOND_IN_PRODUCT_PROPNAME : str = 'bond_in_product_template'
 
 class BondChange(StrEnum):
     '''For indicating how a bond which changed in a reaction was altered'''

@@ -37,7 +37,14 @@ from rdkit.Chem.rdChemReactions import (
     ReactionFromMolecule,
 )
 from .reactexc import BadNumberReactants, ReactantTemplateMismatch
-from .reactinfo import AtomTraceInfo, BondTraceInfo, BondChange, REACTANT_INDEX_PROPNAME, BOND_CHANGE_PROPNAME
+from .reactinfo import (
+    AtomTraceInfo,
+    BondTraceInfo,
+    BondChange,
+    REACTANT_INDEX_PROPNAME,
+    BOND_CHANGE_PROPNAME,
+    BOND_IN_PRODUCT_PROPNAME,
+)
 
 from ..rdprops import copy_rdobj_props
 from ..bonding import combined_rdmol
@@ -431,8 +438,12 @@ class AnnotatedReaction(ChemicalReaction):
         reactants : Sequence[Mol],
         apply_map_labels : bool=True,
     ) -> None:
-        '''Transfer props and (if requested) map number information from atoms in reactant Mols to their corresponding atoms in a product Mol
-        Acts in-place on the "product" Mol instance'''
+        '''
+        Transfer props and (if requested) map number information from atoms
+        in reactant Mols to their corresponding atoms in a product Mol
+        
+        Acts in-place on the product Mol instance
+        '''
         for atom_info in product_atom_infos:
             product_atom = product.GetAtomWithIdx(atom_info.product_atom_idx)
             assert product_atom.HasProp('old_mapno') # precisely the mapped atoms in the reaction template will have this property set on the product 
@@ -450,12 +461,19 @@ class AnnotatedReaction(ChemicalReaction):
         product : Mol,
         product_bond_infos : Iterable['BondTraceInfo'],
     ) -> None:
-        '''Mark any changed bonds with bond props and clean up bond type info in places where bonds get modified
-        Acts in-place on the "product" Mol instance'''
+        '''
+        Mark any changed bonds with bond props and clean up
+        bond type info in places where bonds get modified
+        
+        Acts in-place on the "product" Mol instance
+        '''
         for bond_info in product_bond_infos:
             product_bond = product.GetBondWithIdx(bond_info.product_bond_idx)
             
-            if bond_info.bond_change_type == BondChange.ADDED: # explicictly labl new or changed bonds
+            if bond_info.bond_change_type != BondChange.DELETED: # will never occur if just iterating over product bonds, but doesn't hurt to keep guardrail in
+                product_bond.SetProp(BOND_IN_PRODUCT_PROPNAME, bond_info.bond_change_type)
+            
+            if bond_info.bond_change_type == BondChange.ADDED: # explicitly label new or changed bonds
                 product_bond.SetProp(BOND_CHANGE_PROPNAME, BondChange.ADDED)
     
             if bond_info.bond_change_type == BondChange.MODIFIED:
