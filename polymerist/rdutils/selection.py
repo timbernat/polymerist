@@ -10,7 +10,6 @@ from operator import (
     or_  as logical_or,
     and_ as logical_and,
 )
-from rdkit import Chem
 from rdkit.Chem.rdchem import Mol, Bond, Atom
 
 
@@ -21,15 +20,14 @@ BondCondition = Callable[Concatenate[Bond, ...], bool]
 AtomLike = Union[int, Atom]
 BondLike = Union[int, Bond, tuple[int, int], tuple[Atom, Atom]]
 
-
 # CONDITIONAL SELECTION FUNCTIONS
 ## ATOM NEIGHBOR SEARCH
 def atom_neighbors_by_condition(
-        atom : Atom,
-        condition : AtomCondition=lambda atom : True,
-        as_indices : bool=False,
-        negate : bool=False,
-    ) -> Generator[AtomLike, None, None]:
+    atom : Atom,
+    condition : AtomCondition=lambda atom : True,
+    as_indices : bool=False,
+    negate : bool=False,
+) -> Generator[AtomLike, None, None]:
     '''
     Generate all neighboring atoms (i.e. atoms bonded to the passed atom) satisfying a condition
     
@@ -55,10 +53,10 @@ def atom_neighbors_by_condition(
             yield nb_atom.GetIdx() if as_indices else nb_atom
 
 def has_atom_neighbors_by_condition(
-        atom : Atom,
-        condition : AtomCondition=lambda atom : True,
-        negate : bool=False,
-    ) -> bool:
+    atom : Atom,
+    condition : AtomCondition=lambda atom : True,
+    negate : bool=False,
+) -> bool:
     '''Identify if any neighbors of an atom satisfy some condition'''
     try: 
         next(atom_neighbors_by_condition(atom, condition=condition, negate=negate))
@@ -69,11 +67,11 @@ def has_atom_neighbors_by_condition(
 
 ## WHOLE-MOLECULE SEARCH
 def atoms_by_condition(
-        mol : Mol,
-        condition : AtomCondition=lambda atom : True,
-        as_indices : bool=False,
-        negate : bool=False,
-    ) -> Generator[AtomLike, None, None]:
+    mol : Mol,
+    condition : AtomCondition=lambda atom : True,
+    as_indices : bool=False,
+    negate : bool=False,
+) -> Generator[AtomLike, None, None]:
     '''
     Generate a subset of atoms in a Mol based on a condition
     
@@ -99,12 +97,12 @@ def atoms_by_condition(
             yield atom.GetIdx() if as_indices else atom
 
 def bonds_by_condition(
-        mol : Mol,
-        condition : BondCondition=lambda bond : True,
-        as_indices : bool=True,
-        as_pairs : bool=True,
-        negate : bool=False,
-    ) -> Generator[BondLike, None, None]:
+    mol : Mol,
+    condition : BondCondition=lambda bond : True,
+    as_indices : bool=True,
+    as_pairs : bool=True,
+    negate : bool=False,
+) -> Generator[BondLike, None, None]:
     '''
     Select a subset of bonds in a Mol based on a condition
     
@@ -141,9 +139,9 @@ def bonds_by_condition(
                 yield bond.GetIdx() if as_indices else bond
 
 def bond_condition_by_atom_condition_factory(
-        atom_condition : AtomCondition,
-        binary_operator : Callable[[bool, bool], bool]=logical_or,
-    ) -> BondCondition:
+    atom_condition : AtomCondition,
+    binary_operator : Callable[[bool, bool], bool]=logical_or,
+) -> BondCondition:
     '''
     Dynamically define a bond condition based on an atom condition applied to the pair of atom a bond connects
     
@@ -153,7 +151,6 @@ def bond_condition_by_atom_condition_factory(
     def bond_condition(bond : Bond) -> bool:
         return binary_operator(atom_condition(bond.GetBeginAtom()), atom_condition(bond.GetEndAtom()))
     return bond_condition
-
 
 # QUERIES BY PREDEFINED CONDITIONS
 atom_is_mapped : AtomCondition = lambda atom : atom.GetAtomMapNum() != 0

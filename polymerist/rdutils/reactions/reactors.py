@@ -31,15 +31,15 @@ class PolymerizationReactor:
     fragment_strategy : IBIS = field(default_factory=CutMinimumCostBondsStrategy)
     
     def propagate_pooled(
-            self,
-            monomers : Iterable[Mol],
-            rxn_depth_max : int=5,
-            allow_resampling : bool=False,
-            clear_map_labels : bool=True,
-            clear_dummy_labels : bool=False,
-            sanitize_ops : SanitizeFlags=SANITIZE_ALL,
-            aromaticity_model : AromaticityModel=AROMATICITY_MDL,
-        ) -> dict[Smiles, Mol]:
+        self,
+        monomers : Iterable[Mol],
+        rxn_depth_max : int=5,
+        allow_resampling : bool=False,
+        clear_map_labels : bool=True,
+        clear_dummy_labels : bool=False,
+        sanitize_ops : SanitizeFlags=SANITIZE_ALL,
+        aromaticity_model : AromaticityModel=AROMATICITY_MDL,
+    ) -> dict[Smiles, Mol]:
         '''
         Discovers and enumerates all possible repeat unit fragments formable from a given polymerization step reaction mechanism
         
@@ -125,13 +125,13 @@ class PolymerizationReactor:
             adducts : list[Mol] = []
             fragments : list[Mol] = []
             for adduct in self.rxn_schema.react(
-                    reactants,
-                    repetitions=1,
-                    keep_map_labels=True, # can't clear map numbers yet, otherwise intermonomer bond finder would have nothing to work with
-                    sanitize_ops=sanitize_ops,
-                    aromaticity_model=aromaticity_model,
-                    _suppress_reactant_validation=True, # avoid double-validation since we required it as a precheck for this protocol
-                ) : 
+                reactants,
+                repetitions=1,
+                keep_map_labels=True, # can't clear map numbers yet, otherwise intermonomer bond finder would have nothing to work with
+                sanitize_ops=sanitize_ops,
+                aromaticity_model=aromaticity_model,
+                _suppress_reactant_validation=True, # avoid double-validation since we required it as a precheck for this protocol
+            ) : 
                 # DEVNOTE: consider doing fragmentation on the combined molecule made up of all products?
                 for fragment in self.fragment_strategy.produce_fragments(adduct, separate=True):
                     clear_atom_props(fragment, in_place=True) # essential to avoid reaction mapping info from prior steps from contaminating future ones

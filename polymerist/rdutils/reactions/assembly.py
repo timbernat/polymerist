@@ -36,11 +36,11 @@ class ReactionAssembler:
         )
 
     def products(self,
-            show_steps : bool=False,
-            sanitize_ops : SanitizeFlags=SANITIZE_ALL,
-            bond_breakage_marker : str='--x->',
-            bond_formation_marker : str='---->',
-        ) -> Mol:
+        show_steps : bool=False,
+        sanitize_ops : SanitizeFlags=SANITIZE_ALL,
+        bond_breakage_marker : str='--x->',
+        bond_formation_marker : str='---->',
+    ) -> Mol:
         '''Generate the product template defined by the provided reactants and bond derangement'''
         if not self.bond_derangement:
             raise ValueError('Must provide non-empty bond derangement')
@@ -58,13 +58,14 @@ class ReactionAssembler:
         return products
     
     def products_by_importance(
-            self,
-            combined : bool=True,
-            show_steps : bool=False,
-            sanitize_ops : SanitizeFlags=SANITIZE_ALL,
-        ) -> tuple[Union[Optional[Mol], list[Mol]], Union[Optional[Mol], list[Mol]]]:
+        self,
+        combined : bool=True,
+        show_steps : bool=False,
+        sanitize_ops : SanitizeFlags=SANITIZE_ALL,
+    ) -> tuple[Union[Optional[Mol], list[Mol]], Union[Optional[Mol], list[Mol]]]:
         '''Partition reaction products into major and minor/byproducts, each returned as a single Combined Mol'''
-        product_partition = main_products, byproducts = [], []
+        product_partition : tuple[list[Mol], list[Mol]] = ([], [])
+        main_products, byproducts = product_partition
         for product in GetMolFrags(self.products(show_steps=show_steps, sanitize_ops=sanitize_ops), asMols=True):
             for side_query_mol in self.byproducts:
                 if product.HasSubstructMatch(side_query_mol) and (product.GetNumAtoms() == side_query_mol.GetNumAtoms()):
@@ -76,19 +77,24 @@ class ReactionAssembler:
         if not combined:
             return product_partition
         
-        return [ # implicit else
+        return tuple([ # implicit else
             combined_rdmol(*mol_list, assign_map_nums=False, editable=False) if mol_list else None
                 for mol_list in product_partition
-        ]
+        ])
     
     @property # TODO : add assertion that reactant and product map num sets match
     def byproduct_map_nums(self) -> tuple[set, set]:
         '''Partitions map numbers present in the product(s) by whether or not they belong to a collection of side products
         Returns a set of map numbers NOT in a side product and set set which are'''
-        return [
-            set(atom.GetAtomMapNum() for atom in product_mol.GetAtoms()) if (product_mol is not None) else set()
-                for product_mol in self.products_by_importance(combined=True, show_steps=False, sanitize_ops=SANITIZE_ALL) # CRITICAL that mols be combined here
-        ]
+        return tuple([
+            set(atom.GetAtomMapNum() for atom in product_mol.GetAtoms())
+                if (product_mol is not None) else set()
+                    for product_mol in self.products_by_importance(
+                        combined=True,  # CRITICAL that mols be combined here
+                        show_steps=False,
+                        sanitize_ops=SANITIZE_ALL,
+                    )
+        ])
 
     @property
     def byproduct_relabeling(self) -> dict[int, int]:
@@ -105,7 +111,11 @@ class ReactionAssembler:
 
         return relabeling
 
-    def assemble_rxn(self, show_steps : bool=False, sanitize_ops : SanitizeFlags=SANITIZE_ALL,) -> AnnotatedReaction:
+    def assemble_rxn(
+        self,
+        show_steps : bool=False,
+        sanitize_ops : SanitizeFlags=SANITIZE_ALL,
+    ) -> AnnotatedReaction:
         '''Assemble MDL rxn template from information stored in self'''
         reactants = self.reactants
         products, byproducts = self.products_by_importance(combined=True, show_steps=show_steps, sanitize_ops=sanitize_ops)

@@ -3,7 +3,17 @@
 __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
-from typing import Callable, Concatenate, Generator, Iterable, Optional, ParamSpec, TypeAlias, TypeVar, Union
+from typing import (
+    Callable,
+    Concatenate,
+    Generator,
+    Iterable,
+    Optional,
+    ParamSpec,
+    TypeAlias,
+    TypeVar,
+    Union,
+)
 P = ParamSpec('P')
 from functools import wraps
 
@@ -18,10 +28,10 @@ from ..smileslib.cleanup import Smiles, expanded_SMILES
 
 @optional_in_place
 def sanitize_mol(
-        mol : Mol,
-        sanitize_ops : Union[None, int, SanitizeFlags]=SANITIZE_NONE,
-        aromaticity_model : Optional[AromaticityModel]=None,
-    ) -> None:
+    mol : Mol,
+    sanitize_ops : Union[None, int, SanitizeFlags]=SANITIZE_NONE,
+    aromaticity_model : Optional[AromaticityModel]=None,
+) -> None:
     '''Apply chemical sanitization operations, including bond aromaticity
     By default, performs NO sanitization; all sanitization operations must be explicitly specified!
     '''
@@ -52,11 +62,11 @@ def sanitizable_mol_outputs(mol_func : Callable[P, Union[Mol, Iterable[Mol]]]) -
     '''
     @wraps(mol_func)
     def wrapped_func(
-            *args : P.args,
-            sanitize_ops : Union[None, int, SanitizeFlags]=SANITIZE_NONE,
-            aromaticity_model : Optional[AromaticityModel]=None,
-            **kwargs : P.kwargs,
-        ) -> Union[Mol, tuple[Mol, ...]]:
+        *args : P.args,
+        sanitize_ops : Union[None, int, SanitizeFlags]=SANITIZE_NONE,
+        aromaticity_model : Optional[AromaticityModel]=None,
+        **kwargs : P.kwargs,
+    ) -> Union[Mol, tuple[Mol, ...]]:
         # determine if return is singular, iterable, or invalid
         outputs = mol_func(*args, **kwargs)
         if isinstance(outputs, Mol):
