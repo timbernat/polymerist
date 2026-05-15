@@ -11,7 +11,7 @@ from importlib.resources import (
     Package,
     files as get_package_path
 )
-from importlib.resources._common import resolve, from_package, resolve
+from importlib.resources._common import get_package, from_package, resolve
 
 
 # CHECKING PACKAGE AND MODULE STATUS
@@ -27,7 +27,7 @@ def is_module(module : Package) -> bool:
 def is_package(package : Package) -> bool:
     '''Determine whether a given Package-like (i.e. str or ModuleType) is a valid Python package'''
     try:
-        resolve(package)
+        get_package(package)
         return True
     except (ModuleNotFoundError, TypeError):
         return False
