@@ -4,6 +4,7 @@ __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
 from types import ModuleType
+from dataclasses import dataclass
 
 import pytest
 from pathlib import Path
@@ -16,64 +17,66 @@ from polymerist.genutils.importutils import pkginspect
 from polymerist import tests
 
 
-
 # TABULATED EXPECTED TESTS OUTPUTS
-non_module_types = [ # types that are obviously not modules OR packages, and which should fail
-    bool, int, float, complex, tuple, list, dict, set, # str, Path # str and Path need to be tested separately
-]
+def non_module_types() ->list[type]:
+    '''Types that are obviously not modules OR packages, and which should fail'''
+    return [
+        bool, int, float, complex, tuple, list, dict, set, 
+        # str, Path # str and Path need to be tested separately
+    ]
 
-are_modules = [
-    ('--not_a_module--', False), # deliberately weird to ensure this never accidentally clashes with a legit module name
-    (math, True),
-    ('math', True), # test that the string -> module resolver also works as intended
-    (json, True),
-    ('json', True),
-    (json.decoder, True),
-    ('json.decoder', True),
-    (polymerist, True),
-    ('polymerist.polymerist', True),
-    (genutils, True),
-    ('polymerist.genutils', True),
-]
+@dataclass(frozen=True)
+class ModuleExample:
+    '''For encapsulating package and module check tests'''
+    resource : str | ModuleType
+    is_module : bool
+    is_package : bool
 
-are_packages = [
-    ('--not_a_package--', False), # deliberately weird to ensure this never accidentally clashes with a legit module name
-    (math, False),
-    ('math', False), # test that the string -> module resolver also works as intended
-    (json, True),
-    ('json', True),
-    (json.decoder, False),
-    ('json.decoder', False),
-    (polymerist, False),
-    ('polymerist.polymerist', False),
-    (genutils, True),
-    ('polymerist.genutils', True),
-]
+def module_examples() -> tuple[ModuleExample, ...]:
+    '''
+    Module-like objects labelled with whether they
+    are modules and whether they are packages
+    '''
+    return (
+        # deliberately weird to ensure this never accidentally clashes with a legit module name
+        ModuleExample('--not_a_module--', False, False), 
+        ModuleExample(math, True, False),
+        # test that the string -> module resolver also works as intended
+        ModuleExample('math', True, False), 
+        ModuleExample(json, True, True),
+        ModuleExample('json', True, True),
+        ModuleExample(json.decoder, True, False),
+        ModuleExample('json.decoder', True, False),
+        ModuleExample(polymerist, True, False),
+        ModuleExample('polymerist.polymerist', True, False),
+        ModuleExample(genutils, True, True),
+        ModuleExample('polymerist.genutils', True, True),
+    )
 
 
 # MODULE AND PACKAGE PERCEPTION
-@pytest.mark.parametrize('module, expected_output', are_modules)
-def test_is_module(module : ModuleType, expected_output : bool) -> None:
+@pytest.mark.parametrize('module_example', module_examples())
+def test_is_module(module_example : ModuleExample) -> None:
     '''See if Python module perception behaves as expected'''
-    assert pkginspect.is_module(module) == expected_output
+    assert pkginspect.is_module(module_example.resource) == module_example.is_module
 
-@pytest.mark.parametrize('non_module_type', non_module_types)
+@pytest.mark.parametrize('non_module_type', non_module_types())
 def test_is_module_fail_on_invalid_types(non_module_type : type) -> None:
     '''check that module perception fails on invalid inputs'''
     with pytest.raises(AttributeError) as err_info:
         instance = non_module_type() # create a default instance
         _ = pkginspect.is_module(instance)
 
-@pytest.mark.parametrize('module, expected_output', are_packages)
-def test_is_package(module : ModuleType, expected_output : bool) -> None:
+@pytest.mark.parametrize('module_example', module_examples())
+def test_is_package(module_example : ModuleExample) -> None:
     '''See if Python package perception behaves as expected'''
-    assert pkginspect.is_package(module) == expected_output
+    assert pkginspect.is_package(module_example.resource) == module_example.is_package
 
-@pytest.mark.parametrize('non_module_type', non_module_types) # NOTE: these args are in fact deliberately NOT renamed to ".*package" from ".*module"
-def test_is_module_fail_on_invalid_types(non_module_type : type) -> None:
+@pytest.mark.parametrize('non_package_type', non_module_types())
+def test_is_package_fail_on_invalid_types(non_package_type : type) -> None:
     '''check that package perception fails on invalid inputs'''
     with pytest.raises(AttributeError) as err_info:
-        instance = non_module_type() # create a default instance
+        instance = non_package_type() # create a default instance
         _ = pkginspect.is_package(instance)
 
 # FETCHING DATA FROM PACKAGES
