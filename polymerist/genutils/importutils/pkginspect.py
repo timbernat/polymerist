@@ -11,29 +11,36 @@ from importlib.resources import (
     Package,
     files as get_package_path
 )
-from importlib.resources._common import get_package, from_package, resolve
+from importlib.resources._common import resolve
+
+ModuleLike = Union[str, ModuleType, Package]
 
 
 # CHECKING PACKAGE AND MODULE STATUS
-def is_module(module : Package) -> bool:
+def is_module(module : ModuleLike) -> bool:
     '''Determine whether a given Package-like (i.e. str or ModuleType) is a valid Python module
     This will return True for packages, bottom-level modules (i.e. *.py) and Python scripts'''
     try:
-        resolve(module)
-        return True
+        module_loaded : ModuleType = resolve(module)
+        return True # enough to check that module is loadable as ModuleType
     except ModuleNotFoundError:
         return False
     
-def is_package(package : Package) -> bool:
+def is_package(package : ModuleLike) -> bool:
     '''Determine whether a given Package-like (i.e. str or ModuleType) is a valid Python package'''
     try:
-        get_package(package)
-        return True
-    except (ModuleNotFoundError, TypeError):
+        module_loaded : ModuleType = resolve(package)
+        if (module_spec := module_loaded.__spec__) is None:
+            return False
+        return (module_spec.submodule_search_locations is not None)
+        # per importlib docs : "[submodule_search_locations] should be set to None for non-package modules"
+        # (https://docs.python.org/3/library/importlib.html#importlib.machinery.ModuleSpec.submodule_search_locations)
+    except (ModuleNotFoundError):
+        # DEV 05/15/2026 - removed TypeError, as this was only raised by the deprecated _common.get_package function
         return False
 
 # EXTRACTING MODULE NAMING INFO
-def flexible_module_pass(module : Union[str, Path, ModuleType]) -> ModuleType: # TODO: extend this to decorator
+def flexible_module_pass(module : ModuleLike | Path) -> ModuleType: # TODO: extend this to decorator
     '''Flexible interface for supplying a ModuleType object as an argument
     Allows for passing a name (either module name or string path), Path location, or a module proper'''
     if isinstance(module, (str, ModuleType)):
