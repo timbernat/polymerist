@@ -45,7 +45,7 @@ dependencies:
     - openff-nagl-models>=0.3
 
     # Espaloma
-    - espaloma_charge>=0.0.8
+    # - espaloma_charge>=0.0.8
 
     # Chemical database queries
     - cirpy
