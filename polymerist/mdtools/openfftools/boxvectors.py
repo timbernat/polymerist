@@ -68,7 +68,7 @@ def get_topology_bbox(offtop : Topology) -> BoxVectorsQuantity:
         The unit-aware box vectors representing the smallest monoclinic
         bounding box which contains all atoms in the Topology
     '''
-    return xyz_to_box_vectors(offtop.get_positions().ptp(axis=0))
+    return xyz_to_box_vectors(np.ptp(offtop.get_positions(), axis=0))
 
 def _pad_box_vectors_unitless(box_vectors_mag : BoxVectors, pad_vec_mag : Vector) -> BoxVectors:
     '''Pad box vectors along each axis by a specified amount (given by each scalar component of a padding_vector)'''

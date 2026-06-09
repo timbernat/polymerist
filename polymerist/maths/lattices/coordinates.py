@@ -35,7 +35,7 @@ class Coordinates(Generic[Num]):
     @property
     def dimensions(self) -> np.ndarray[Shape[D], Num]:
         '''The side lengths of the bounding box along each dimension'''
-        return self.points.ptp(axis=0)
+        return np.ptp(self.points, axis=0)
     dims = sidelens = sidelengths = dimensions
 
     @property
