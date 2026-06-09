@@ -17,11 +17,26 @@ ModuleLike = Union[str, ModuleType, Package]
 
 
 # CHECKING PACKAGE AND MODULE STATUS
+def _load_module(module : ModuleLike) -> ModuleType:
+    '''
+    Type-safe flexible resource load - raises ModuleNotFoundError if no ModuleType can be loaded
+    (to restrict the relatively-permissive importlib.resources._common.resolve())
+    '''
+    try:
+        module_loaded = resolve(module) # if string-y, will raise ModuleNotFoundError by default 
+    except AttributeError:
+        raise ModuleNotFoundError # Coercion needed to raise uniform Exception in testing between 3.11 and 3.12
+
+    if not hasattr(module_loaded, '__spec__'):
+        raise ModuleNotFoundError
+    
+    return module_loaded
+
 def is_module(module : ModuleLike) -> bool:
     '''Determine whether a given Package-like (i.e. str or ModuleType) is a valid Python module
     This will return True for packages, bottom-level modules (i.e. *.py) and Python scripts'''
     try:
-        module_loaded : ModuleType = resolve(module)
+        _ = _load_module(module)
         return True # enough to check that module is loadable as ModuleType
     except ModuleNotFoundError:
         return False
@@ -29,13 +44,11 @@ def is_module(module : ModuleLike) -> bool:
 def is_package(package : ModuleLike) -> bool:
     '''Determine whether a given Package-like (i.e. str or ModuleType) is a valid Python package'''
     try:
-        module_loaded : ModuleType = resolve(package)
-        if (module_spec := module_loaded.__spec__) is None:
-            return False
-        return (module_spec.submodule_search_locations is not None)
+        module_loaded : ModuleType = _load_module(package)
+        return (module_loaded.__spec__.submodule_search_locations is not None)
         # per importlib docs : "[submodule_search_locations] should be set to None for non-package modules"
         # (https://docs.python.org/3/library/importlib.html#importlib.machinery.ModuleSpec.submodule_search_locations)
-    except (ModuleNotFoundError):
+    except ModuleNotFoundError:
         # DEV 05/15/2026 - removed TypeError, as this was only raised by the deprecated _common.get_package function
         return False
 
