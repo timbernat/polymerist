@@ -13,10 +13,6 @@ dependencies:
     - pytest-cov
     - codecov
 
-   # Docs
-    - sphinx
-    - sphinx_rtd_theme
-
     # Numerical libraries
     - numpy
     - pandas

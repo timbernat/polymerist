@@ -13,16 +13,21 @@ dependencies:
     - pytest-cov
     - nbval
 
-    # Visualization (needed for automated notebook tests)
-    - jupyterlab
-    - py3Dmol
-    - nglview==3.0.6
+    # Docs
+    - sphinx
+    - sphinx-autoapi
+    - sphinx_rtd_theme
 
     # Numerical libraries
     - numpy
     - pandas
     - networkx
     - anytree
+
+    # Visualization (needed for automated notebook tests)
+    - jupyterlab
+    - py3Dmol
+    - nglview==3.0.6
 
     # Molecule building
     - rdkit
