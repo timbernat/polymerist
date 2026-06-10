@@ -7,7 +7,7 @@ import logging
 LOGGER = logging.getLogger(__name__)
 
 from typing import Iterable, Optional
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, asdict
 
 from ...genutils.textual.substrings import shortest_repeating_substring, repeat_string_to_length
 from ...genutils.fileutils.jsonio.jsonify import make_jsonifiable
@@ -174,7 +174,7 @@ class LinearCopolymerSequencer:
         if (num_names_provided := len(end_group_names)) != self.n_repeat_units_terminal: # DEV: consider supporting filling in missing names with default in future
             raise IndexError(f'Defined sequence info with {self.n_repeat_units_terminal} end groups, but only provided names for {num_names_provided}')
         
-        # Insert middle omnomer parts as necessary
+        # Insert middle monomer parts as necessary
         sequence_middle = []
         if self.n_full_periods != 0: ## Whole sequence strings
             sequence_middle.append(f'{self.n_full_periods}*[{self.sequence_kernel}]')
