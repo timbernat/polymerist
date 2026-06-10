@@ -26,7 +26,7 @@ dependencies:
 
     # Molecule building
     - rdkit
-    - mbuild
+    - mbuild>=1.0
     - openbabel
     # - packmol<=20.15.1 # DEVNOTE: have no idea why, but versions tested later than this release (at least 20.16.1 and 21.0.4) introduce PDB CONECT errors where there were previously none
     - packmol

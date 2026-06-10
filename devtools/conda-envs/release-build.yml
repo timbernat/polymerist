@@ -33,7 +33,7 @@ dependencies:
 
     # Molecule building
     - rdkit
-    - mbuild
+    - mbuild>=1.0
     - openbabel
     - packmol
     - openeye-toolkits # TODO: consider making this optional?
