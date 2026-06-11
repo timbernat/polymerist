@@ -8,8 +8,8 @@ A unified set of tools for setting up molecular dynamics simulations of general 
 * ["Parameterization of general organic polymers within the Open Force Field Framework" (Connor M. Davel, Timotej Bernat, Jeffrey R. Wagner, and Michael R. Shirts, 2024)](https://pubs.acs.org/doi/10.1021/acs.jcim.3c01691)
 * ["Robust, transferrable, and automatable techniques for systematic in silico polymerization" (Timotej Bernat, Jeffrey N. Law, Daria Lazarenko, Brandon C. Knott, and Michael R. Shirts, 2026)](https://doi.org/10.26434/chemrxiv.15002977/v1)
 
-<img src="docs/images/polymer_param_graphic_TOC.png" style="width: auto; height: 290px;" alt="graphical_abstract_0">
-<img src="docs/images/polymerization_rxn_enum_graphic_TOC.png" style="width: auto; height: 290px;" alt="graphical_abstract_1">
+<img src="docs/images/polymer_param_graphic_TOC.png" style="width: auto; height: 270px;" alt="graphical_abstract_0">
+<img src="docs/images/polymerization_rxn_enum_graphic_TOC.png" style="width: auto; height: 270px;" alt="graphical_abstract_1">
 
 ## Features
 Includes functionality for:
