@@ -74,9 +74,9 @@ Assigning atomic partial charges using some flavor of [AM1-BCC](https://docs.eye
 ```bash
 mamba activate polymerist-env
 mamba install -c openeye openeye-toolkits
-mamba install -c conda-forge espaloma_charge "torchdata<=0.9.0"
 mamba install -c conda-forge openff-nagl "torchdata<=0.9.0"
 ```
+<!-- mamba install -c conda-forge espaloma_charge "torchdata<=0.9.0" -->
 
 ### Installing from source (optional)
 `polymerist` and all required dependencies can also be installed directly from the source code in this repository.
