@@ -37,5 +37,4 @@ polymerization mechanism, and any co-molecules (e.g. solvent) you wish to model.
 `Miscellaneous <https://github.com/timbernat/polymerist_examples/blob/main/4-miscellaneous/>`_
 ====================================================================================================
 * `Exporting arbitrary Python objects to JSON <https://github.com/timbernat/polymerist_examples/blob/main/4-miscellaneous/jsonification.ipynb>`_
-* `Automated ring piercing detection (PINPRICS) <https://github.com/timbernat/polymerist_examples/blob/main/4-miscellaneous/ring-piercing.ipynb>`_
-* `Loading boron-containing molecules into OpenFF <https://github.com/timbernat/polymerist_examples/blob/main/4-miscellaneous/openff_boron_demo.py>`_
+* `Automated ring piercing detection (PINPRICS) <https://github.com/timbernat/polymerist_examples/blob/main/4-miscellaneous/ring_piercing.ipynb>`_
