@@ -1,10 +1,10 @@
 # minimum requirements to package and upload to PyPI
-name: packaging
+name: build-env
 channels:
   - conda-forge
 dependencies:
   # Basic Python dependencies
-  - python
+  - python>=3.11
   - pip
 
   # Unit testing
