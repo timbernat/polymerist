@@ -5,7 +5,7 @@ Assigning atomic partial charges using some flavor of `AM1-BCC <https://docs.eye
 with `polymerist` also requires installation of some supplementary toolkits.
 
 One can mix-and-match installing any combination of the toolkits below to taste. 
-If impatient or indifferent, one might opt for a "shotgun" approach and install all 3 at once with the following commands:
+If impatient or indifferent, one can opt for a "shotgun" approach and install all supported toolkits at once with the following commands:
 
 .. code-block:: console
 
