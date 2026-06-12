@@ -6,14 +6,32 @@ __email__ = 'timotej.bernat@colorado.edu'
 import logging
 LOGGER  = logging.getLogger(__name__)
 
-from typing import Any, ClassVar, Container, Iterable, Optional, Sequence
+from typing import (
+    Any, 
+    ClassVar, 
+    Container, 
+    Iterable, 
+    Optional, 
+    Sequence,
+)
 from abc import ABC, abstractmethod
 
-import requests
+from http.client import RemoteDisconnected
+from requests.exceptions import HTTPError
 from requests.structures import CaseInsensitiveDict
+from requests.api import (
+    get as request_get,
+    head as request_head,
+)
 
-from ..genutils.decorators.classmod import register_abstract_class_attrs, register_subclasses
-from ..genutils.importutils.dependencies import requires_modules, MissingPrerequisitePackage
+from ..genutils.decorators.classmod import (
+    register_abstract_class_attrs,
+    register_subclasses,
+)
+from ..genutils.importutils.dependencies import (
+    requires_modules,
+    MissingPrerequisitePackage,
+)
 
 
 # CUSTOM EXCEPTIONS
@@ -178,7 +196,7 @@ class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
     
     @classmethod
     def is_online(cls):
-        response = requests.head('https://cactus.nci.nih.gov/chemical/structure')
+        response = request_head('https://cactus.nci.nih.gov/chemical/structure')
         # NOTE: could also be more stringent and check == 200 for OK; enough to just check server-side error for now
         return response.status_code < 500 
     
@@ -235,7 +253,7 @@ class PubChemQueryStrategy(ChemDBServiceQueryStrategy):
     
     @classmethod
     def is_online(cls):
-        response = requests.get(
+        response = request_get(
             'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/aspirin/property/IUPACName/TXT'
         ) # sample query which is well-formatted
         return response.status_code < 500 # NOTE: enough to just check server-side error for now, but could be more stringent and check if ==200
@@ -273,17 +291,26 @@ class PubChemQueryStrategy(ChemDBServiceQueryStrategy):
         namespace : Optional[str]='smiles',
         **kwargs
     ) -> Optional[Any]:
-        import pubchempy as pcp
+        from pubchempy import (
+            get_properties,
+            PubChemPyError,
+            PubChemHTTPError,
+        )
         
         try:
-            pubchem_result = pcp.get_properties(
+            pubchem_result = get_properties(
                 properties=property_name, 
                 identifier=identifier,
-                namespace=namespace, 
+                namespace=namespace,
+                as_dataframe=False,
                 **kwargs,
             )
-        except pcp.PubChemPyError:
-            raise requests.HTTPError # discards some information in return for making Strategy interface oblivious to pubchempy (i.e. in case it is not installed)
+        except PubChemHTTPError as exc:
+            LOGGER.error(f'PubChemPy threw error with code {exc.code}')
+            raise HTTPError # discards some information in return for making Strategy interface oblivious to pubchempy (i.e. in case it is not installed)
+        except RemoteDisconnected:
+            LOGGER.error('Server disconnected response')
+            raise HTTPError # discards some information in return for making Strategy interface oblivious to pubchempy (i.e. in case it is not installed)
         else:
             if pubchem_result:
                 # remove underscores to compatibilize naming hits (property names returned from PubChem will never contain underscores)
@@ -340,7 +367,7 @@ def get_chemical_property(
                 **kwargs,
             )
             return prop_val
-        except requests.HTTPError:
+        except HTTPError:
             LOGGER.error(f'Query to {service.service_name} failed, either due to connection timeout or invalid request')
             continue
         except (InvalidPropertyError, NullPropertyResponse): # skip over invalid property names (keep trying other services rather than failing)
