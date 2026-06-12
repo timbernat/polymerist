@@ -7,10 +7,10 @@ can be obtained by running the following shell commands:
 
 .. code-block:: bash 
 
-    mamba create -n polymerist-env python=3.11
+    mamba create -n polymerist-env python=3.12
     mamba activate polymerist-env
     pip install polymerist
-    mamba install -c conda-forge openff-toolkit mbuild openbabel "packmol<=20.15.1"
+    mamba install -c conda-forge openff-toolkit mbuild openbabel
 
 The final mamba install is done as a one-liner (rather than in parts)
 to reconcile any discrepancies between packmol versions between the
@@ -45,10 +45,10 @@ Testing of installation is analogous to the python code above.
 
 .. code-block:: bash 
 
-    mamba create -n polymerist-env python=3.11
+    mamba create -n polymerist-env python=3.12
     mamba activate polymerist-env
     pip install polymerist[interactive,chemdb]
-    mamba install -c conda-forge openff-toolkit mbuild openbabel "packmol<=20.15.1"
+    mamba install -c conda-forge openff-toolkit mbuild openbabel
 
 Conda install (**NOT** recommended)
 -----------------------------------
@@ -57,7 +57,7 @@ Nevertheless, we provide equivalent conda installation instruction here for user
 These will perform the same installation, just much more slowly:
 :: 
 
-    conda create -n polymerist-env python=3.11
+    conda create -n polymerist-env python=3.12
     conda activate polymerist-env
     pip install polymerist[interactive,chemdb]
-    conda install -c conda-forge openff-toolkit mbuild openbabel "packmol<=20.15.1"
+    conda install -c conda-forge openff-toolkit mbuild openbabel

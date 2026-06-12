@@ -18,7 +18,7 @@ polymerization mechanism, and any co-molecules (e.g. solvent) you wish to model.
 * 1.3 - `Kapton polyimides and with multiple intermonomer bonds <https://github.com/timbernat/polymerist_examples/blob/main/1-polymerization/1.3-polyimide_multibond_cycles.ipynb>`_
 * 1.4 - `Crosslinkable MPD-TMC polyamides <https://github.com/timbernat/polymerist_examples/blob/main/1-polymerization/1.4-MPD-TMC_polyamides.ipynb>`_
 * 1.5 - `PEG-PLGA block copolymers <https://github.com/timbernat/polymerist_examples/blob/main/1-polymerization/1.5-PEG-PLGA_copolymers.ipynb>`_
-* 1.6 - `conjugated thiophenyl polymers with arbitrary sidechains <https://github.com/timbernat/polymerist_examples/blob/main/1-polymerization/1.6-functionalized_polythiophenes.ipynb>`_
+* 1.6 - `Conjugated thiophenyl polymers with arbitrary sidechains <https://github.com/timbernat/polymerist_examples/blob/main/1-polymerization/1.6-functionalized_polythiophenes.ipynb>`_
 
 2 - `Preparing systems containing polymers <https://github.com/timbernat/polymerist_examples/blob/main/2-preparation/2.0-index.ipynb>`_
 =======================================================================================================================================
@@ -37,5 +37,4 @@ polymerization mechanism, and any co-molecules (e.g. solvent) you wish to model.
 `Miscellaneous <https://github.com/timbernat/polymerist_examples/blob/main/4-miscellaneous/>`_
 ====================================================================================================
 * `Exporting arbitrary Python objects to JSON <https://github.com/timbernat/polymerist_examples/blob/main/4-miscellaneous/jsonification.ipynb>`_
-* `Automated ring piercing detection (PINPRICS) <https://github.com/timbernat/polymerist_examples/blob/main/4-miscellaneous/ring-piercing.ipynb>`_
-* `Loading boron-containing molecules into OpenFF <https://github.com/timbernat/polymerist_examples/blob/main/4-miscellaneous/openff_boron_demo.py>`_
+* `Automated ring piercing detection (PINPRICS) <https://github.com/timbernat/polymerist_examples/blob/main/4-miscellaneous/ring_piercing.ipynb>`_

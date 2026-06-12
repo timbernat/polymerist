@@ -1,16 +1,17 @@
 Prerequisites
 =============
 
-Python
-------
-Currently, polymerist is only compatible `Python 3.11 <https://www.python.org/downloads/release/python-3110/>`_;
-**attemping to install with any other version of Python will not work.**
-
 OS
 --
-polymerist is compatible with Linux (recommended) and Mac machines capable of installing Python 3.11.
+`polymerist` is compatible with Linux (recommended) and Mac machines with Python installed.
 Due to `lack of support from AmberTools <https://ambermd.org/InstWindows.php>`_, direct installation on Windows machines is not supported;
-However, this can easily be circumvented by using the `Windows Subsystem for Linux (WSL2) <https://learn.microsoft.com/en-us/windows/wsl/install>`_
+however, this can easily be circumvented by using the `Windows Subsystem for Linux (WSL2) <https://learn.microsoft.com/en-us/windows/wsl/install>`_
+
+Python
+------
+`polymerist` is compatible with `Python 3.11 <https://www.python.org/downloads/release/python-31115/>`_ and 
+`Python 3.12 <https://www.python.org/downloads/release/python-31213/>`_; 
+**attemping to install with older versions of Python will not work.**
 
 Python package manager
 ----------------------

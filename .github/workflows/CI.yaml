@@ -30,7 +30,7 @@ jobs:
     strategy:
       matrix:
         os: [macOS-latest, ubuntu-latest] #, windows-latest] # AmberTools is not currently installable on Windows
-        python-version: ["3.11", "3.12"] # intend to support more recent Python version eventually, but tooling is built around 3.11 only for now
+        python-version: ["3.11", "3.12"]
       fail-fast: false
 
     steps:

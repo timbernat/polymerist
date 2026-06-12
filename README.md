@@ -4,9 +4,11 @@ Polymer-Oriented LibrarY of Monomer Expression Rules and In-silico Synthesis Too
 [![GitHub Actions Build Status](https://github.com/timbernat/polymerist/workflows/CI/badge.svg)](https://github.com/timbernat/polymerist/actions?query=workflow%3ACI)
 [![codecov](https://codecov.io/gh/timbernat/polymerist/main/graph/badge.svg)](https://codecov.io/gh/timbernat/polymerist/branch/main)
 
-A unified set of tools for setting up molecular dynamics simulations of general organic polymer systems. Based upon concepts introduced in ["Parameterization of General Organic Polymers within the Open Force Field Framework" (Davel, Connor M., Bernat, Timotej, Wagner, Jeffrey R., and Shirts, Michael R.)](https://pubs.acs.org/doi/10.1021/acs.jcim.3c01691)
+A unified set of tools for setting up molecular dynamics simulations of general organic polymer systems. Based upon concepts and methods introduced in:
+* ["Parameterization of general organic polymers within the Open Force Field Framework" (Connor M. Davel, Timotej Bernat, Jeffrey R. Wagner, and Michael R. Shirts, 2024)](https://pubs.acs.org/doi/10.1021/acs.jcim.3c01691)
+* ["Robust, transferrable, and automatable techniques for systematic in silico polymerization" (Timotej Bernat, Jeffrey N. Law, Daria Lazarenko, Brandon C. Knott, and Michael R. Shirts, 2026)](https://doi.org/10.26434/chemrxiv.15002977/v1)
 
-![abstract](docs/images/polymer_param_graphic_TOC.png)
+<img src="docs/images/polymer_param_graphic_TOC.png" style="width: auto; height: 270px;" alt="graphical_abstract_0"> <img src="docs/images/polymerization_rxn_enum_graphic_TOC.png" style="width: auto; height: 270px;" alt="graphical_abstract_1">
 
 ## Features
 Includes functionality for:
@@ -29,7 +31,7 @@ Examples of how to import and invoke the core features of `polymerist` can be fo
 
 ## Requirements
 ### OS
-`polymerist` is compatible with Linux (recommended) and Mac machines capable of installing Python 3.11. Due to [lack of support from AmberTools](https://ambermd.org/InstWindows.php), direct installation on Windows machines is not supported; **however**, this can easily be circumvented by using the [Windows Subsystem for Linux (WSL2)](https://learn.microsoft.com/en-us/windows/wsl/install)
+`polymerist` is compatible with Linux (recommended) and Mac machines capable of installing Python 3.1 or 3.121. Due to [lack of support from AmberTools](https://ambermd.org/InstWindows.php), direct installation on Windows machines is not supported; **however**, this can easily be circumvented by using the [Windows Subsystem for Linux (WSL2)](https://learn.microsoft.com/en-us/windows/wsl/install)
 
 ### Python package manager
 Before proceeding with installation, ensure you have some iteration of a Python package and environment management system installed on your machine. We recommend using `mamba`, installable via [Miniforge](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html). [Miniconda](https://docs.anaconda.com/free/miniconda/miniconda-install/) and other [Anaconda](https://www.anaconda.com/download) manager also work; however **if you opt to use `conda` over `mamba`, be prepared for a markedly slower and more tedious install process!**
@@ -41,19 +43,19 @@ The distribution for `polymerist` is hosted on [PyPI](https://pypi.org/project/p
 A fully-featured install in a safe virtual environment (named "polymerist-env", here) can be obtained by running the following terminal commands:
 #### Mamba install (basic)
 ```bash
-mamba create -n polymerist-env python=3.11
+mamba create -n polymerist-env python=3.12
 mamba activate polymerist-env
 pip install polymerist
-mamba install -c conda-forge openff-toolkit mbuild openbabel "packmol<=20.15.1"
+mamba install -c conda-forge openff-toolkit mbuild openbabel
 ```
 
 #### Mamba install (extended)
 An extended install with [Jupyter Notebook](https://jupyter.org/) support, molecular visualization capability, and chemical data querying capability can be obtained very similarly:
 ```bash
-mamba create -n polymerist-env python=3.11
+mamba create -n polymerist-env python=3.12
 mamba activate polymerist-env
 pip install polymerist[interactive,chemdb]
-mamba install -c conda-forge openff-toolkit mbuild openbabel "packmol<=20.15.1"
+mamba install -c conda-forge openff-toolkit mbuild openbabel
 ```
 
 ### Testing installation
@@ -74,9 +76,9 @@ Assigning atomic partial charges using some flavor of [AM1-BCC](https://docs.eye
 ```bash
 mamba activate polymerist-env
 mamba install -c openeye openeye-toolkits
-mamba install -c conda-forge espaloma_charge "torchdata<=0.9.0"
-mamba install -c conda-forge openff-nagl "torchdata<=0.9.0"
+mamba install -c conda-forge openff-nagl
 ```
+<!-- mamba install -c conda-forge espaloma_charge "torchdata<=0.9.0" -->
 
 ### Installing from source (optional)
 `polymerist` and all required dependencies can also be installed directly from the source code in this repository.
