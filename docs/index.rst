@@ -6,14 +6,7 @@
 Welcome to polymerist's documentation!
 ==============================================================================================================
 This is the documentation for the Polymer-Oriented LibrarY of Monomer Expression Rules and In-silico Synthesis Tools, or just "polymerist" for short.
-
-.. image:: images/polymer_param_graphic_TOC.png
-
 Polymerist is a unified set of tools for setting up molecular dynamics simulations of general organic polymer systems.
-It was originally developed around concepts introduced in our manuscript 
-[`"Parameterization of General Organic Polymers within the Open Force Field Framework" <https://pubs.acs.org/doi/10.1021/acs.jcim.3c01691>`_
-, Davel, Connor M., Bernat, Timotej, Wagner, Jeffrey R., and Shirts, Michael R.],
-but has over time evolved into a more fully-featured library.
 
 Features
 ========
@@ -35,8 +28,8 @@ Features
    prereqs
    installation/index
    examples
+   publications
    theory
-
 
 Indices and tables
 ==================
