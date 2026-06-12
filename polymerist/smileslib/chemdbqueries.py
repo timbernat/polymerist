@@ -53,7 +53,12 @@ class ChemicalDataQueryFailed(Exception):
 class ChemDBServiceQueryStrategy(ABC):
     '''Implementation of queries from a particular chemical database'''
     @abstractmethod
-    def _get_property(self, property_name : str, identifier : str, **kwargs) -> Optional[Any]:
+    def _get_property(
+        self,
+        property_name : str,
+        identifier : str,
+        **kwargs,
+    ) -> Optional[Any]:
         ...
         
     @classmethod
