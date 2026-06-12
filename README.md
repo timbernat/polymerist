@@ -31,7 +31,7 @@ Examples of how to import and invoke the core features of `polymerist` can be fo
 
 ## Requirements
 ### OS
-`polymerist` is compatible with Linux (recommended) and Mac machines capable of installing Python 3.11. Due to [lack of support from AmberTools](https://ambermd.org/InstWindows.php), direct installation on Windows machines is not supported; **however**, this can easily be circumvented by using the [Windows Subsystem for Linux (WSL2)](https://learn.microsoft.com/en-us/windows/wsl/install)
+`polymerist` is compatible with Linux (recommended) and Mac machines capable of installing Python 3.1 or 3.121. Due to [lack of support from AmberTools](https://ambermd.org/InstWindows.php), direct installation on Windows machines is not supported; **however**, this can easily be circumvented by using the [Windows Subsystem for Linux (WSL2)](https://learn.microsoft.com/en-us/windows/wsl/install)
 
 ### Python package manager
 Before proceeding with installation, ensure you have some iteration of a Python package and environment management system installed on your machine. We recommend using `mamba`, installable via [Miniforge](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html). [Miniconda](https://docs.anaconda.com/free/miniconda/miniconda-install/) and other [Anaconda](https://www.anaconda.com/download) manager also work; however **if you opt to use `conda` over `mamba`, be prepared for a markedly slower and more tedious install process!**
@@ -43,19 +43,19 @@ The distribution for `polymerist` is hosted on [PyPI](https://pypi.org/project/p
 A fully-featured install in a safe virtual environment (named "polymerist-env", here) can be obtained by running the following terminal commands:
 #### Mamba install (basic)
 ```bash
-mamba create -n polymerist-env python=3.11
+mamba create -n polymerist-env python=3.12
 mamba activate polymerist-env
 pip install polymerist
-mamba install -c conda-forge openff-toolkit mbuild openbabel "packmol<=20.15.1"
+mamba install -c conda-forge openff-toolkit mbuild openbabel
 ```
 
 #### Mamba install (extended)
 An extended install with [Jupyter Notebook](https://jupyter.org/) support, molecular visualization capability, and chemical data querying capability can be obtained very similarly:
 ```bash
-mamba create -n polymerist-env python=3.11
+mamba create -n polymerist-env python=3.12
 mamba activate polymerist-env
 pip install polymerist[interactive,chemdb]
-mamba install -c conda-forge openff-toolkit mbuild openbabel "packmol<=20.15.1"
+mamba install -c conda-forge openff-toolkit mbuild openbabel
 ```
 
 ### Testing installation
@@ -76,7 +76,7 @@ Assigning atomic partial charges using some flavor of [AM1-BCC](https://docs.eye
 ```bash
 mamba activate polymerist-env
 mamba install -c openeye openeye-toolkits
-mamba install -c conda-forge openff-nagl "torchdata<=0.9.0"
+mamba install -c conda-forge openff-nagl
 ```
 <!-- mamba install -c conda-forge espaloma_charge "torchdata<=0.9.0" -->
 
