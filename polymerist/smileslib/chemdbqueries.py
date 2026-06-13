@@ -6,14 +6,32 @@ __email__ = 'timotej.bernat@colorado.edu'
 import logging
 LOGGER  = logging.getLogger(__name__)
 
-from typing import Any, ClassVar, Container, Iterable, Optional, Sequence
+from typing import (
+    Any, 
+    ClassVar, 
+    Container, 
+    Iterable, 
+    Optional, 
+    Sequence,
+)
 from abc import ABC, abstractmethod
 
-import requests
+from http.client import RemoteDisconnected
+from requests.exceptions import HTTPError
 from requests.structures import CaseInsensitiveDict
+from requests.api import (
+    get as request_get,
+    head as request_head,
+)
 
-from ..genutils.decorators.classmod import register_abstract_class_attrs, register_subclasses
-from ..genutils.importutils.dependencies import requires_modules, MissingPrerequisitePackage
+from ..genutils.decorators.classmod import (
+    register_abstract_class_attrs,
+    register_subclasses,
+)
+from ..genutils.importutils.dependencies import (
+    requires_modules,
+    MissingPrerequisitePackage,
+)
 
 
 # CUSTOM EXCEPTIONS
@@ -35,7 +53,12 @@ class ChemicalDataQueryFailed(Exception):
 class ChemDBServiceQueryStrategy(ABC):
     '''Implementation of queries from a particular chemical database'''
     @abstractmethod
-    def _get_property(self, property_name : str, identifier : str, **kwargs) -> Optional[Any]:
+    def _get_property(
+        self,
+        property_name : str,
+        identifier : str,
+        **kwargs,
+    ) -> Optional[Any]:
         ...
         
     @classmethod
@@ -71,14 +94,14 @@ class ChemDBServiceQueryStrategy(ABC):
             raise InvalidPropertyError(f'{prop_error_msg};\nChoose from one of the following property names:\n{prop_options_str}')
         
     def get_property(
-            self, 
-            property_name : str, 
-            identifier : str, 
-            namespace : Optional[str],
-            keep_first_only : bool=True,
-            allow_null_return : bool=False,
-            **kwargs
-        ) -> Optional[Any]:
+        self, 
+        property_name : str, 
+        identifier : str, 
+        namespace : Optional[str],
+        keep_first_only : bool=True,
+        allow_null_return : bool=False,
+        **kwargs
+    ) -> Optional[Any]:
         '''Fetch a property associated with a molecule from a chemical database query service'''
         property_name = property_name.casefold() # avoid needing to account for case-sensitivity in property name check
         LOGGER.info(f'Sent query request for property "{property_name}" to {self.service_name}')
@@ -88,10 +111,12 @@ class ChemDBServiceQueryStrategy(ABC):
         if not prop_val:
             prop_val = None # cast empty lists, strings, etc to NoneType
         
-        if isinstance(prop_val, Container) and not isinstance(prop_val, str) and keep_first_only: # avoid bug where first char of string response is returned
+        # avoid bug where first char of string response is returned
+        if isinstance(prop_val, Container) and not isinstance(prop_val, str) and keep_first_only: 
             prop_val = prop_val[0]
         
-        if (prop_val is None) and (not allow_null_return): # NOTE: duplicated NoneType check is needed to catch empty containers which are cast to None above
+        # NOTE: duplicated NoneType check is needed to catch empty containers which are cast to None above
+        if (prop_val is None) and (not allow_null_return): 
             null_error_msg = f'{self.service_name} returned NoneType "{property_name}", which is declared invalid by call signature'
             LOGGER.error(null_error_msg)
             
@@ -126,7 +151,8 @@ class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
     def queryable_properties(cls) -> set[str]:
         import cirpy 
         
-        _CIR_PROPS = {  # see official docs for more info: https://cactus.nci.nih.gov/chemical/structure_documentation
+        # see official docs for more info: https://cactus.nci.nih.gov/chemical/structure_documentation
+        _CIR_PROPS = {  
             # Chemical Representations
             'smiles',
             'names',
@@ -156,7 +182,8 @@ class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
             'effective_rotor_count',
             'ring_count',
             'ringsys_count',
-            ## these were not documented on CACTUS or by cirpy, but scraped from webchem: https://github.com/ropensci/webchem/blob/master/R/cir.R#L168-L174
+            ## these were not documented on CACTUS or by cirpy, but scraped from 
+            ## webchem: https://github.com/ropensci/webchem/blob/master/R/cir.R#L168-L174
             'deprotonable_group_count',
             'heavy_atom_count',
             'heteroatom_count',
@@ -168,12 +195,15 @@ class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
             # 'image', # for some reason, image query returns internal server error in testing
             # 'twirl', # NOTE: this is documented on the CIR site, but raises XML error in practice
         }
-        return _CIR_PROPS | cirpy.FILE_FORMATS # see here for file formats: https://cirpy.readthedocs.io/en/latest/guide/gettingstarted.html#file-formats
+        # see here for file formats: https://cirpy.readthedocs.io/en/latest/guide/gettingstarted.html#file-formats
+        
+        return _CIR_PROPS | cirpy.FILE_FORMATS 
     
     @classmethod
     def is_online(cls):
-        response = requests.head('https://cactus.nci.nih.gov/chemical/structure')
-        return response.status_code < 500 # NOTE: could also be more stringent and check == 200 for OK; enough to just check server-side error for now
+        response = request_head('https://cactus.nci.nih.gov/chemical/structure')
+        # NOTE: could also be more stringent and check == 200 for OK; enough to just check server-side error for now
+        return response.status_code < 500 
     
     @classmethod
     def queryable_namespaces(cls) -> set[str]:
@@ -190,7 +220,13 @@ class NIHCACTUSQueryStrategy(ChemDBServiceQueryStrategy):
         }
     
     @requires_modules('cirpy', missing_module_error=cirpy_error)
-    def _get_property(self, property_name : str, identifier : str, namespace : Optional[str]=None, **kwargs):
+    def _get_property(
+        self,
+        property_name : str,
+        identifier : str,
+        namespace : Optional[str]=None,
+        **kwargs,
+    ):
         import cirpy
         
         return cirpy.resolve(
@@ -222,7 +258,9 @@ class PubChemQueryStrategy(ChemDBServiceQueryStrategy):
     
     @classmethod
     def is_online(cls):
-        response = requests.get('https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/aspirin/property/IUPACName/TXT') # sample query which is well-formatted
+        response = request_get(
+            'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/aspirin/property/IUPACName/TXT'
+        ) # sample query which is well-formatted
         return response.status_code < 500 # NOTE: enough to just check server-side error for now, but could be more stringent and check if ==200
         
     @classmethod
@@ -251,39 +289,65 @@ class PubChemQueryStrategy(ChemDBServiceQueryStrategy):
         }
     
     @requires_modules('pubchempy', missing_module_error=pubchempy_error)
-    def _get_property(self, property_name : str, identifier : str, namespace : Optional[str]='smiles', **kwargs) -> Optional[Any]:
-        import pubchempy as pcp
+    def _get_property(
+        self,
+        property_name : str,
+        identifier : str,
+        namespace : Optional[str]='smiles',
+        **kwargs
+    ) -> Optional[Any]:
+        from pubchempy import (
+            get_properties,
+            PubChemPyError,
+            PubChemHTTPError,
+        )
         
         try:
-            pubchem_result = pcp.get_properties(
+            pubchem_result = get_properties(
                 properties=property_name, 
                 identifier=identifier,
-                namespace=namespace, 
+                namespace=namespace,
+                as_dataframe=False,
                 **kwargs,
             )
-        except pcp.PubChemPyError:
-            raise requests.HTTPError # discards some information in return for making Strategy interface oblivious to pubchempy (i.e. in case it is not installed)
+        except PubChemHTTPError as exc:
+            LOGGER.error(f'PubChemPy threw error with code {exc.code}')
+            # discards some information in return for making downstream handlers 
+            # (e.g. unit tests) oblivious to pubchempy, avoiding need for that import 
+            stdlib_err = HTTPError() 
+            stdlib_err.code = exc.code 
+
+            raise stdlib_err
+        except RemoteDisconnected:
+            LOGGER.error('Server disconnected response')
+            stdlib_err = HTTPError() 
+            stdlib_err.code = 503 # HTTP 503: server is down for maintenance or overloaded (i.e. too many requests made)
+
+            raise stdlib_err 
         else:
             if pubchem_result:
-                property_name_no_under = property_name.replace('_', '') # remove underscores to compatibilize naming hits (property names returned from PubChem will never contain underscores)
-                pubchem_result = [ # extract the requested property field from the full return fields pubchempy returns
-                    case_insensitive_query_result[property_name_no_under] # extract property value from extraneous CID (and any other) info
-                        for case_insensitive_query_result in map(CaseInsensitiveDict, pubchem_result) # allows case-insensitive matching to query names
-                            if property_name_no_under in case_insensitive_query_result # skip if return doesn't contain the info we specifically requested (happens occasionally for some reason)
+                # remove underscores to compatibilize naming hits (property names returned from PubChem will never contain underscores)
+                property_name_no_under = property_name.replace('_', '') 
+                pubchem_result = [
+                    # extract property value from extraneous CID (and any other) info
+                    case_insensitive_query_result[property_name_no_under] 
+                        for case_insensitive_query_result in map(CaseInsensitiveDict, pubchem_result)
+                            # skip if return doesn't contain the info we specifically requested (happens occasionally for some reason)
+                            if property_name_no_under in case_insensitive_query_result 
                 ] 
             return pubchem_result
         
 # UTILITY FUNCTIONS EMPLOYING GENERIC STRATEG(Y/IES)
 def get_chemical_property(
-        property_name : str, 
-        identifier : str, 
-        namespace : str='smiles',
-        keep_first_only : bool=True,
-        allow_null_return : bool=False,
-        fail_quietly : bool=False,
-        services : Optional[Sequence['ChemDBServiceQueryStrategy']]=None,
-        **kwargs,
-    ) -> Optional[Any]:
+    property_name : str, 
+    identifier : str, 
+    namespace : str='smiles',
+    keep_first_only : bool=True,
+    allow_null_return : bool=False,
+    fail_quietly : bool=False,
+    services : Optional[Sequence['ChemDBServiceQueryStrategy']]=None,
+    **kwargs,
+) -> Optional[Any]:
     '''Attempt to fetch a molecular property from a variety of chemical database services, either
     provided manually (in the order they should be checked) or ALL implemented service queries by default
     
@@ -316,7 +380,7 @@ def get_chemical_property(
                 **kwargs,
             )
             return prop_val
-        except requests.HTTPError:
+        except HTTPError:
             LOGGER.error(f'Query to {service.service_name} failed, either due to connection timeout or invalid request')
             continue
         except (InvalidPropertyError, NullPropertyResponse): # skip over invalid property names (keep trying other services rather than failing)
