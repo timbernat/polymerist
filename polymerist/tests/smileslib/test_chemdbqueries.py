@@ -244,7 +244,7 @@ VARIED_PARAMETER_EXAMPLES : list[
         ),
         None,
         marks=pytest.mark.xfail(
-            raises=(ChemicalDataQueryFailed),
+            raises=(ChemicalDataQueryFailed, HTTPError), # DEVNOTE: HTTPError here is absolutely necessary! Request should return HTTP error 400
             reason='Invalid request sent to PubChem (queried a name as a SMILES string)',
             strict=True,
         )
