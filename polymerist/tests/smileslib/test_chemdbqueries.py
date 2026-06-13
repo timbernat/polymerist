@@ -4,6 +4,7 @@ __author__ = 'Timotej Bernat'
 __email__ = 'timotej.bernat@colorado.edu'
 
 import pytest
+from _pytest.mark import ParameterSet
 
 from typing import Any
 from dataclasses import dataclass, asdict
@@ -25,8 +26,8 @@ from polymerist.smileslib.chemdbqueries import (
     
 )
 
-CHEMDB_STRATEGY_ONLINE : dict[str, bool] = {}
-CHEMDB_STRATEGY_DEPENDENCIES_MET : dict[ChemDBServiceQueryStrategy, bool] = {}
+CHEMDB_STRATEGY_ONLINE : dict[type[ChemDBServiceQueryStrategy], bool] = {}
+CHEMDB_STRATEGY_DEPENDENCIES_MET : dict[type[ChemDBServiceQueryStrategy], bool] = {}
 for ChemDBStrategy in ChemDBServiceQueryStrategy.__subclasses__(): # dynamically determine criteria for which services should be tested
     CHEMDB_STRATEGY_ONLINE[          ChemDBStrategy] = ChemDBStrategy.is_online()
     CHEMDB_STRATEGY_DEPENDENCIES_MET[ChemDBStrategy] = modules_installed(*ChemDBStrategy.dependencies())
@@ -85,7 +86,14 @@ FIXED_PARAMETER_EXAMPLES : list[tuple[str, type[ChemDBServiceQueryStrategy], Che
 ]
 
 # examples which test that many diverse inputs yield expected outputs
-VARIED_PARAMETER_EXAMPLES : list[tuple[str, type[ChemDBServiceQueryStrategy], ChemDBQueryParameters, Any]] = [
+VARIED_PARAMETER_EXAMPLES : list[
+    tuple[
+        str,
+        type[ChemDBServiceQueryStrategy],
+        ChemDBQueryParameters,
+        Any,
+    ] | ParameterSet
+] = [
     # for NIH CACTUS
     ( ## simple queries known to work for all services
         'iupac_name',
@@ -282,22 +290,48 @@ VARIED_PARAMETER_EXAMPLES : list[tuple[str, type[ChemDBServiceQueryStrategy], Ch
 ]
     
 class TestChemicalDatabaseServiceQueries:
-    @pytest.mark.parametrize('property_name,service_type,query_params', FIXED_PARAMETER_EXAMPLES)
-    def test_queryable_properties(self, property_name : str, service_type : type[ChemDBServiceQueryStrategy], query_params : ChemDBQueryParameters) -> None:
+    @pytest.mark.parametrize(
+        'property_name,service_type,query_params',
+        FIXED_PARAMETER_EXAMPLES,
+    )
+    def test_queryable_properties(
+        self,
+        property_name : str,
+        service_type : type[ChemDBServiceQueryStrategy],
+        query_params : ChemDBQueryParameters,
+    ) -> None:
         '''Test that the properties each service type lists as queryable do indeed return valid results'''
         skip_pytest_on_invalid_service(service_type=service_type)
         service = service_type()
         _ = service.get_property(property_name=property_name, **asdict(query_params)) # no assert, simply checking that this doesn't raise Exception
     
-    @pytest.mark.parametrize('property_name,service_type,query_params,expected_return', VARIED_PARAMETER_EXAMPLES)
-    def test_direct_service_property_query(self, property_name : str, service_type : type[ChemDBServiceQueryStrategy], query_params : ChemDBQueryParameters, expected_return : Any) -> None:
+    @pytest.mark.parametrize(
+        'property_name,service_type,query_params,expected_return',
+        VARIED_PARAMETER_EXAMPLES,
+    )
+    def test_direct_service_property_query(
+        self,
+        property_name : str,
+        service_type : type[ChemDBServiceQueryStrategy],
+        query_params : ChemDBQueryParameters,
+        expected_return : Any,
+    ) -> None:
         '''Test if a chemical database query through a given service is executed completely and returns the expected result'''
         skip_pytest_on_invalid_service(service_type=service_type)
         service = service_type()
         assert service.get_property(property_name=property_name, **asdict(query_params)) == expected_return
         
-    @pytest.mark.parametrize('property_name,service_type,query_params,expected_return', VARIED_PARAMETER_EXAMPLES)
-    def test_get_chemical_property_wrapper(self, property_name : str, service_type : type[ChemDBServiceQueryStrategy], query_params : ChemDBQueryParameters, expected_return : Any) -> None:
+    @pytest.mark.parametrize(
+        'property_name,service_type,query_params,expected_return',
+        VARIED_PARAMETER_EXAMPLES,
+    )
+    def test_get_chemical_property_wrapper(
+        self,
+        property_name : str,
+        service_type : type[ChemDBServiceQueryStrategy],
+        query_params : ChemDBQueryParameters,
+        expected_return : Any,
+    ) -> None:
         '''Test that requests filtered through the get_chemical_properties() strategy wrapper are executed faithfully'''
         skip_pytest_on_invalid_service(service_type=service_type)
         assert get_chemical_property(property_name, **asdict(query_params), services=[service_type], fail_quietly=False) == expected_return # CRUCIAL that fail_quietly be False; rely on exceptions to match with xfails
