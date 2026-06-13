@@ -6,7 +6,7 @@ __email__ = 'timotej.bernat@colorado.edu'
 import pytest
 from _pytest.mark import ParameterSet
 
-from typing import Any
+from typing import Any, Optional
 from dataclasses import dataclass, asdict
 
 from requests import HTTPError
@@ -26,6 +26,11 @@ from polymerist.smileslib.chemdbqueries import (
     
 )
 
+TIMEOUT_ERR_CODES : set[int] = {
+    500, # SERVER-SIDE PROBLEM
+    503, # MAINTENANCE OR OVERLOAD
+    504, # TIMEOUT
+}
 CHEMDB_STRATEGY_ONLINE : dict[type[ChemDBServiceQueryStrategy], bool] = {}
 CHEMDB_STRATEGY_DEPENDENCIES_MET : dict[type[ChemDBServiceQueryStrategy], bool] = {}
 for ChemDBStrategy in ChemDBServiceQueryStrategy.__subclasses__(): # dynamically determine criteria for which services should be tested
@@ -239,7 +244,7 @@ VARIED_PARAMETER_EXAMPLES : list[
         ),
         None,
         marks=pytest.mark.xfail(
-            raises=(HTTPError, ChemicalDataQueryFailed),
+            raises=(ChemicalDataQueryFailed),
             reason='Invalid request sent to PubChem (queried a name as a SMILES string)',
             strict=True,
         )
@@ -303,10 +308,19 @@ class TestChemicalDatabaseServiceQueries:
         '''Test that the properties each service type lists as queryable do indeed return valid results'''
         skip_pytest_on_invalid_service(service_type=service_type)
         service = service_type()
-        _ = service.get_property(property_name=property_name, **asdict(query_params)) # no assert, simply checking that this doesn't raise Exception
-    
+        
+        try:
+            # no assert, simply checking that this doesn't raise Exception
+            _ = service.get_property(property_name=property_name, **asdict(query_params)) 
+        except HTTPError as exc:
+            http_err_code : Optional[int] = getattr(exc, 'code', None)
+            if http_err_code in TIMEOUT_ERR_CODES:
+                pytest.skip('Overloaded server or request denied; test will be inconclusive')
+            else:
+                raise exc
+
     @pytest.mark.parametrize(
-        'property_name,service_type,query_params,expected_return',
+        'property_name,service_type,query_params,expected_property',
         VARIED_PARAMETER_EXAMPLES,
     )
     def test_direct_service_property_query(
@@ -314,15 +328,27 @@ class TestChemicalDatabaseServiceQueries:
         property_name : str,
         service_type : type[ChemDBServiceQueryStrategy],
         query_params : ChemDBQueryParameters,
-        expected_return : Any,
+        expected_property : Any,
     ) -> None:
         '''Test if a chemical database query through a given service is executed completely and returns the expected result'''
         skip_pytest_on_invalid_service(service_type=service_type)
         service = service_type()
-        assert service.get_property(property_name=property_name, **asdict(query_params)) == expected_return
+        try:
+            actual_property = service.get_property(
+                property_name=property_name,
+                **asdict(query_params),
+            )
+        except HTTPError as exc:
+            http_err_code : Optional[int] = getattr(exc, 'code', None)
+            if http_err_code in TIMEOUT_ERR_CODES:
+                pytest.skip('Overloaded server or request denied; test will be inconclusive')
+            else:
+                raise exc
+        else:
+            assert actual_property == expected_property
         
     @pytest.mark.parametrize(
-        'property_name,service_type,query_params,expected_return',
+        'property_name,service_type,query_params,expected_property',
         VARIED_PARAMETER_EXAMPLES,
     )
     def test_get_chemical_property_wrapper(
@@ -330,10 +356,23 @@ class TestChemicalDatabaseServiceQueries:
         property_name : str,
         service_type : type[ChemDBServiceQueryStrategy],
         query_params : ChemDBQueryParameters,
-        expected_return : Any,
+        expected_property : Any,
     ) -> None:
         '''Test that requests filtered through the get_chemical_properties() strategy wrapper are executed faithfully'''
         skip_pytest_on_invalid_service(service_type=service_type)
-        assert get_chemical_property(property_name, **asdict(query_params), services=[service_type], fail_quietly=False) == expected_return # CRUCIAL that fail_quietly be False; rely on exceptions to match with xfails
-        # except ChemicalDataQueryFailed:
+        try:
+            actual_property = get_chemical_property(
+                property_name,
+                **asdict(query_params),
+                services=[service_type],
+                fail_quietly=False, # CRUCIAL that fail_quietly be False; rely on exceptions to match with xfails
+            )
+        except HTTPError as exc:
+            http_err_code : Optional[int] = getattr(exc, 'code', None)
+            if http_err_code in TIMEOUT_ERR_CODES:
+                pytest.skip('Overloaded server or request denied; test will be inconclusive')
+            else:
+                raise exc
+        else:
+            assert actual_property == expected_property 
     
