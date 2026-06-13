@@ -312,10 +312,18 @@ class PubChemQueryStrategy(ChemDBServiceQueryStrategy):
             )
         except PubChemHTTPError as exc:
             LOGGER.error(f'PubChemPy threw error with code {exc.code}')
-            raise HTTPError # discards some information in return for making Strategy interface oblivious to pubchempy (i.e. in case it is not installed)
+            # discards some information in return for making downstream handlers 
+            # (e.g. unit tests) oblivious to pubchempy, avoiding need for that import 
+            stdlib_err = HTTPError() 
+            stdlib_err.code = exc.code 
+
+            raise stdlib_err
         except RemoteDisconnected:
             LOGGER.error('Server disconnected response')
-            raise HTTPError # discards some information in return for making Strategy interface oblivious to pubchempy (i.e. in case it is not installed)
+            stdlib_err = HTTPError() 
+            stdlib_err.code = 503 # HTTP 503: server is down for maintenance or overloaded (i.e. too many requests made)
+
+            raise stdlib_err 
         else:
             if pubchem_result:
                 # remove underscores to compatibilize naming hits (property names returned from PubChem will never contain underscores)
