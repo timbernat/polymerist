@@ -45,7 +45,6 @@ def scrape_SMARTS(url : str=DAYLIGHT_URL) -> pd.DataFrame:
                 group_name, SMARTS, SMARTS_desc = *term.stripped_strings, ''
             else:
                 pass
-                # print(len(text), any('example' in w.lower() for w in text), text)
 
             entry = FnGroupSMARTSEntry(category, category_desc, group_type, group_name, SMARTS, SMARTS_desc)
             entries.add(entry)
