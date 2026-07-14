@@ -28,8 +28,9 @@ from polymerist.smileslib.chemdbqueries import (
 
 TIMEOUT_ERR_CODES : set[int] = {
     500, # SERVER-SIDE PROBLEM
+    502, # INVALID GATEWAY/PROXY RESPONSE UPSTREAM
     503, # MAINTENANCE OR OVERLOAD
-    504, # TIMEOUT
+    504, # REQUEST TIMEOUT
 }
 CHEMDB_STRATEGY_ONLINE : dict[type[ChemDBServiceQueryStrategy], bool] = {}
 CHEMDB_STRATEGY_DEPENDENCIES_MET : dict[type[ChemDBServiceQueryStrategy], bool] = {}
