@@ -298,7 +298,6 @@ class PubChemQueryStrategy(ChemDBServiceQueryStrategy):
     ) -> Optional[Any]:
         from pubchempy import (
             get_properties,
-            PubChemPyError,
             PubChemHTTPError,
         )
         
