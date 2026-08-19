@@ -90,8 +90,6 @@ def test_reaction(rxn_smarts : Smarts, reactant_smiles : tuple[Smiles], expected
     assert len(products_actual) == len(products_expected), 'Mismatched number of products compared to expectation'
 
     for product_expected, product_actual in zip(products_expected, products_actual, strict=True):
-        print(Chem.MolToSmiles(product_expected, canonical=True))
-        print(Chem.MolToSmiles(product_actual, canonical=True))
         assert Chem.MolToSmiles(product_expected, canonical=True) == Chem.MolToSmiles(product_actual, canonical=True), 'Mismatches product'
     
     

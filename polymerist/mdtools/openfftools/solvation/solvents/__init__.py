@@ -29,7 +29,6 @@ def generate_water_TIP3P() -> Molecule:
 
 
 # predefine water file, if not already present
-print('new stuff')
 _water_path = _MODULE_PATH / 'water_TIP3P.sdf'
 if not _water_path.exists():
     water = generate_water_TIP3P()

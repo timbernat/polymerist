@@ -9,7 +9,7 @@ LOGGER  = logging.getLogger(__name__)
 from typing import (
     Any, 
     ClassVar, 
-    Container, 
+    Collection,
     Iterable, 
     Optional, 
     Sequence,
@@ -74,13 +74,13 @@ class ChemDBServiceQueryStrategy(ABC):
         
     @classmethod
     @abstractmethod
-    def queryable_properties(cls) -> Container[str]:
+    def queryable_properties(cls) -> Collection[str]:
         '''List which chemical property names can be queried from the service'''
         ...
 
     @classmethod
     @abstractmethod
-    def queryable_namespaces(cls) -> Container[str]:
+    def queryable_namespaces(cls) -> Collection[str]:
         '''List which chemical identification types can be searched through by the service'''
         ...
         
@@ -112,7 +112,7 @@ class ChemDBServiceQueryStrategy(ABC):
             prop_val = None # cast empty lists, strings, etc to NoneType
         
         # avoid bug where first char of string response is returned
-        if isinstance(prop_val, Container) and not isinstance(prop_val, str) and keep_first_only: 
+        if isinstance(prop_val, Collection) and not isinstance(prop_val, str) and keep_first_only: 
             prop_val = prop_val[0]
         
         # NOTE: duplicated NoneType check is needed to catch empty containers which are cast to None above
@@ -298,7 +298,6 @@ class PubChemQueryStrategy(ChemDBServiceQueryStrategy):
     ) -> Optional[Any]:
         from pubchempy import (
             get_properties,
-            PubChemPyError,
             PubChemHTTPError,
         )
         
